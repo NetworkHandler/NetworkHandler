@@ -126,7 +126,7 @@ struct EngineRequestMetadata_URLRequestProperties {
 		#expect(request.attribution != plainURLRequest.attribution)
 	}
 
-	@available(macOS 15.0, *)
+	@available(iOS 18.0, macOS 15.0, *)
 	@Test func allowsPersistentDNS() {
 		let url = testURL
 		var request = url.generalRequest
@@ -153,6 +153,7 @@ struct EngineRequestMetadata_URLRequestProperties {
 		#expect(request.assumesHTTP3Capable != plainURLRequest.assumesHTTP3Capable)
 	}
 
+	@available(iOS 16.1, *)
 	@Test func requiresDNSSECValidation() {
 		let url = testURL
 		var request = url.generalRequest
