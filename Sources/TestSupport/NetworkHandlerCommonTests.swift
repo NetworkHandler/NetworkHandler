@@ -42,6 +42,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		file: String = #fileID,
 		filePath: String = #filePath,
 		line: Int = #line,
+		column: Int = #column,
 		function: String = #function
 	) async throws {
 		let nh = getNetworkHandler(with: engine)
@@ -76,22 +77,22 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		#expect(
 			cacheDuration < (rawDuration * 0.5),
 			"The cache lookup wasn't even twice as fast as the original lookup. It's possible the cache isn't working",
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: 0))
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 
 		let imageOneData = image1Result.data
 		let imageTwoData = image2Result.data
 		#expect(
 			imageOneData == imageTwoData,
 			"hashes: \(imageOneData.hashValue) and \(imageTwoData.hashValue)",
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: 0))
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 		#expect(
 			imageOneData == imageExpectationData,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: 0))
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 
 		#if canImport(AppKit) || canImport(UIKit)
 		_ = try #require(
 			imageOneData.flatMap { TestImage(data: $0) },
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: 0))
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 		#endif
 	}
 
@@ -102,6 +103,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		file: String = #fileID,
 		filePath: String = #filePath,
 		line: Int = #line,
+		column: Int = #column,
 		function: String = #function
 	) async throws {
 		let nh = getNetworkHandler(with: engine)
@@ -114,7 +116,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 
 		#expect(
 			expectedModel == resultModel,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: 0))
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 	}
 
 	/// performs a `GET` request to `chonkURL`
@@ -123,6 +125,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		file: String = #fileID,
 		filePath: String = #filePath,
 		line: Int = #line,
+		column: Int = #column,
 		function: String = #function
 	) async throws {
 		let nh = getNetworkHandler(with: engine)
@@ -173,6 +176,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		file: String = #fileID,
 		filePath: String = #filePath,
 		line: Int = #line,
+		column: Int = #column,
 		function: String = #function
 	) async throws {
 		let nh = getNetworkHandler(with: engine)
@@ -210,6 +214,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		file: String = #fileID,
 		filePath: String = #filePath,
 		line: Int = #line,
+		column: Int = #column,
 		function: String = #function
 	) async throws {
 		let nh = getNetworkHandler(with: engine)
@@ -231,6 +236,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		file: String = #fileID,
 		filePath: String = #filePath,
 		line: Int = #line,
+		column: Int = #column,
 		function: String = #function
 	) async throws {
 		guard
@@ -268,7 +274,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		let signedRequest = try awsHeaderInfo.processRequest(request)
 
 		await #expect(
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: 0),
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column),
 			performing: {
 				_ = try await nh.transferMahDatas(
 					for: .general(signedRequest),
@@ -291,6 +297,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		file: String = #fileID,
 		filePath: String = #filePath,
 		line: Int = #line,
+		column: Int = #column,
 		function: String = #function
 	) async throws {
 		let nh = getNetworkHandler(with: engine)
@@ -328,14 +335,14 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		_ = try await nh.uploadMahDatas(for: signedRequest, payload: .data(randomData), delegate: delegate)
 		#expect(
 			atomicRequest.value.expectedContentLength != nil,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: 0))
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 
 		let dlRequest = url.generalRequest
 
 		let dlResult = try await nh.downloadMahDatas(for: dlRequest).data
 		#expect(
 			SHA256.hash(data: dlResult!) == dataHash,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: 0))
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 	}
 
 	/// performs a `PUT` request to `uploadURL`
@@ -344,6 +351,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		file: String = #fileID,
 		filePath: String = #filePath,
 		line: Int = #line,
+		column: Int = #column,
 		function: String = #function
 	) async throws {
 		guard
@@ -385,14 +393,14 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		_ = try await nh.uploadMahDatas(for: signedRequest, payload: .localFile(actualTestFile), delegate: delegate)
 		#expect(
 			atomicRequest.value.expectedContentLength != nil,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: 0))
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 
 		let dlRequest = url.generalRequest
 
 		let dlResult = try await nh.transferMahDatas(for: .general(dlRequest)).data
 		#expect(
 			SHA256.hash(data: dlResult!) == hash,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: 0))
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 	}
 
 	/// performs a `PUT` request to `uploadURL`
@@ -401,6 +409,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		file: String = #fileID,
 		filePath: String = #filePath,
 		line: Int = #line,
+		column: Int = #column,
 		function: String = #function
 	) async throws {
 		guard
@@ -448,14 +457,14 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		_ = try await nh.uploadMahDatas(for: signedRequest, payload: .localFile(multipartFile), delegate: delegate)
 		#expect(
 			atomicRequest.value.expectedContentLength != nil,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: 0))
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 
 		let dlRequest = uploadURL.generalRequest
 
 		let dlResult = try await nh.transferMahDatas(for: .general(dlRequest)).data
 		#expect(
 			SHA256.hash(data: dlResult!) == multipartHash,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: 0))
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 	}
 
 	/// performs a `PUT` request to `uploadURL`
@@ -464,6 +473,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		file: String = #fileID,
 		filePath: String = #filePath,
 		line: Int = #line,
+		column: Int = #column,
 		function: String = #function
 	) async throws {
 		guard
@@ -508,14 +518,14 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		_ = try await nh.uploadMahDatas(for: signedRequest, payload: .inputStream(multipart), delegate: delegate)
 		#expect(
 			atomicRequest.value.expectedContentLength == nil,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: 0))
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 
 		let dlRequest = uploadURL.generalRequest
 
 		let dlResult = try await nh.transferMahDatas(for: .general(dlRequest)).data
 		#expect(
 			SHA256.hash(data: dlResult!) == multipartHash,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: 0))
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 	}
 
 	/// performs a `GET` request to `badDemoModelURL`. Provided must be corrupted in some way.
@@ -524,13 +534,14 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		file: String = #fileID,
 		filePath: String = #filePath,
 		line: Int = #line,
+		column: Int = #column,
 		function: String = #function
 	) async throws {
 		let nh = getNetworkHandler(with: engine)
 		defer { nh.resetCache() }
 
 		await #expect(
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: 0),
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column),
 			performing: {
 				let _: DemoModel = try await nh.downloadMahCodableDatas(
 					for: badDemoModelURL.generalRequest,
@@ -552,6 +563,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		file: String = #fileID,
 		filePath: String = #filePath,
 		line: Int = #line,
+		column: Int = #column,
 		function: String = #function
 	) async throws {
 		let nh = getNetworkHandler(with: engine)
@@ -583,6 +595,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		file: String = #fileID,
 		filePath: String = #filePath,
 		line: Int = #line,
+		column: Int = #column,
 		function: String = #function
 	) async throws {
 		let nh = getNetworkHandler(with: engine)
@@ -612,6 +625,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		file: String = #fileID,
 		filePath: String = #filePath,
 		line: Int = #line,
+		column: Int = #column,
 		function: String = #function
 	) async throws {
 		guard
@@ -659,7 +673,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 
 		await #expect(
 			throws: NetworkError.requestCancelled,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: 0),
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column),
 			performing: {
 				_ = try await task.value
 			})
@@ -671,6 +685,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		file: String = #fileID,
 		filePath: String = #filePath,
 		line: Int = #line,
+		column: Int = #column,
 		function: String = #function
 	) async throws {
 		guard
@@ -709,7 +724,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		let expectedFailCount = 3
 
 		await #expect(
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: 0),
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column),
 			performing: {
 				_ = try await nh.uploadMahDatas(
 					for: signedRequest,
@@ -735,7 +750,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 			})
 		#expect(
 			atomicFailCount.value == expectedFailCount,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: 0))
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 	}
 
 	/// performs a `PUT` request to `randomDataURL` (only really useful to test with `MockingEngine`)
@@ -747,6 +762,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		file: String = #fileID,
 		filePath: String = #filePath,
 		line: Int = #line,
+		column: Int = #column,
 		function: String = #function
 	) async throws {
 		guard
@@ -796,10 +812,10 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 
 			#expect(
 				success.data == data,
-				sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: 0))
+				sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 			#expect(
 				success.header == header,
-				sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: 0))
+				sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 		case .failure(let failure):
 			await #expect(throws: failure, performing: {
 				_ = try await nh.uploadMahDatas(
@@ -818,7 +834,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 
 		#expect(
 			atomicFailCount.value == expectedAttemptCount,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: 0))
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 	}
 
 	/// performs a `GET` request to `randomDataURL`. Provided must be corrupted in some way.
@@ -827,6 +843,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		file: String = #fileID,
 		filePath: String = #filePath,
 		line: Int = #line,
+		column: Int = #column,
 		function: String = #function
 	) async throws {
 		let nh = getNetworkHandler(with: engine)
@@ -851,16 +868,16 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 
 		#expect(
 			header.expectedContentLength != nil,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: 0))
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 		#expect(
 			header.expectedContentLength.map(Int.init) == expectedTotalAtomic.value,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: 0))
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 		#expect(
 			accumulator.value.isOccupied,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: 0))
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 		#expect(
 			accumulator.value.sorted() == accumulator.value,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: 0))
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 	}
 
 	/// performs a `PUT` request to `randomDataURL`. Provided must be corrupted in some way.
@@ -869,6 +886,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		file: String = #fileID,
 		filePath: String = #filePath,
 		line: Int = #line,
+		column: Int = #column,
 		function: String = #function
 	) async throws {
 		let nh = getNetworkHandler(with: engine)
@@ -914,16 +932,16 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 
 		#expect(
 			updatedRequestAtomic.value.headers[.contentLength] != nil,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: 0))
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 		#expect(
 			updatedRequestAtomic.value.headers[.contentLength].flatMap { Int($0.rawValue) } == expectedTotalAtomic.value,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: 0))
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 		#expect(
 			accumulator.value.isOccupied,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: 0))
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 		#expect(
 			accumulator.value.sorted() == accumulator.value,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: 0))
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 	}
 
 	/// performs a `GET` request to `echoURL`. Provided must be corrupted in some way.
@@ -932,6 +950,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		file: String = #fileID,
 		filePath: String = #filePath,
 		line: Int = #line,
+		column: Int = #column,
 		function: String = #function
 	) async throws {
 		let nh = getNetworkHandler(with: engine)
