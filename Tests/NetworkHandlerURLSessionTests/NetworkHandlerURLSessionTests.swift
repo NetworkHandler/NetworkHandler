@@ -13,7 +13,7 @@ struct NetworkHandlerURLSessionTests: Sendable {
 	@Test func downloadAndCacheImages() async throws {
 		let mockingEngine = generateEngine()
 
-		let lighthouseURL = Bundle.testBundle.url(forResource: "lighthouse", withExtension: "jpg", subdirectory: "Resources")!
+		let lighthouseURL = Bundle.testBundle.url(forResource: "lighthouse", withExtension: "jpg")!
 		let lighthouseData = try Data(contentsOf: lighthouseURL)
 
 		try await commonTests.downloadAndCacheImages(engine: mockingEngine, imageExpectationData: lighthouseData)
