@@ -4,13 +4,12 @@
 import PackageDescription
 
 var products: [Product] = [
-	// Products define the executables and libraries produced by a package, and make them visible to other packages.
-	.library(
-		name: "NetworkHandler",
-		targets: ["NetworkHandler"]),
 	.library(
 		name: "NetworkHalpers",
 		targets: ["NetworkHalpers"]),
+	.library(
+		name: "NetworkHandler",
+		targets: ["NetworkHandler"]),
 	.library(
 		name: "NetworkHandlerAHCEngine",
 		targets: ["NetworkHandlerAHCEngine"]),
@@ -76,7 +75,7 @@ var targets: [Target] = [
 			"NetworkHandlerMockingEngine",
 		],
 		resources: [
-			.copy("Resources")
+			.process("Resources")
 		],
 		plugins: [
 			.plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")
