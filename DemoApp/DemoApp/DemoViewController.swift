@@ -43,7 +43,8 @@ class DemoViewController: UITableViewController {
 		}
 	}
 
-	@objc func refreshData() {
+	@objc
+	func refreshData() {
 		Task {
 			do {
 				try await demoModelController.fetchDemoModels()

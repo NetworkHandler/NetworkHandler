@@ -15,7 +15,7 @@ var products: [Product] = [
 		targets: ["NetworkHandlerAHCEngine"]),
 	.library(
 		name: "NetworkHandlerMockingEngine",
-		targets: ["NetworkHandlerMockingEngine"])
+		targets: ["NetworkHandlerMockingEngine"]),
 ]
 
 var targets: [Target] = [
