@@ -1,7 +1,7 @@
-@testable import NetworkHandler
-import XCTest
 import Logging
+@testable import NetworkHandler
 import NetworkHandlerMockingEngine
+import XCTest
 
 class NetworkDiskCacheTests: NetworkCacheTest {
 

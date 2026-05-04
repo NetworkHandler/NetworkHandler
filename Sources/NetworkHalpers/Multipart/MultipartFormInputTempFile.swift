@@ -1,6 +1,6 @@
 import Foundation
-import SwiftPizzaSnips
 import HTTPTypes
+import SwiftPizzaSnips
 
 /**
 Use this to generate a binary file to upload multipart form data. This copies source data and files into a single

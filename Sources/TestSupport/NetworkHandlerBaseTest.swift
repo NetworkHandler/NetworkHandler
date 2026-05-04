@@ -1,8 +1,8 @@
+import Crypto
+import Foundation
 @testable import NetworkHandler
 import NetworkHandlerMockingEngine
 import XCTest
-import Crypto
-import Foundation
 
 #if os(macOS)
 public typealias TestImage = NSImage

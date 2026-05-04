@@ -1,10 +1,10 @@
-import Testing
 import Foundation
-import TestSupport
+import Logging
 import NetworkHandler
 import NetworkHandlerURLSessionEngine
-import Logging
 import SwiftPizzaSnips
+import Testing
+import TestSupport
 
 @Suite(.serialized)
 struct NetworkHandlerURLSessionTests: Sendable {

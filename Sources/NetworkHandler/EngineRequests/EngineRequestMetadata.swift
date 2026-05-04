@@ -1,7 +1,7 @@
-import NetworkHalpers
 import Foundation
-import SwiftPizzaSnips
 import HTTPTypes
+import NetworkHalpers
+import SwiftPizzaSnips
 
 /// Encapsulates shared metadata for a network engine request, such as headers, response codes,
 /// HTTP method, and URL. Designed to be shared across related request types (`GeneralEngineRequest`

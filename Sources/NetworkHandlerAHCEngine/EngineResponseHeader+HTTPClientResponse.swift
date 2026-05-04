@@ -1,9 +1,9 @@
-import NetworkHandler
 import AsyncHTTPClient
 import Foundation
-import NIOHTTP1
 import HTTPTypes
 import Logging
+import NetworkHandler
+import NIOHTTP1
 
 extension EngineResponseHeader {
 	private static let log = Logger(label: "Async Engine Response")

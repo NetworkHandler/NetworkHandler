@@ -1,7 +1,7 @@
 @testable import NetworkHandler
-import XCTest
-import PizzaMacros
 import NetworkHandlerMockingEngine
+import PizzaMacros
+import XCTest
 
 class NetworkCacheTests: NetworkCacheTest {
 	private let mockingEngine = MockingEngine()

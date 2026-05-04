@@ -1,5 +1,5 @@
-import NetworkHandler
 import Foundation
+import NetworkHandler
 
 public extension EngineRequestMetadata {
 	internal var derivedURLRequest: URLRequest {

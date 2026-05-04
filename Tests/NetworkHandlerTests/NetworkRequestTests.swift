@@ -1,10 +1,10 @@
-import Testing
-import NetworkHandler
-import TestSupport
-import PizzaMacros
 import Foundation
 import HTTPTypes
+import NetworkHandler
 import NHMacros
+import PizzaMacros
+import Testing
+import TestSupport
 
 struct NetworkRequestTests {
 	@Test func genericEncoding() async throws {

@@ -1,11 +1,11 @@
 @_exported import AsyncHTTPClient
-import SwiftPizzaSnips
 @preconcurrency import Foundation
-import Swift
-import NIOCore
-import NIOHTTP1
 import Logging
 @_exported import NetworkHandler
+import NIOCore
+import NIOHTTP1
+import Swift
+import SwiftPizzaSnips
 
 extension HTTPClient: @retroactive Withable {}
 extension HTTPClient: NetworkEngine {

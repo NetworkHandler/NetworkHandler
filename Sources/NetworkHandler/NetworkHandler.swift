@@ -1,7 +1,7 @@
 import Foundation
+import Logging
 @_exported import NetworkHalpers
 import SwiftPizzaSnips
-import Logging
 
 /// The bread and butter of this package!
 ///

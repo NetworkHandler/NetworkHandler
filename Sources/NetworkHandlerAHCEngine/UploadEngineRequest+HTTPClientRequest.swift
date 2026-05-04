@@ -1,7 +1,7 @@
 import AsyncHTTPClient
-import NIOCore
-import NetworkHandler
 import HTTPTypes
+import NetworkHandler
+import NIOCore
 
 extension UploadEngineRequest {
 	public var httpClientFutureRequest: HTTPClient.Request {

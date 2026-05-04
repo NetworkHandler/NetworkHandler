@@ -1,5 +1,5 @@
-import NetworkHalpers
 import Foundation
+import NetworkHalpers
 import SwiftPizzaSnips
 
 /// Represents different ways to supply upload data:

@@ -1,7 +1,7 @@
 import Foundation
-import NetworkHandler
 import HTTPTypes
 import Logging
+import NetworkHandler
 import NHMacros
 
 extension EngineResponseHeader {

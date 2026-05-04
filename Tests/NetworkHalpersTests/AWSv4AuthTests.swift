@@ -1,10 +1,10 @@
-import XCTest
-@testable import NetworkHalpers
-import TestSupport
 import Crypto
-import PizzaMacros
 import HTTPTypes
+@testable import NetworkHalpers
 import NHMacros
+import PizzaMacros
+import TestSupport
+import XCTest
 
 class AWSv4AuthTests: XCTestCase {
 

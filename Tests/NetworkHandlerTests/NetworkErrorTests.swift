@@ -1,7 +1,7 @@
-import XCTest
 import NetworkHandler
-@testable import TestSupport
 import PizzaMacros
+@testable import TestSupport
+import XCTest
 
 /// Obviously dependent on network conditions
 class NetworkErrorTests: XCTestCase {

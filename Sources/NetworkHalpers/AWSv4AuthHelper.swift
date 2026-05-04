@@ -1,8 +1,8 @@
-import Foundation
 import Crypto
-import SwiftPizzaSnips
+import Foundation
 import HTTPTypes
 import NHMacros
+import SwiftPizzaSnips
 
 /// Represents the AWS Signature Version 4 signing process, which is used to securely sign AWS API requests.
 /// This structure stores all necessary information for constructing the AWS signature including HTTP method,

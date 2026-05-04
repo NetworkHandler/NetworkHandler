@@ -1,6 +1,6 @@
 import Foundation
-import SwiftPizzaSnips
 import NetworkHandler
+import SwiftPizzaSnips
 
 extension URLSession {
 	/// Used internally for upload tasks. Requires being set as the delegate on the URLSession. I can't remember if it

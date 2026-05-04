@@ -1,7 +1,7 @@
-import NetworkHalpers
 import Foundation
-import SwiftPizzaSnips
 import HTTPTypes
+import NetworkHalpers
+import SwiftPizzaSnips
 
 /// Represents an HTTP request for most HTTP interactions, such as sending or retrieving JSON or binary responses.
 /// While upload progress is not tracked, download progress is monitored.

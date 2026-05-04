@@ -1,8 +1,8 @@
-import Testing
-import NetworkHandler
-import PizzaMacros
 import Foundation
 import HTTPTypes
+import NetworkHandler
+import PizzaMacros
+import Testing
 
 struct EngineHeaderTests {
 	@Test func responseDescription() {

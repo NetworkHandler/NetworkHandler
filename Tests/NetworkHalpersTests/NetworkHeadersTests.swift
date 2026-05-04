@@ -1,7 +1,7 @@
-import Testing
-import NetworkHalpers
 import HTTPTypes
+import NetworkHalpers
 import NHMacros
+import Testing
 
 struct NetworkHeadersTests {
 	// swiftlint:disable identifier_name

@@ -1,8 +1,8 @@
 import Logging
 @testable import NetworkHandler
-import XCTest
-import TestSupport
 import NetworkHandlerMockingEngine
+import TestSupport
+import XCTest
 
 class NetworkCacheTest: NetworkHandlerBaseTest<MockingEngine> {
 	func waitForCacheToFinishActivity(_ cache: NetworkDiskCache, timeout: TimeInterval = 10) {

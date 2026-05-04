@@ -1,6 +1,6 @@
 import Foundation
-@preconcurrency import SwiftlyDotEnv
 import Logging
+@preconcurrency import SwiftlyDotEnv
 
 /// most easily populated by setting up env vars in xcode scheme. not sure how to do on linux...
 public enum TestEnvironment {

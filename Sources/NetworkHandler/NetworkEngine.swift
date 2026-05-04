@@ -1,6 +1,6 @@
 import Foundation
-import SwiftPizzaSnips
 import Logging
+import SwiftPizzaSnips
 
 /// Convenience type for forwarding the content of a response body.
 public typealias ResponseBodyStream = AsyncCancellableThrowingStream<[UInt8], Error>
