@@ -3,6 +3,7 @@ import Logging
 import NetworkHandler
 import SwiftPizzaSnips
 import Algorithms
+import HTTPTypes
 
 public actor MockingEngine: NetworkEngine {
 	public var acceptedIntercepts: [Key: SmartResponseMockBlock] { get async { await server.acceptedIntercepts } }
@@ -13,7 +14,7 @@ public actor MockingEngine: NetworkEngine {
 
 	public func addMock(
 		for url: URL,
-		method: HTTPMethod,
+		method: HTTPRequest.Method,
 		responseData: Data?,
 		responseCode: Int,
 		delay: TimeInterval = 0
@@ -22,7 +23,7 @@ public actor MockingEngine: NetworkEngine {
 			if delay > 0 {
 				try await Task.sleep(for: .seconds(delay))
 			}
-			let headers: HTTPHeaders
+			let headers: HTTPFields
 			if let responseData {
 				headers = [
 					.contentLength: "\(responseData.count)"
@@ -36,7 +37,7 @@ public actor MockingEngine: NetworkEngine {
 
 	public func addMock(
 		for url: URL,
-		method: HTTPMethod,
+		method: HTTPRequest.Method,
 		smartBlock: @escaping @Sendable SmartResponseMockBlock
 	) async {
 		let key = Key(url: url, method: method)
@@ -336,9 +337,9 @@ extension MockingEngine {
 
 		public struct Key: Hashable, Sendable {
 			public let url: URL
-			public let method: HTTPMethod
+			public let method: HTTPRequest.Method
 
-			init(url: URL, method: HTTPMethod) {
+			init(url: URL, method: HTTPRequest.Method) {
 				self.url = Key.stripQuery(from: url)
 				self.method = method
 			}

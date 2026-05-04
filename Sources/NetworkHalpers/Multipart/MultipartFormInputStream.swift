@@ -1,4 +1,5 @@
 import Foundation
+import HTTPTypes
 
 /**
 Use this to generate a stream to upload multipart form data. This can be very efficient as it generates meta data on
@@ -18,7 +19,7 @@ public class MultipartFormInputStream: ConcatenatedInputStream {
 		streams.reduce(0) { $0 + (($1 as? Part)?.length ?? 0) }
 	}
 
-	public var multipartContentTypeHeaderValue: HTTPHeaders.Header.Value {
+	public var multipartContentTypeHeaderValue: HTTPField.Value {
 		"multipart/form-data; boundary=\(boundary)"
 	}
 

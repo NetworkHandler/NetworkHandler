@@ -3,6 +3,7 @@ import XCTest
 import TestSupport
 import Crypto
 import PizzaMacros
+import HTTPTypes
 
 class AWSv4AuthTests: XCTestCase {
 
@@ -46,8 +47,8 @@ class AWSv4AuthTests: XCTestCase {
 	func testApplyingAdditionalHeaders() throws {
 		let request = Self.awsURL.generalRequest
 
-		let headerKey: HTTPHeaders.Header.Key = "AdditionalHeaderKey"
-		let headerValue: HTTPHeaders.Header.Value = "AdditionalHeaderValue"
+		let headerKey: HTTPField.Name = .init("AdditionalHeaderKey")!
+		let headerValue: HTTPField.Value = "AdditionalHeaderValue"
 		let awsSignature = AWSV4Signature(
 			requestMethod: .get,
 			url: Self.awsURL,
@@ -57,12 +58,12 @@ class AWSv4AuthTests: XCTestCase {
 			awsService: .s3,
 			hexContentHash: "\(SHA256.hash(data: Data("".utf8)).hex())",
 			additionalSignedHeaders: [
-				headerKey: headerValue
+				headerKey: headerValue.rawValue
 			])
 
-		XCTAssertNil(request.headers.value(for: headerKey))
+		XCTAssertNil(request.headers[headerKey])
 		let dlRequest = try awsSignature.processRequest(.general(request))
 
-		XCTAssertEqual(dlRequest.headers.value(for: headerKey), headerValue.rawValue)
+		XCTAssertEqual(dlRequest.headers[headerKey], headerValue.rawValue)
 	}
 }

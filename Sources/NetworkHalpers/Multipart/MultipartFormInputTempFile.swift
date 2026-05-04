@@ -1,5 +1,6 @@
 import Foundation
 import SwiftPizzaSnips
+import HTTPTypes
 
 /**
 Use this to generate a binary file to upload multipart form data. This copies source data and files into a single
@@ -16,7 +17,7 @@ public class MultipartFormInputTempFile: @unchecked Sendable {
 
 	private let lock = MutexLock()
 
-	public var multipartContentTypeHeaderValue: HTTPHeaders.Header.Value {
+	public var multipartContentTypeHeaderValue: HTTPField.Value {
 		"multipart/form-data; boundary=\(boundary)"
 	}
 

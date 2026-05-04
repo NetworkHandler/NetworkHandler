@@ -934,7 +934,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 			updatedRequestAtomic.value.headers[.contentLength] != nil,
 			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 		#expect(
-			updatedRequestAtomic.value.headers[.contentLength].flatMap { Int($0.rawValue) } == expectedTotalAtomic.value,
+			updatedRequestAtomic.value.headers[semantic: .contentLength].flatMap { Int($0.rawValue) } == expectedTotalAtomic.value, // swiftlint:disable:this line_length
 			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 		#expect(
 			accumulator.value.isOccupied,

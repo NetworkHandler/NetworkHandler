@@ -1,5 +1,6 @@
 import NetworkHalpers
 import Foundation
+import HTTPTypes
 
 /// Represents the metadata of an HTTP response, including the status code, headers,
 /// and additional derived properties for easier access to common response attributes.
@@ -15,11 +16,11 @@ public struct EngineResponseHeader: Hashable, Sendable, Codable {
 	/// The collection of HTTP headers returned in the response.
 	/// Provides access to both raw header values and convenience properties such as
 	/// `expectedContentLength` and `mimeType` derived from specific headers.
-	public let headers: HTTPHeaders
+	public let headers: HTTPFields
 
 	/// Extracts the `Content-Length` header value and converts it to a `Int64`, if present.
 	/// Represents the expected size of the HTTP response body in bytes.
-	public var expectedContentLength: Int64? { headers[.contentLength].flatMap { Int64($0.rawValue) } }
+	public var expectedContentLength: Int64? { headers[.contentLength].flatMap(Int64.init) }
 	/// Extracts a suggested filename from the `Content-Disposition` header, if provided.
 	///
 	/// This is commonly used to determine a file name when downloading an attachment from the server.
@@ -27,7 +28,7 @@ public struct EngineResponseHeader: Hashable, Sendable, Codable {
 	///
 	/// - Returns: The suggested filename as a `String`, or `nil` if the header is not present or improperly formatted.
 	public var suggestedFilename: String? {
-		guard let contentDisp = headers[.contentDisposition]?.rawValue else { return nil }
+		guard let contentDisp = headers[.contentDisposition] else { return nil }
 		let name = contentDisp.firstMatch(of: /filename="(?<filename>[^"]+)"/)?.output.filename
 		return name.map(String.init)
 	}
@@ -39,7 +40,7 @@ public struct EngineResponseHeader: Hashable, Sendable, Codable {
 	/// - `image/jpeg`
 	///
 	/// - Returns: The MIME type as a `String`, or `nil` if the header is not present.
-	public var mimeType: String? { headers[.contentType]?.rawValue }
+	public var mimeType: String? { headers[.contentType] }
 	/// The final URL for the response. This value may differ from the original request's URL
 	/// if redirects occurred during the network operation.
 	///
@@ -53,9 +54,22 @@ public struct EngineResponseHeader: Hashable, Sendable, Codable {
 	///   - status: The HTTP status code of the response, such as `200`.
 	///   - url: The final URL for the response, accounting for any redirects.
 	///   - headers: The HTTP headers returned in the response.
-	public init(status: Int, url: URL?, headers: HTTPHeaders) {
+	public init(status: Int, url: URL?, headers: HTTPFields) {
 		self.status = status
 		self.headers = headers
+		self.url = url
+	}
+
+	/// Initializes a new instance of `EngineResponseHeader`.
+	///
+	/// - Parameters:
+	///   - status: The HTTP status code of the response, such as `200`.
+	///   - url: The final URL for the response, accounting for any redirects.
+	///   - headers: The HTTP headers returned in the response.
+	@_disfavoredOverload
+	public init(status: Int, url: URL?, headers: [HTTPField.Name: HTTPField.Value]) {
+		self.status = status
+		self.headers = HTTPFields(headers)
 		self.url = url
 	}
 }
@@ -78,7 +92,7 @@ extension EngineResponseHeader: CustomStringConvertible, CustomDebugStringConver
 			accumulator.append("Suggested Filename - \(suggestedFilename)")
 		}
 		accumulator.append("All Headers:")
-		accumulator.append(headers.description.prefixingLines(with: "\t"))
+		accumulator.append("\(headers)".prefixingLines(with: "\t"))
 
 		accumulator = accumulator.map { $0.prefixingLines(with: "\t") }
 		accumulator = ["EngineResponse:"] + accumulator

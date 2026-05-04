@@ -1,6 +1,7 @@
 import NetworkHalpers
 import Foundation
 import SwiftPizzaSnips
+import HTTPTypes
 
 /// An HTTP request type designed specifically for uploading larger payloads, such as files or
 /// large binary data. Unlike `GeneralEngineRequest`, this tracks both upload and download progress.
@@ -32,8 +33,8 @@ public struct UploadEngineRequest: Hashable, Sendable, Withable {
 	///   - autogenerateRequestID: When set to `true`(default) a UUID is generated and put in the request ID header.
 	public init(
 		expectedResponseCodes: ResponseCodes = [200],
-		headers: HTTPHeaders = [:],
-		method: HTTPMethod = .post,
+		headers: HTTPFields = [:],
+		method: HTTPRequest.Method = .post,
 		url: URL,
 		autogenerateRequestID: Bool = true
 	) {

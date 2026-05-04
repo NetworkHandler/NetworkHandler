@@ -1,6 +1,7 @@
 import AsyncHTTPClient
 import NIOCore
 import NetworkHandler
+import HTTPTypes
 
 extension UploadEngineRequest {
 	public var httpClientFutureRequest: HTTPClient.Request {
@@ -8,7 +9,7 @@ extension UploadEngineRequest {
 			try HTTPClient.Request(
 				url: self.url,
 				method: .init(rawValue: self.method.rawValue),
-				headers: .init(self.headers.map { ($0.key.rawValue, $0.value.rawValue) }),
+				headers: .init(self.headers.map { ($0.name.rawName, $0.value) }),
 				body: nil)
 		}
 	}

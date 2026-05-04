@@ -2,6 +2,7 @@ import Testing
 import NetworkHandler
 import PizzaMacros
 import Foundation
+import HTTPTypes
 
 struct EngineHeaderTests {
 	@Test func responseDescription() {

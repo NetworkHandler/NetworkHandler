@@ -5,7 +5,7 @@ extension GeneralEngineRequest {
 	package var urlRequest: URLRequest {
 		var new = URLRequest(url: self.url)
 		for header in self.headers {
-			new.addValue(header.value.rawValue, forHTTPHeaderField: header.key.rawValue)
+			new.addValue(header.value, forHTTPHeaderField: header.name.rawName)
 		}
 		new.httpMethod = self.method.rawValue
 

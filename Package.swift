@@ -27,6 +27,7 @@ var targets: [Target] = [
 			"SwiftPizzaSnips",
 			.product(name: "AsyncHTTPClient", package: "async-http-client"),
 			.product(name: "Logging", package: "swift-log"),
+			.product(name: "HTTPTypes", package: "swift-http-types"),
 		],
 		plugins: [
 			.plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")
@@ -61,6 +62,7 @@ var targets: [Target] = [
 			.product(name: "Crypto", package: "swift-crypto"),
 			"SwiftPizzaSnips",
 			.product(name: "Logging", package: "swift-log"),
+			.product(name: "HTTPTypes", package: "swift-http-types"),
 		],
 		plugins: [
 			.plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")
@@ -180,6 +182,7 @@ let package = Package(
 		.package(url: "https://github.com/swift-server/async-http-client", .upToNextMajor(from: "1.25.2")),
 		.package(url: "https://github.com/apple/swift-log.git", .upToNextMajor(from: "1.6.2")),
 		.package(url: "https://github.com/apple/swift-algorithms.git", .upToNextMajor(from: "1.2.1")),
-		.package(url: "https://github.com/SimplyDanny/SwiftLintPlugins", from: "0.58.2")
+		.package(url: "https://github.com/SimplyDanny/SwiftLintPlugins", from: "0.58.2"),
+		.package(url: "https://github.com/apple/swift-http-types.git", from: "1.5.1"),
 	],
 	targets: targets)

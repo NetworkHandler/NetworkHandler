@@ -3,6 +3,7 @@ import NetworkHandler
 import TestSupport
 import PizzaMacros
 import Foundation
+import HTTPTypes
 
 struct NetworkRequestTests {
 	@Test func genericEncoding() async throws {
@@ -27,24 +28,24 @@ struct NetworkRequestTests {
 		}
 		var request = NetworkRequest.general(origRequest)
 
-		request.headers.addValue(.json, forKey: .contentType)
+		request.headers.addValue(.json, for: .contentType)
 		#expect("application/json" == request.headers[.contentType])
-		request.headers.setValue(.xml, forKey: .contentType)
+		request.headers.setValue(.xml, for: .contentType)
 		#expect("application/xml" == request.headers[.contentType])
-		request.headers.setValue("Bearer: 12345", forKey: .authorization)
-		#expect(["Content-Type": "application/xml", "Authorization": "Bearer: 12345"] == request.headers)
+		request.headers.setValue("Bearer 12345", for: .authorization)
+		#expect([.init("Content-Type")!: "application/xml", .init("Authorization")!: "Bearer 12345"] == request.headers)
 
-		request.headers.setValue(nil, forKey: .authorization)
-		#expect(["Content-Type": "application/xml"] == request.headers)
+		request.headers.setValue(nil, for: .authorization)
+		#expect([.init("Content-Type")!: "application/xml"] == request.headers)
 		#expect(request.headers[.authorization] == nil)
 
-		request.headers.setValue("Arbitrary Value", forKey: "Arbitrary Key")
-		#expect(["Content-Type": "application/xml", "arbitrary key": "Arbitrary Value"] == request.headers)
+		request.headers.setValue("Arbitrary Value", for: .init("Arbitrary-Key")!)
+		#expect([.init("Content-Type")!: "application/xml", .init("arbitrary-key")!: "Arbitrary Value"] == request.headers)
 
-		let allFields: HTTPHeaders = [
-			"Content-Type": "application/xml",
-			"Authorization": "Bearer: 12345",
-			"Arbitrary Key": "Arbitrary Value",
+		let allFields: HTTPFields = [
+			.init("Content-Type")!: "application/xml",
+			.init("Authorization")!: "Bearer: 12345",
+			.init("Arbitrary-Key")!: "Arbitrary Value",
 		]
 		request.headers = allFields
 		#expect(allFields == request.headers)
@@ -52,14 +53,14 @@ struct NetworkRequestTests {
 		var request2 = dummyURL.generalRequest.with {
 			$0.requestID = nil
 		}
-		request2.headers.setValue(.audioMp4, forKey: .contentType)
-		#expect("audio/mp4" == request2.headers.value(for: .contentType))
+		request2.headers.setValue(.audioMp4, for: .contentType)
+		#expect("audio/mp4" == request2.headers[.contentType])
 
 		request2.headers.setContentType(.bmp)
-		#expect("image/bmp" == request2.headers.value(for: .contentType))
+		#expect("image/bmp" == request2.headers[.contentType])
 
 		request2.headers.setAuthorization("Bearer asdlkqf")
-		#expect("Bearer asdlkqf" == request2.headers.value(for: .authorization))
+		#expect("Bearer asdlkqf" == request2.headers[.authorization])
 	}
 
 	@Test func requestHeadersWithDuplicates() async throws {
@@ -67,10 +68,10 @@ struct NetworkRequestTests {
 		var requestWithNoDup = dummyURL.generalRequest.with {
 			$0.requestID = nil
 		}
-		requestWithNoDup.headers.addValue("sessionId=abc123", forKey: .cookie)
+		requestWithNoDup.headers.addValue("sessionId=abc123", for: .cookie)
 
 		var requestWithDup = requestWithNoDup
-		requestWithDup.headers.addValue("foo=bar", forKey: .cookie)
+		requestWithDup.headers.addValue("foo=bar", for: .cookie)
 
 		#expect(requestWithDup != requestWithNoDup)
 		#expect(requestWithDup.headers.count == 2)
@@ -84,10 +85,10 @@ struct NetworkRequestTests {
 		}
 		var request2 = request1
 
-		request1.headers.addValue("sessionId=abc123", forKey: .cookie)
-		request1.headers.addValue("foo=bar", forKey: .cookie)
-		request2.headers.addValue("foo=bar", forKey: .cookie)
-		request2.headers.addValue("sessionId=abc123", forKey: .cookie)
+		request1.headers.addValue("sessionId=abc123", for: .cookie)
+		request1.headers.addValue("foo=bar", for: .cookie)
+		request2.headers.addValue("foo=bar", for: .cookie)
+		request2.headers.addValue("sessionId=abc123", for: .cookie)
 
 		#expect(request1 == request2)
 		#expect(request1.headers.count == 2)
@@ -95,7 +96,7 @@ struct NetworkRequestTests {
 	}
 
 	@Test func headerKeysAndValuesEquatableWithString() {
-		let contentKey = HTTPHeaders.Header.Key.contentType
+		let contentKey = HTTPField.Name.contentType
 
 		let nilString: String? = nil
 
@@ -105,7 +106,7 @@ struct NetworkRequestTests {
 		#expect(contentKey != "Content-Typo")
 		#expect(contentKey != nilString)
 
-		let gif = HTTPHeaders.Header.Value.gif
+		let gif = HTTPField.Value.gif
 
 		#expect("image/gif" == gif)
 		#expect(gif == "image/gif")

@@ -1,6 +1,7 @@
 import NetworkHalpers
 import Foundation
 import SwiftPizzaSnips
+import HTTPTypes
 
 /// Represents an HTTP request for most HTTP interactions, such as sending or retrieving JSON or binary responses.
 /// While upload progress is not tracked, download progress is monitored.
@@ -55,8 +56,8 @@ public struct GeneralEngineRequest: Hashable, Sendable, Withable {
 
 	public init(
 		expectedResponseCodes: ResponseCodes = [200],
-		headers: HTTPHeaders = [:],
-		method: HTTPMethod = .get,
+		headers: HTTPFields = [:],
+		method: HTTPRequest.Method = .get,
 		url: URL,
 		payload: Data? = nil,
 		autogenerateRequestID: Bool = true

@@ -1,6 +1,7 @@
 import Foundation
 import Crypto
 import SwiftPizzaSnips
+import HTTPTypes
 
 /// Represents the AWS Signature Version 4 signing process, which is used to securely sign AWS API requests.
 /// This structure stores all necessary information for constructing the AWS signature including HTTP method,
@@ -10,7 +11,7 @@ import SwiftPizzaSnips
 public struct AWSV4Signature: Hashable, Sendable, Withable {
 	/// The HTTP method (e.g., GET, POST) used for the request.
 	/// Defaults to `.get`.
-	public var requestMethod: HTTPMethod = .get
+	public var requestMethod: HTTPRequest.Method = .get
 	/// The URL of the API request to be signed.
 	/// It is a critical component in building the canonical request string.
 	public var url: URL
@@ -37,7 +38,7 @@ public struct AWSV4Signature: Hashable, Sendable, Withable {
 	public var hexContentHash: AWSContentHash
 	/// Custom HTTP headers that you want to include in the signature calculation.
 	/// Make sure to omit these headers from the request yourself as they are added during the `processRequest()` call.
-	public var additionalSignedHeaders: [HTTPHeaders.Header.Key: HTTPHeaders.Header.Value]
+	public var additionalSignedHeaders: HTTPFields
 
 	/// Initializes a new instance of `AWSV4Signature` with the provided request attributes.
 	///
@@ -53,7 +54,7 @@ public struct AWSV4Signature: Hashable, Sendable, Withable {
 	///   - additionalSignedHeaders: Any additional headers to include in the signing process.
 	///   Make sure to omit these headers from the request yourself as they are added during the `processRequest()` call.
 	public init(
-		requestMethod: HTTPMethod = .get,
+		requestMethod: HTTPRequest.Method = .get,
 		url: URL,
 		date: Date = Date(),
 		awsKey: String,
@@ -61,7 +62,7 @@ public struct AWSV4Signature: Hashable, Sendable, Withable {
 		awsRegion: AWSV4Signature.AWSRegion,
 		awsService: AWSV4Signature.AWSService,
 		hexContentHash: AWSContentHash,
-		additionalSignedHeaders: [HTTPHeaders.Header.Key: HTTPHeaders.Header.Value]) {
+		additionalSignedHeaders: HTTPFields) {
 			self.requestMethod = requestMethod
 			self.url = url
 			self.date = date
@@ -81,11 +82,11 @@ public struct AWSV4Signature: Hashable, Sendable, Withable {
 	/// - `Authorization`: The computed AWS Authorization header.
 	///
 	/// Returns a dictionary of header keys and values for use in the signed request.
-	public var amzHeaders: [HTTPHeaders.Header.Key: HTTPHeaders.Header.Value] {
+	public var amzHeaders: HTTPFields {
 		[
-			"x-amz-content-sha256": "\(hexContentHash.rawValue)",
-			"x-amz-date": "\(Self.isoDateString(from: date))",
-			"Authorization": "\(authorizationString)",
+			.init("x-amz-content-sha256")!: "\(hexContentHash.rawValue)",
+			.init("x-amz-date")!: "\(Self.isoDateString(from: date))",
+			.authorization: "\(authorizationString)",
 		]
 	}
 
@@ -109,8 +110,8 @@ public struct AWSV4Signature: Hashable, Sendable, Withable {
 	/// - Throws: `AWSAuthError` if the provided `url` or `method` does not match the expected values.
 	public func processRequestInfo<T>(
 		url: URL,
-		method: HTTPMethod,
-		headersBlock: (HTTPHeaders) -> T
+		method: HTTPRequest.Method,
+		headersBlock: (HTTPFields) -> T
 	) throws(AWSAuthError) -> T {
 		guard url == self.url else {
 			throw .requestURLNoMatch
@@ -119,14 +120,14 @@ public struct AWSV4Signature: Hashable, Sendable, Withable {
 			throw .requestMethodNoMatch
 		}
 
-		let headers: HTTPHeaders = {
-			var start: HTTPHeaders = []
+		let headers: HTTPFields = {
+			var start: HTTPFields = [:]
 			amzHeaders.forEach {
-				let newHeader = HTTPHeaders.Header(key: $0.key, value: $0.value)
+				let newHeader = HTTPField(name: $0.name, value: $0.value)
 				start.append(newHeader)
 			}
 			additionalSignedHeaders.forEach {
-				let newHeader = HTTPHeaders.Header(key: $0.key, value: $0.value)
+				let newHeader = HTTPField(name: $0.name, value: $0.value)
 				start.append(newHeader)
 			}
 			return start
@@ -211,7 +212,7 @@ extension AWSV4Signature {
 
 	private var headerStuff: (canonicalHeaders: String, signedHeaders: String) {
 		var allHeaders = additionalSignedHeaders.reduce(into: [String: String]()) {
-			$0[$1.key.rawValue.lowercased()] = $1.value.rawValue
+			$0[$1.name.canonicalName] = $1.value
 		}
 		allHeaders["host"] = components.host
 		allHeaders["x-amz-content-sha256"] = hexContentHash.rawValue

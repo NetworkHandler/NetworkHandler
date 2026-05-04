@@ -1,4 +1,16 @@
-extension HTTPHeaders.Header {
+import Foundation
+import HTTPTypes
+
+extension HTTPField {
+	public var semanticValue: Value {
+		get { .init(rawValue: self.value) }
+		set { self.value = newValue.rawValue }
+	}
+
+	public init(name: Name, value: Value) {
+		self.init(name: name, value: value.rawValue)
+	}
+
 	public struct Value:
 		RawRepresentable,
 		Codable,
@@ -89,6 +101,21 @@ extension HTTPHeaders.Header {
 		public static func multipart(boundary: String) -> Value {
 			"multipart/form-data; boundary=\(boundary)"
 		}
+		/// Formats the given bearer token into the standard formatting for bearer style Authentication.
+		///
+		/// Note that the input is not encrypted in memory prior to being sent in the request, so try to keep
+		/// this value shortly lived in memory.
+		public static func bearerToken(_ token: String) -> Value {
+			"Bearer \(token)"
+		}
+		/// Formats the given credentials into the standard formatting for basic style Authentication.
+		///
+		/// Note that the input is not encrypted in memory prior to being sent in the request, so try to keep
+		/// this value shortly lived in memory.
+		public static func basicAuth(user: String, password: String) -> Value {
+			let encoded = Data("\(user):\(password)".utf8).base64EncodedString()
+			return "Basic \(encoded)"
+		}
 
 		public static func == (lhs: Value, rhs: String?) -> Bool {
 			lhs.value == rhs
@@ -108,15 +135,39 @@ extension HTTPHeaders.Header {
 	}
 }
 
-extension HTTPHeaders.Header.Value: CustomStringConvertible, CustomDebugStringConvertible {
+extension HTTPField.Value: CustomStringConvertible, CustomDebugStringConvertible {
 	public var description: String { value }
 	public var debugDescription: String {
 		"HeaderValue: \(description)"
 	}
 }
 
-extension HTTPHeaders.Header.Value: Comparable {
-	public static func < (lhs: HTTPHeaders.Header.Value, rhs: HTTPHeaders.Header.Value) -> Bool {
+extension HTTPField.Value: Comparable {
+	public static func < (lhs: Self, rhs: Self) -> Bool {
 		lhs.rawValue < rhs.rawValue
+	}
+}
+
+extension HTTPFields {
+	/// Access the semantic field value string by name. This allows dot syntax for common values
+	/// when setting values.
+	///
+	/// Example:
+	/// ```swift
+	/// // Set a header field in the request.
+	/// request.headerFields[semantic: .accept] = .json
+	///
+	/// // Access a header field value from the response.
+	/// let contentTypeValue = response.headerFields[.contentType]
+	/// ```
+	///
+	/// If multiple fields with the same name exist, they are concatenated with commas (or
+	/// semicolons in the case of the "Cookie" header field).
+	///
+	/// When setting a "Cookie" header field value, it is split into multiple "Cookie" fields by
+	/// semicolon.
+	public subscript(semantic name: HTTPField.Name) -> HTTPField.Value? {
+		get { self[name].map(HTTPField.Value.init(rawValue:)) }
+		set { self[name] = newValue?.rawValue }
 	}
 }

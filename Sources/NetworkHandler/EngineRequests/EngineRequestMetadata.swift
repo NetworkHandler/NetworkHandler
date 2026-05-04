@@ -1,6 +1,7 @@
 import NetworkHalpers
 import Foundation
 import SwiftPizzaSnips
+import HTTPTypes
 
 /// Encapsulates shared metadata for a network engine request, such as headers, response codes,
 /// HTTP method, and URL. Designed to be shared across related request types (`GeneralEngineRequest`
@@ -57,7 +58,7 @@ public struct EngineRequestMetadata: Hashable, @unchecked Sendable, Withable {
 	/// When set, the `Content-Length` header is automatically updated.
 	/// Setting this to `nil` removes the header from the metadata.
 	public var expectedContentLength: Int? {
-		get { headers[.contentLength].flatMap { Int($0.rawValue) } }
+		get { headers[.contentLength].flatMap(Int.init) }
 		set {
 			guard let newValue else {
 				headers[.contentLength] = nil
@@ -67,9 +68,9 @@ public struct EngineRequestMetadata: Hashable, @unchecked Sendable, Withable {
 		}
 	}
 
-	public var headers: HTTPHeaders = []
+	public var headers: HTTPFields = [:]
 
-	public var method: HTTPMethod = .get
+	public var method: HTTPRequest.Method = .get
 
 	public var url: URL
 
@@ -85,7 +86,7 @@ public struct EngineRequestMetadata: Hashable, @unchecked Sendable, Withable {
 	/// See [X-Request-ID](https://http.dev/x-request-id) for more info. Note that while it's an optional header,
 	/// convention dictates that it should be the same when retrying a request.
 	public var requestID: String? {
-		get { headers.value(for: .xRequestID) }
+		get { headers[.xRequestID] }
 		set {
 			guard let newValue else {
 				headers[.xRequestID] = nil
@@ -142,8 +143,8 @@ public struct EngineRequestMetadata: Hashable, @unchecked Sendable, Withable {
 
 	public init(
 		expectedResponseCodes: ResponseCodes = .init(range: 200..<299),
-		headers: HTTPHeaders = [:],
-		method: HTTPMethod = .get,
+		headers: HTTPFields = [:],
+		method: HTTPRequest.Method = .get,
 		url: URL,
 		autogenerateRequestID: Bool
 	) {

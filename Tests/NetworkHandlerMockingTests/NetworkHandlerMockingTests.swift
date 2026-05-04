@@ -362,8 +362,8 @@ extension NetworkHandlerMockingTests {
 	) async throws -> (data: Data?, response: EngineResponseHeader) {
 		guard
 			request.method == .put,
-			request.headers["x-amz-content-sha256"] != nil,
-			request.headers["x-amz-date"] != nil,
+			request.headers[.init("x-amz-content-sha256")!] != nil,
+			request.headers[.init("x-amz-date")!] != nil,
 			request.headers[.authorization] != nil
 		else {
 			throw NetworkError.httpUnexpectedStatusCode(
