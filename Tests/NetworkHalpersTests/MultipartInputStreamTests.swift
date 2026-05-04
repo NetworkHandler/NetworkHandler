@@ -9,7 +9,7 @@ class MultipartInputStreamTests: XCTestCase {
 
 		let part1 = InputStream(data: Data("Hello ".utf8))
 		let part2 = InputStream(data: Data("World!".utf8))
-		let part3 = InputStream(url: try createTestFile().0)!
+		let part3 = try XCTUnwrap(InputStream(url: try createTestFile().0))
 
 		let concat = try ConcatenatedInputStream(streams: [part1, part2, part3])
 
@@ -31,7 +31,7 @@ class MultipartInputStreamTests: XCTestCase {
 
 		let part1 = InputStream(data: Data("Hello ".utf8))
 		let part2 = InputStream(data: Data("World!".utf8))
-		let part3 = InputStream(url: try createTestFile().0)!
+		let part3 = try XCTUnwrap(InputStream(url: try createTestFile().0))
 
 		let concat = try ConcatenatedInputStream(streams: [part1, part2, part3])
 
@@ -60,7 +60,7 @@ class MultipartInputStreamTests: XCTestCase {
 
 		let part1 = InputStream(data: Data("Hello ".utf8))
 		let part2 = InputStream(data: Data("World!".utf8))
-		let part3 = InputStream(url: try createTestFile().0)!
+		let part3 = try XCTUnwrap(InputStream(url: try createTestFile().0))
 
 		let concat = try ConcatenatedInputStream(streams: [part1, part2, part3])
 
@@ -89,7 +89,7 @@ class MultipartInputStreamTests: XCTestCase {
 		let multipart = MultipartFormInputStream(boundary: boundary)
 
 		let arbText = "Odd input stream"
-		let arbitraryData = arbText.data(using: .utf8)!
+		let arbitraryData = try XCTUnwrap(arbText.data(using: .utf8))
 
 		let testedText = "tested"
 		multipart.addPart(named: "Text", string: testedText)
@@ -195,7 +195,7 @@ class MultipartInputStreamTests: XCTestCase {
 		let multipart = MultipartFormInputStream(boundary: boundary)
 
 		let arbText = "Odd input stream"
-		let arbitraryData = arbText.data(using: .utf8)!
+		let arbitraryData = try XCTUnwrap(arbText.data(using: .utf8))
 
 		let testedText = "tested"
 		multipart.addPart(named: "Text", string: testedText)

@@ -3,6 +3,8 @@ import SwiftPizzaSnips
 import NetworkHandler
 import NetworkHandlerAHCEngine
 import AsyncHTTPClient
+import PizzaMacros
+import Testing
 
 public class DemoModelController: @unchecked Sendable {
 	private var _demoModels = [DemoModel]()
@@ -75,7 +77,7 @@ public class DemoModelController: @unchecked Sendable {
 
 	// MARK: - networking
 
-	let baseURL = URL(string: "https://networkhandlertestbase.firebaseio.com/DemoAndTests")!
+	let baseURL = #URL("https://networkhandlertestbase.firebaseio.com/DemoAndTests")
 
 	public func fetchDemoModels() async throws {
 		let getURL = baseURL.appendingPathExtension("json")
@@ -123,7 +125,7 @@ public class DemoModelController: @unchecked Sendable {
 
 		try await fetchDemoModels()
 
-		let baseURL = URL(string: "https://placekitten.com/")!
+		let baseURL = #URL("https://placekitten.com/")
 
 		while self.demoModels.count < 100 {
 			let dimensions = Int.random(in: 400...800)
@@ -131,9 +133,9 @@ public class DemoModelController: @unchecked Sendable {
 				.appendingPathComponent("\(dimensions)")
 				.appendingPathComponent("\(dimensions)")
 
-			create(
-				modelWithTitle: DemoText.demoNames.randomElement()!,
-				andSubtitle: DemoText.demoSubtitles.randomElement()!,
+			try create(
+				modelWithTitle: #require(DemoText.demoNames.randomElement()),
+				andSubtitle: #require(DemoText.demoSubtitles.randomElement()),
 				imageURL: kittenURL)
 			print(self.demoModels.count)
 		}

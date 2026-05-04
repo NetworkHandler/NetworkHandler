@@ -14,10 +14,10 @@ class AWSv4AuthTests: XCTestCase {
 		https://s3.us-west-1.wasabisys.com/demoproject/?list-type=2&prefix=demo-subfolder%2FA%20Folder
 		""")
 
-	func testAWSSigning() {
+	func testAWSSigning() throws {
 
 		let formatter = ISO8601DateFormatter()
-		let date = formatter.date(from: "2022-07-15T06:43:24Z")!
+		let date = try XCTUnwrap(formatter.date(from: "2022-07-15T06:43:24Z"))
 
 		let info = AWSV4Signature(
 			requestMethod: .get,

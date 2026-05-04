@@ -23,14 +23,14 @@ class NetworkErrorTests: XCTestCase {
 	}
 
 	@available(iOS 11.0, macOS 13.0, *)
-	func testErrorOutput() {
+	func testErrorOutput() throws {
 		let testDummy = DummyType(id: 23, value: "Woop woop woop!", other: 25.3)
 		let encoder = JSONEncoder()
 		encoder.outputFormatting = [.sortedKeys]
 		let testData = try? encoder.encode(testDummy)
 
 		var error = NetworkError.unspecifiedError(reason: "Foo bar")
-		let testString = String(data: testData!, encoding: .utf8)!
+		let testString = try XCTUnwrap(String(data: XCTUnwrap(testData), encoding: .utf8))
 		let error1Str = "NetworkError: Unspecified Error: Foo bar"
 
 		XCTAssertEqual(error1Str, error.debugDescription)

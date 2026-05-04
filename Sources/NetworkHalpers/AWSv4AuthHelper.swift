@@ -180,10 +180,12 @@ extension AWSV4Signature {
 		// UriEncode() rules at https://docs.aws.amazon.com/AmazonS3/latest/API/sig-v4-header-based-auth.html
 		// 'A'-'Z', 'a'-'z', '0'-'9', '-', '.', '_', and '~' (plus '/' can be used for a separator)
 		var set = CharacterSet()
+		// swiftlint:disable force_unwrapping
 		set.insert(charactersIn: "A".unicodeScalars.first!..."Z".unicodeScalars.first!)
 		set.insert(charactersIn: "a".unicodeScalars.first!..."z".unicodeScalars.first!)
 		set.insert(charactersIn: "a"..."z")
 		set.insert(charactersIn: "0".unicodeScalars.first!..."9".unicodeScalars.first!)
+		// swiftlint:enable force_unwrapping
 		set.insert("-")
 		set.insert(".")
 		set.insert("_")

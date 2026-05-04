@@ -339,9 +339,9 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 
 		let dlRequest = url.generalRequest
 
-		let dlResult = try await nh.downloadMahDatas(for: dlRequest).data
+		let dlResult = try await #require(nh.downloadMahDatas(for: dlRequest).data)
 		#expect(
-			SHA256.hash(data: dlResult!) == dataHash,
+			SHA256.hash(data: dlResult) == dataHash,
 			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 	}
 
@@ -397,9 +397,9 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 
 		let dlRequest = url.generalRequest
 
-		let dlResult = try await nh.transferMahDatas(for: .general(dlRequest)).data
+		let dlResult = try await #require(nh.transferMahDatas(for: .general(dlRequest)).data)
 		#expect(
-			SHA256.hash(data: dlResult!) == hash,
+			SHA256.hash(data: dlResult) == hash,
 			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 	}
 
@@ -461,9 +461,9 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 
 		let dlRequest = uploadURL.generalRequest
 
-		let dlResult = try await nh.transferMahDatas(for: .general(dlRequest)).data
+		let dlResult = try await #require(nh.transferMahDatas(for: .general(dlRequest)).data)
 		#expect(
-			SHA256.hash(data: dlResult!) == multipartHash,
+			SHA256.hash(data: dlResult) == multipartHash,
 			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 	}
 
@@ -522,9 +522,9 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 
 		let dlRequest = uploadURL.generalRequest
 
-		let dlResult = try await nh.transferMahDatas(for: .general(dlRequest)).data
+		let dlResult = try await #require(nh.transferMahDatas(for: .general(dlRequest)).data)
 		#expect(
-			SHA256.hash(data: dlResult!) == multipartHash,
+			SHA256.hash(data: dlResult) == multipartHash,
 			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 	}
 

@@ -32,11 +32,17 @@ public enum TestEnvironment {
 
 	public static let s3AccessKey: String = {
 		loadIfNeeded()
-		return SwiftlyDotEnv[.s3AccessKeyKey]!
+		guard let key = SwiftlyDotEnv[.s3AccessKeyKey] else {
+			fatalError("Env needs setting up - looks like the .env file might be missing or incomplete")
+		}
+		return key
 	}()
 	public static let s3AccessSecret = {
 		loadIfNeeded()
-		return SwiftlyDotEnv[.s3AccessSecretKey]!
+		guard let secret = SwiftlyDotEnv[.s3AccessSecretKey] else {
+			fatalError("Env needs setting up - looks like the .env file might be missing or incomplete")
+		}
+		return secret
 	}()
 }
 

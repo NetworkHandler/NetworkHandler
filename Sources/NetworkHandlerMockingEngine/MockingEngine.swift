@@ -347,7 +347,10 @@ extension MockingEngine {
 			static func stripQuery(from url: URL) -> URL {
 				var components = URLComponents(url: url, resolvingAgainstBaseURL: true)
 				components?.queryItems = nil
-				return components!.url!
+				guard let outURL = components?.url else {
+					fatalError("Catastophic error removing query from url: \(url)")
+				}
+				return outURL
 			}
 
 			public func pathItems(from requestURL: URL) -> [String: String] {
