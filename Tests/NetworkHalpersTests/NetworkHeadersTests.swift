@@ -1,6 +1,7 @@
 import Testing
 import NetworkHalpers
 import HTTPTypes
+import NHMacros
 
 struct NetworkHeadersTests {
 	// swiftlint:disable identifier_name
@@ -63,7 +64,7 @@ struct NetworkHeadersTests {
 			"content-type": "application/json",
 		]
 
-		let userAgentValue = HTTPField.Value(rawValue: simpleSample["User-Agent"]!)
+		let userAgentValue = try HTTPField.Value(rawValue: #require(simpleSample["User-Agent"]))
 
 		let simpleHeaders = HTTPFields(simpleSample)
 		#expect(simpleHeaders[.contentType] == "application/json")
@@ -82,12 +83,12 @@ struct NetworkHeadersTests {
 
 	@Test func headersHeaderDict() async throws {
 		let simpleSample: [HTTPField.Name: HTTPField.Value] = [
-			.init("Content-Type")!: "application/json",
-			.init("Authorization")!: "Bearer foobar",
-			.init("User-Agent")!: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3 Safari/605.1.15", // swiftlint:disable:this line_length
+			#HTTPFieldName("Content-Type"): "application/json",
+			#HTTPFieldName("Authorization"): "Bearer foobar",
+			#HTTPFieldName("User-Agent"): "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3 Safari/605.1.15", // swiftlint:disable:this line_length
 		]
 
-		let userAgentValue = simpleSample[.userAgent]!
+		let userAgentValue = try #require(simpleSample[.userAgent])
 
 		let simpleHeaders = HTTPFields(simpleSample)
 		#expect(simpleHeaders[.contentType] == "application/json")
@@ -115,12 +116,12 @@ struct NetworkHeadersTests {
 
 	@Test func headersDictLiteral() async throws {
 		let simpleHeaders: HTTPFields = [
-			HTTPField.Name("Content-Type")!: "application/json",
-			HTTPField.Name("Authorization")!: "Bearer foobar",
-			HTTPField.Name("User-Agent")!: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3 Safari/605.1.15", // swiftlint:disable:this line_length
+			#HTTPFieldName("Content-Type"): "application/json",
+			#HTTPFieldName("Authorization"): "Bearer foobar",
+			#HTTPFieldName("User-Agent"): "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3 Safari/605.1.15", // swiftlint:disable:this line_length
 		]
 
-		let userAgentValue = simpleHeaders[.userAgent]!
+		let userAgentValue = try #require(simpleHeaders[.userAgent])
 
 		#expect(simpleHeaders[.contentType] == "application/json")
 		#expect(simpleHeaders[.authorization] == "Bearer foobar")
@@ -131,9 +132,9 @@ struct NetworkHeadersTests {
 
 	@Test func headersMutation() async throws {
 		var simpleHeaders: HTTPFields = [
-			HTTPField.Name("Content-Type")!: "application/json",
-			HTTPField.Name("Authorization")!: "Bearer foobar",
-			HTTPField.Name("User-Agent")!: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3 Safari/605.1.15", // swiftlint:disable:this line_length
+			#HTTPFieldName("Content-Type"): "application/json",
+			#HTTPFieldName("Authorization"): "Bearer foobar",
+			#HTTPFieldName("User-Agent"): "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3 Safari/605.1.15", // swiftlint:disable:this line_length
 		]
 
 		#expect(simpleHeaders.count == 3)
@@ -149,9 +150,9 @@ struct NetworkHeadersTests {
 
 	@Test func headersSubscripts() async throws {
 		var simpleHeaders: HTTPFields = [
-			HTTPField.Name("Content-Type")!: "application/json",
-			HTTPField.Name("Authorization")!: "Bearer foobar",
-			HTTPField.Name("User-Agent")!: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3 Safari/605.1.15", // swiftlint:disable:this line_length
+			#HTTPFieldName("Content-Type"): "application/json",
+			#HTTPFieldName("Authorization"): "Bearer foobar",
+			#HTTPFieldName("User-Agent"): "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3 Safari/605.1.15", // swiftlint:disable:this line_length
 		]
 
 		#expect(simpleHeaders.count == 3)
@@ -173,9 +174,9 @@ struct NetworkHeadersTests {
 
 	@Test func headersIndicies() async throws {
 		let headerFields = [
-			HTTPField(name: HTTPField.Name("Content-Type")!, value: "application/json"),
-			HTTPField(name: HTTPField.Name("Authorization")!, value: "Bearer foobar"),
-			HTTPField(name: HTTPField.Name("User-Agent")!, value: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3 Safari/605.1.15"), // swiftlint:disable:this line_length
+			HTTPField(name: #HTTPFieldName("Content-Type"), value: "application/json"),
+			HTTPField(name: #HTTPFieldName("Authorization"), value: "Bearer foobar"),
+			HTTPField(name: #HTTPFieldName("User-Agent"), value: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3 Safari/605.1.15"), // swiftlint:disable:this line_length
 		]
 		var simpleHeaders: HTTPFields = .init(headerFields)
 

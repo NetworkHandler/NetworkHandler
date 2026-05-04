@@ -4,6 +4,7 @@ import TestSupport
 import PizzaMacros
 import Foundation
 import HTTPTypes
+import NHMacros
 
 struct NetworkRequestTests {
 	@Test func genericEncoding() async throws {
@@ -33,19 +34,27 @@ struct NetworkRequestTests {
 		request.headers.setValue(.xml, for: .contentType)
 		#expect("application/xml" == request.headers[.contentType])
 		request.headers.setValue("Bearer 12345", for: .authorization)
-		#expect([.init("Content-Type")!: "application/xml", .init("Authorization")!: "Bearer 12345"] == request.headers)
+		#expect(
+			[
+				#HTTPFieldName("Content-Type"): "application/xml",
+				#HTTPFieldName("Authorization"): "Bearer 12345",
+			] == request.headers)
 
 		request.headers.setValue(nil, for: .authorization)
-		#expect([.init("Content-Type")!: "application/xml"] == request.headers)
+		#expect([#HTTPFieldName("Content-Type"): "application/xml"] == request.headers)
 		#expect(request.headers[.authorization] == nil)
 
-		request.headers.setValue("Arbitrary Value", for: .init("Arbitrary-Key")!)
-		#expect([.init("Content-Type")!: "application/xml", .init("arbitrary-key")!: "Arbitrary Value"] == request.headers)
+		request.headers.setValue("Arbitrary Value", for: #HTTPFieldName("Arbitrary-Key"))
+		#expect(
+			[
+				#HTTPFieldName("Content-Type"): "application/xml",
+				#HTTPFieldName("arbitrary-key"): "Arbitrary Value",
+			] == request.headers)
 
 		let allFields: HTTPFields = [
-			.init("Content-Type")!: "application/xml",
-			.init("Authorization")!: "Bearer: 12345",
-			.init("Arbitrary-Key")!: "Arbitrary Value",
+			#HTTPFieldName("Content-Type"): "application/xml",
+			#HTTPFieldName("Authorization"): "Bearer: 12345",
+			#HTTPFieldName("Arbitrary-Key"): "Arbitrary Value",
 		]
 		request.headers = allFields
 		#expect(allFields == request.headers)

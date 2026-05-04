@@ -1,24 +1,25 @@
 import HTTPTypes
+import NHMacros
 
 extension HTTPField.Name {
 	/// Convenience for the `X-Request-ID` HTTP Header name
-	public static let xRequestID: Self = .init("X-Request-ID")!
+	public static let xRequestID: Self = #HTTPFieldName("X-Request-ID")
 
 	/// Convenience for the `Accept-Charset` HTTP Header name
-	public static let acceptCharset: Self = .init("Accept-Charset")!
+	public static let acceptCharset: Self = #HTTPFieldName("Accept-Charset")
 
 	/// Convenience for the `Accept-Datetime` HTTP Header name
-	public static let acceptDatetime: Self = .init("Accept-Datetime")!
+	public static let acceptDatetime: Self = #HTTPFieldName("Accept-Datetime")
 
 	/// Convenience for the `Front-End-Https` HTTP Header name
-	public static let frontEndHttps: Self = .init("Front-End-Https")!
+	public static let frontEndHttps: Self = #HTTPFieldName("Front-End-Https")
 
 	/// Convenience for the `Pragma` HTTP Header name
-	public static let pragma: Self = .init("Pragma")!
+	public static let pragma: Self = #HTTPFieldName("Pragma")
 
 	/// Convenience for the `Proxy-Connection` HTTP Header name
-	public static let proxyConnection: Self = .init("Proxy-Connection")!
+	public static let proxyConnection: Self = #HTTPFieldName("Proxy-Connection")
 
 	/// Convenience for the `Warning` HTTP Header name
-	public static let warning: Self = .init("Warning")!
+	public static let warning: Self = #HTTPFieldName("Warning")
 }

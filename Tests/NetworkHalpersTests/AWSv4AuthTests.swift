@@ -4,6 +4,7 @@ import TestSupport
 import Crypto
 import PizzaMacros
 import HTTPTypes
+import NHMacros
 
 class AWSv4AuthTests: XCTestCase {
 
@@ -47,7 +48,7 @@ class AWSv4AuthTests: XCTestCase {
 	func testApplyingAdditionalHeaders() throws {
 		let request = Self.awsURL.generalRequest
 
-		let headerKey: HTTPField.Name = .init("AdditionalHeaderKey")!
+		let headerKey = #HTTPFieldName("AdditionalHeaderKey")
 		let headerValue: HTTPField.Value = "AdditionalHeaderValue"
 		let awsSignature = AWSV4Signature(
 			requestMethod: .get,

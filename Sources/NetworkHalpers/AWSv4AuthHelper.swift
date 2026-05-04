@@ -2,6 +2,7 @@ import Foundation
 import Crypto
 import SwiftPizzaSnips
 import HTTPTypes
+import NHMacros
 
 /// Represents the AWS Signature Version 4 signing process, which is used to securely sign AWS API requests.
 /// This structure stores all necessary information for constructing the AWS signature including HTTP method,
@@ -84,8 +85,8 @@ public struct AWSV4Signature: Hashable, Sendable, Withable {
 	/// Returns a dictionary of header keys and values for use in the signed request.
 	public var amzHeaders: HTTPFields {
 		[
-			.init("x-amz-content-sha256")!: "\(hexContentHash.rawValue)",
-			.init("x-amz-date")!: "\(Self.isoDateString(from: date))",
+			#HTTPFieldName("x-amz-content-sha256"): "\(hexContentHash.rawValue)",
+			#HTTPFieldName("x-amz-date"): "\(Self.isoDateString(from: date))",
 			.authorization: "\(authorizationString)",
 		]
 	}

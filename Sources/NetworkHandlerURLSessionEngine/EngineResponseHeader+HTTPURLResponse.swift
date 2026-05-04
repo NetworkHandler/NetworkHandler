@@ -2,6 +2,7 @@ import Foundation
 import NetworkHandler
 import HTTPTypes
 import Logging
+import NHMacros
 
 extension EngineResponseHeader {
 	private static let log = Logger(label: "Engine Response Handler from URLResponse")
@@ -24,7 +25,7 @@ extension EngineResponseHeader {
 			headers = HTTPFields(headerList)
 			statusCode = httpResponse.statusCode
 		} else {
-			let field = HTTPField(name: .init("ERROR")!, value: "Invalid response object - Not an HTTPURLResponse")
+			let field = HTTPField(name: #HTTPFieldName("ERROR"), value: "Invalid response object - Not an HTTPURLResponse")
 			headers = HTTPFields([field])
 			statusCode = -1
 		}
