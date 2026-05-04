@@ -8,14 +8,13 @@ import SwiftPizzaSnips
 import Testing
 import TestSupport
 
-//@Suite(.serialized)
 struct NetworkHandlerMockingTests: Sendable {
 	let commonTests = NetworkHandlerCommonTests<MockingEngine>(logger: Logger(label: #fileID))
 
 	@Test func downloadAndCacheImages() async throws {
 		let mockingEngine = generateEngine()
 
-		let lighthouseURL = Bundle.testBundle.url(forResource: "lighthouse", withExtension: "jpg")!
+		let lighthouseURL = try #require(Bundle.testBundle.url(forResource: "lighthouse", withExtension: "jpg"))
 		let lighthouseData = try Data(contentsOf: lighthouseURL)
 
 		await mockingEngine.addMock(
@@ -41,8 +40,8 @@ struct NetworkHandlerMockingTests: Sendable {
 
 		await mockingEngine.addMock(for: modelURL, method: .get, responseData: modelData, responseCode: 200)
 
-		let testModel = DemoModel(
-			id: UUID(uuidString: "59747267-D47D-47CD-9E54-F79FA3C1F99B")!,
+		let testModel = try DemoModel(
+			id: #require(UUID(uuidString: "59747267-D47D-47CD-9E54-F79FA3C1F99B")),
 			title: "FooTitle",
 			subtitle: "BarSub",
 			imageURL: commonTests.imageURL)
@@ -193,7 +192,7 @@ struct NetworkHandlerMockingTests: Sendable {
 	@Test func cancellationViaToken() async throws {
 		let mockingEngine = generateEngine()
 
-		var rng: RandomNumberGenerator = SeedableRNG(seed: 394687)
+		var rng: RandomNumberGenerator = SeedableRNG(seed: 394_687)
 		let modelData = Data.random(count: 1024 * 1024 * 10, using: &rng)
 
 		let url = commonTests.randomDataURL
@@ -205,7 +204,7 @@ struct NetworkHandlerMockingTests: Sendable {
 	@Test func cancellationViaStream() async throws {
 		let mockingEngine = generateEngine()
 
-		var rng: RandomNumberGenerator = SeedableRNG(seed: 394687)
+		var rng: RandomNumberGenerator = SeedableRNG(seed: 394_687)
 		let modelData = Data.random(count: 1024 * 1024 * 10, using: &rng)
 
 		let url = commonTests.randomDataURL
@@ -239,7 +238,7 @@ struct NetworkHandlerMockingTests: Sendable {
 		let mockingEngine = generateEngine()
 
 		let url = commonTests.randomDataURL
-		var seedableRNG: RandomNumberGenerator = SeedableRNG(seed: 23785)
+		var seedableRNG: RandomNumberGenerator = SeedableRNG(seed: 23_785)
 		await mockingEngine.addMock(
 			for: url,
 			method: .get,
@@ -295,7 +294,7 @@ struct NetworkHandlerMockingTests: Sendable {
 		let sizeOfUploadMB: UInt8 = 5
 		let fileSize = Int(sizeOfUploadMB) * 1024 * 1024
 
-		var rng: any RandomNumberGenerator = SeedableRNG(seed: 349687)
+		var rng: any RandomNumberGenerator = SeedableRNG(seed: 349_687)
 		let randomData = Data.random(count: fileSize, using: &rng)
 
 		await mockingEngine.addMock(for: url, method: .get, responseData: randomData, responseCode: 200)
@@ -364,8 +363,8 @@ extension NetworkHandlerMockingTests {
 	) async throws -> (data: Data?, response: EngineResponseHeader) {
 		guard
 			request.method == .put,
-			request.headers[.init("x-amz-content-sha256")!] != nil,
-			request.headers[.init("x-amz-date")!] != nil,
+			request.headers[#HTTPFieldName("x-amz-content-sha256")] != nil,
+			request.headers[#HTTPFieldName("x-amz-date")] != nil,
 			request.headers[.authorization] != nil
 		else {
 			throw NetworkError.httpUnexpectedStatusCode(

@@ -240,8 +240,8 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		function: String = #function
 	) async throws {
 		guard
-			TestEnvironment.s3AccessSecret.isEmpty == false,
-			TestEnvironment.s3AccessKey.isEmpty == false
+			try TestEnvironment.s3AccessSecret.isEmpty == false,
+			try TestEnvironment.s3AccessKey.isEmpty == false
 		else {
 			throw SimpleTestError(message: "Need s3 credentials")
 		}
@@ -263,7 +263,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 
 		let hash = SHA256.hash(data: payloadData)
 
-		let awsHeaderInfo = AWSV4Signature(
+		let awsHeaderInfo = try AWSV4Signature(
 			for: request,
 			awsKey: TestEnvironment.s3AccessKey,
 			awsSecret: TestEnvironment.s3AccessSecret,
@@ -317,7 +317,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		let dataHash = SHA256.hash(data: randomData)
 		print(dataHash)
 
-		let awsHeaderInfo = AWSV4Signature(
+		let awsHeaderInfo = try AWSV4Signature(
 			for: request,
 			awsKey: TestEnvironment.s3AccessKey,
 			awsSecret: TestEnvironment.s3AccessSecret,
@@ -355,8 +355,8 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		function: String = #function
 	) async throws {
 		guard
-			TestEnvironment.s3AccessSecret.isEmpty == false,
-			TestEnvironment.s3AccessKey.isEmpty == false
+			try TestEnvironment.s3AccessSecret.isEmpty == false,
+			try TestEnvironment.s3AccessKey.isEmpty == false
 		else {
 			throw SimpleTestError(message: "Need s3 credentials")
 		}
@@ -376,7 +376,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 
 		let hash = try fileHash(actualTestFile)
 
-		let awsHeaderInfo = AWSV4Signature(
+		let awsHeaderInfo = try AWSV4Signature(
 			for: upRequest,
 			awsKey: TestEnvironment.s3AccessKey,
 			awsSecret: TestEnvironment.s3AccessSecret,
@@ -413,8 +413,8 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		function: String = #function
 	) async throws {
 		guard
-			TestEnvironment.s3AccessSecret.isEmpty == false,
-			TestEnvironment.s3AccessKey.isEmpty == false
+			try TestEnvironment.s3AccessSecret.isEmpty == false,
+			try TestEnvironment.s3AccessKey.isEmpty == false
 		else {
 			throw SimpleTestError(message: "Need s3 credentials")
 		}
@@ -440,7 +440,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 
 		let multipartHash = try fileHash(multipartFile)
 
-		let awsHeaderInfo = AWSV4Signature(
+		let awsHeaderInfo = try AWSV4Signature(
 			for: upRequest,
 			awsKey: TestEnvironment.s3AccessKey,
 			awsSecret: TestEnvironment.s3AccessSecret,
@@ -477,8 +477,8 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		function: String = #function
 	) async throws {
 		guard
-			TestEnvironment.s3AccessSecret.isEmpty == false,
-			TestEnvironment.s3AccessKey.isEmpty == false
+			try TestEnvironment.s3AccessSecret.isEmpty == false,
+			try TestEnvironment.s3AccessKey.isEmpty == false
 		else {
 			throw SimpleTestError(message: "Need s3 credentials")
 		}
@@ -501,7 +501,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 
 		let multipartHash = try streamHash(multipart.safeCopy())
 
-		let awsHeaderInfo = AWSV4Signature(
+		let awsHeaderInfo = try AWSV4Signature(
 			for: upRequest,
 			awsKey: TestEnvironment.s3AccessKey,
 			awsSecret: TestEnvironment.s3AccessSecret,
@@ -629,8 +629,8 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		function: String = #function
 	) async throws {
 		guard
-			TestEnvironment.s3AccessSecret.isEmpty == false,
-			TestEnvironment.s3AccessKey.isEmpty == false
+			try TestEnvironment.s3AccessSecret.isEmpty == false,
+			try TestEnvironment.s3AccessKey.isEmpty == false
 		else {
 			throw SimpleTestError(message: "Need s3 credentials")
 		}
@@ -647,7 +647,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 
 		let hash = SHA256.hash(data: randomData)
 
-		let awsHeaderInfo = AWSV4Signature(
+		let awsHeaderInfo = try AWSV4Signature(
 			for: request,
 			awsKey: TestEnvironment.s3AccessKey,
 			awsSecret: TestEnvironment.s3AccessSecret,
@@ -689,8 +689,8 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		function: String = #function
 	) async throws {
 		guard
-			TestEnvironment.s3AccessSecret.isEmpty == false,
-			TestEnvironment.s3AccessKey.isEmpty == false
+			try TestEnvironment.s3AccessSecret.isEmpty == false,
+			try TestEnvironment.s3AccessKey.isEmpty == false
 		else {
 			throw SimpleTestError(message: "Need s3 credentials")
 		}
@@ -710,7 +710,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 
 		let hash = try fileHash(actualTestFile)
 
-		let awsHeaderInfo = AWSV4Signature(
+		let awsHeaderInfo = try AWSV4Signature(
 			for: request,
 			awsKey: TestEnvironment.s3AccessKey,
 			awsSecret: TestEnvironment.s3AccessSecret,
@@ -766,8 +766,8 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		function: String = #function
 	) async throws {
 		guard
-			TestEnvironment.s3AccessSecret.isEmpty == false,
-			TestEnvironment.s3AccessKey.isEmpty == false
+			try TestEnvironment.s3AccessSecret.isEmpty == false,
+			try TestEnvironment.s3AccessKey.isEmpty == false
 		else {
 			throw SimpleTestError(message: "Need s3 credentials")
 		}
@@ -785,7 +785,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 
 		let hash = SHA256.hash(data: data)
 
-		let awsHeaderInfo = AWSV4Signature(
+		let awsHeaderInfo = try AWSV4Signature(
 			for: request,
 			awsKey: TestEnvironment.s3AccessKey,
 			awsSecret: TestEnvironment.s3AccessSecret,
@@ -903,7 +903,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 
 		let hash = try fileHash(actualTestFile)
 
-		let awsHeaderInfo = AWSV4Signature(
+		let awsHeaderInfo = try AWSV4Signature(
 			for: request,
 			awsKey: TestEnvironment.s3AccessKey,
 			awsSecret: TestEnvironment.s3AccessSecret,

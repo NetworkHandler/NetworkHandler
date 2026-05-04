@@ -13,7 +13,7 @@ struct NetworkHandlerAHCTests: Sendable {
 	@Test func downloadAndCacheImages() async throws {
 		let mockingEngine = generateEngine()
 
-		let lighthouseURL = Bundle.testBundle.url(forResource: "lighthouse", withExtension: "jpg")!
+		let lighthouseURL = try #require(Bundle.testBundle.url(forResource: "lighthouse", withExtension: "jpg"))
 		let lighthouseData = try Data(contentsOf: lighthouseURL)
 
 		try await commonTests.downloadAndCacheImages(engine: mockingEngine, imageExpectationData: lighthouseData)
@@ -24,8 +24,8 @@ struct NetworkHandlerAHCTests: Sendable {
 
 		let modelURL = commonTests.demoModelURL
 
-		let testModel = DemoModel(
-			id: UUID(uuidString: "59747267-D47D-47CD-9E54-F79FA3C1F99B")!,
+		let testModel = try DemoModel(
+			id: #require(UUID(uuidString: "59747267-D47D-47CD-9E54-F79FA3C1F99B")),
 			title: "FooTitle",
 			subtitle: "BarSub",
 			imageURL: commonTests.imageURL)
