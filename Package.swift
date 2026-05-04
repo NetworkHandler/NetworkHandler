@@ -2,6 +2,7 @@
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
+import CompilerPluginSupport
 
 var products: [Product] = [
 	.library(
@@ -19,6 +20,20 @@ var products: [Product] = [
 ]
 
 var targets: [Target] = [
+	.macro(
+		name: "NHMacrosImp",
+		dependencies: [
+			.product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
+			.product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
+			.product(name: "HTTPTypes", package: "swift-http-types"),
+		]
+	),
+	.target(
+		name: "NHMacros",
+		dependencies: [
+			"NHMacrosImp",
+			.product(name: "HTTPTypes", package: "swift-http-types"),
+		]),
 	.target(
 		name: "NetworkHandler",
 		dependencies: [
@@ -28,6 +43,7 @@ var targets: [Target] = [
 			.product(name: "AsyncHTTPClient", package: "async-http-client"),
 			.product(name: "Logging", package: "swift-log"),
 			.product(name: "HTTPTypes", package: "swift-http-types"),
+			"NHMacros",
 		],
 		plugins: [
 			.plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")
@@ -63,6 +79,7 @@ var targets: [Target] = [
 			"SwiftPizzaSnips",
 			.product(name: "Logging", package: "swift-log"),
 			.product(name: "HTTPTypes", package: "swift-http-types"),
+			"NHMacros",
 		],
 		plugins: [
 			.plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")
@@ -184,5 +201,6 @@ let package = Package(
 		.package(url: "https://github.com/apple/swift-algorithms.git", .upToNextMajor(from: "1.2.1")),
 		.package(url: "https://github.com/SimplyDanny/SwiftLintPlugins", from: "0.58.2"),
 		.package(url: "https://github.com/apple/swift-http-types.git", from: "1.5.1"),
+		.package(url: "https://github.com/apple/swift-syntax.git", from: "601.0.0"),
 	],
 	targets: targets)

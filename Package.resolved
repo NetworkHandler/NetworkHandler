@@ -1,5 +1,5 @@
 {
-  "originHash" : "670cde5d1685ae9ccf8ba19ad5a7e55d86a00b2328e7602d22f627127cad36ef",
+  "originHash" : "409280dd832f9281fb715314b9dcd65b8d5536c70758b7df9f5dd552ee381aa2",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/mredig/PizzaMacros.git",
       "state" : {
-        "revision" : "df7635ebef07d129fd92c9d9ec21e92c446ccde1",
-        "version" : "0.1.4"
+        "revision" : "def68ffcec28d916e4051c1011e4d368ae412551",
+        "version" : "0.1.5"
       }
     },
     {
@@ -204,8 +204,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-syntax.git",
       "state" : {
-        "revision" : "64889f0c732f210a935a0ad7cda38f77f876262d",
-        "version" : "509.1.1"
+        "revision" : "f99ae8aa18f0cf0d53481901f88a0991dc3bd4a2",
+        "version" : "601.0.1"
       }
     },
     {
