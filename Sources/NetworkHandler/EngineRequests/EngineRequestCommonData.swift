@@ -4,8 +4,8 @@ import NetworkHalpers
 import SwiftPizzaSnips
 
 /// Encapsulates shared metadata for a network engine request, such as headers, response codes,
-/// and `UploadEngineRequest`) for centralized management of common attributes.
 /// HTTP method, and URL. Designed to be shared across related request types (`StandardRequest`
+/// and `UploadRequest`) for centralized management of common attributes.
 public struct EngineRequestCommonData: Hashable, @unchecked Sendable, Withable {
 	/// Defines the range of acceptable HTTP response status codes for a request.
 	/// This type encapsulates response codes as a set of integers and provides

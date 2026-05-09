@@ -4,7 +4,7 @@ import NetworkHalpers
 import SwiftPizzaSnips
 
 /// An HTTP request type designed specifically for uploading larger payloads, such as files or
-/// large binary data. Unlike `GeneralEngineRequest`, this tracks both upload and download progress.
+/// large binary data. Unlike `StandardRequest`, this tracks both upload and download progress.
 ///
 /// The request metadata is shared with `EngineRequestMetadata`, simplifying configuration for things
 /// like headers and request IDs.
@@ -13,7 +13,7 @@ import SwiftPizzaSnips
 /// engine to `NetworkEngine`, you'll most likely want to add a computed property or function to convert
 /// a `UploadEngineRequest` to the request type native to your engine.
 @dynamicMemberLookup
-public struct UploadEngineRequest: Hashable, Sendable, Withable {
+public struct UploadRequest: Hashable, Sendable, Withable {
 	package var commonData: EngineRequestCommonData
 
 	public subscript<T>(dynamicMember member: WritableKeyPath<EngineRequestCommonData, T>) -> T {
