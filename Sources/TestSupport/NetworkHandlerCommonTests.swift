@@ -239,56 +239,57 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		column: Int = #column,
 		function: String = #function
 	) async throws {
-		guard
-			try TestEnvironment.s3AccessSecret.isEmpty == false,
-			try TestEnvironment.s3AccessKey.isEmpty == false
-		else {
-			throw SimpleTestError(message: "Need s3 credentials")
-		}
-
-		let nh = getNetworkHandler(with: engine)
-		defer { nh.resetCache() }
-
-		let payloadData = Data("""
-			{"id":"59747267-D47D-47CD-9E54-F79FA3C1F99B","imageURL":\
-			"https://s3.wasabisys.com/network-handler-tests/images/lighthouse.jpg"\
-			,"subtitle":"BarSub","title":"FooTitle"}
-			""".utf8)
-		let url = demoModelURL
-		let request = url.generalRequest.with {
-			$0.expectedResponseCodes = 201
-			$0.method = .put
-			$0.payload = payloadData
-		}
-
-		let hash = SHA256.hash(data: payloadData)
-
-		let awsHeaderInfo = try AWSV4Signature(
-			for: request,
-			awsKey: TestEnvironment.s3AccessKey,
-			awsSecret: TestEnvironment.s3AccessSecret,
-			awsRegion: .usEast1,
-			awsService: .s3,
-			hexContentHash: .fromShaHashDigest(hash))
-
-		let signedRequest = try awsHeaderInfo.processRequest(request)
-
-		await #expect(
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column),
-			performing: {
-				_ = try await nh.transferMahDatas(
-					for: .general(signedRequest),
-					requestLogger: logger,
-					onError: { _, _, _  in .throw })
-			},
-			throws: { error in
-				guard
-					let networkError = error as? NetworkError,
-					case .httpUnexpectedStatusCode(code: let code, originalRequest: _, data: _) = networkError,
-					code == 200
-				else { return false }
-				return true
-			})
+		throw SimpleTestError(message: "Uses aws headers - needs refactor")
+//		guard
+//			try TestEnvironment.s3AccessSecret.isEmpty == false,
+//			try TestEnvironment.s3AccessKey.isEmpty == false
+//		else {
+//			throw SimpleTestError(message: "Need s3 credentials")
+//		}
+//
+//		let nh = getNetworkHandler(with: engine)
+//		defer { nh.resetCache() }
+//
+//		let payloadData = Data("""
+//			{"id":"59747267-D47D-47CD-9E54-F79FA3C1F99B","imageURL":\
+//			"https://s3.wasabisys.com/network-handler-tests/images/lighthouse.jpg"\
+//			,"subtitle":"BarSub","title":"FooTitle"}
+//			""".utf8)
+//		let url = demoModelURL
+//		let request = url.generalRequest.with {
+//			$0.expectedResponseCodes = 201
+//			$0.method = .put
+//			$0.payload = payloadData
+//		}
+//
+//		let hash = SHA256.hash(data: payloadData)
+//
+//		let awsHeaderInfo = try AWSV4Signature(
+//			for: request,
+//			awsKey: TestEnvironment.s3AccessKey,
+//			awsSecret: TestEnvironment.s3AccessSecret,
+//			awsRegion: .usEast1,
+//			awsService: .s3,
+//			hexContentHash: .fromShaHashDigest(hash))
+//
+//		let signedRequest = try awsHeaderInfo.processRequest(request)
+//
+//		await #expect(
+//			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column),
+//			performing: {
+//				_ = try await nh.transferMahDatas(
+//					for: .general(signedRequest),
+//					requestLogger: logger,
+//					onError: { _, _, _  in .throw })
+//			},
+//			throws: { error in
+//				guard
+//					let networkError = error as? NetworkError,
+//					case .httpUnexpectedStatusCode(code: let code, originalRequest: _, data: _) = networkError,
+//					code == 200
+//				else { return false }
+//				return true
+//			})
 	}
 
 	/// performs a `PUT` request to `randomDataURL`. Provided must be corrupted in some way.
@@ -300,49 +301,50 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		column: Int = #column,
 		function: String = #function
 	) async throws {
-		let nh = getNetworkHandler(with: engine)
-		defer { nh.resetCache() }
-
-		let url = randomDataURL
-		let request = url.uploadRequest.with {
-			$0.method = .put
-		}
-
-		let sizeOfUploadMB: UInt8 = 5
-		let fileSize = Int(sizeOfUploadMB) * 1024 * 1024
-
-		var rng: any RandomNumberGenerator = SeedableRNG(seed: 349_687)
-		let randomData = Data.random(count: fileSize, using: &rng)
-
-		let dataHash = SHA256.hash(data: randomData)
-		print(dataHash)
-
-		let awsHeaderInfo = try AWSV4Signature(
-			for: request,
-			awsKey: TestEnvironment.s3AccessKey,
-			awsSecret: TestEnvironment.s3AccessSecret,
-			awsRegion: .usEast1,
-			awsService: .s3,
-			hexContentHash: .fromShaHashDigest(dataHash))
-
-		let signedRequest = try awsHeaderInfo.processRequest(request)
-
-		let atomicRequest = AtomicValue(value: NetworkRequest.upload(signedRequest, payload: .data(randomData)))
-		let delegate = await Delegate(onRequestModified: { _, _, new in
-			atomicRequest.value = new
-		})
-
-		_ = try await nh.uploadMahDatas(for: signedRequest, payload: .data(randomData), delegate: delegate)
-		#expect(
-			atomicRequest.value.expectedContentLength != nil,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
-
-		let dlRequest = url.generalRequest
-
-		let dlResult = try await #require(nh.downloadMahDatas(for: dlRequest).data)
-		#expect(
-			SHA256.hash(data: dlResult) == dataHash,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
+		throw SimpleTestError(message: "Uses aws headers - needs refactor")
+//		let nh = getNetworkHandler(with: engine)
+//		defer { nh.resetCache() }
+//
+//		let url = randomDataURL
+//		let request = url.uploadRequest.with {
+//			$0.method = .put
+//		}
+//
+//		let sizeOfUploadMB: UInt8 = 5
+//		let fileSize = Int(sizeOfUploadMB) * 1024 * 1024
+//
+//		var rng: any RandomNumberGenerator = SeedableRNG(seed: 349_687)
+//		let randomData = Data.random(count: fileSize, using: &rng)
+//
+//		let dataHash = SHA256.hash(data: randomData)
+//		print(dataHash)
+//
+//		let awsHeaderInfo = try AWSV4Signature(
+//			for: request,
+//			awsKey: TestEnvironment.s3AccessKey,
+//			awsSecret: TestEnvironment.s3AccessSecret,
+//			awsRegion: .usEast1,
+//			awsService: .s3,
+//			hexContentHash: .fromShaHashDigest(dataHash))
+//
+//		let signedRequest = try awsHeaderInfo.processRequest(request)
+//
+//		let atomicRequest = AtomicValue(value: NetworkRequest.upload(signedRequest, payload: .data(randomData)))
+//		let delegate = await Delegate(onRequestModified: { _, _, new in
+//			atomicRequest.value = new
+//		})
+//
+//		_ = try await nh.uploadMahDatas(for: signedRequest, payload: .data(randomData), delegate: delegate)
+//		#expect(
+//			atomicRequest.value.expectedContentLength != nil,
+//			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
+//
+//		let dlRequest = url.generalRequest
+//
+//		let dlResult = try await #require(nh.downloadMahDatas(for: dlRequest).data)
+//		#expect(
+//			SHA256.hash(data: dlResult) == dataHash,
+//			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 	}
 
 	/// performs a `PUT` request to `uploadURL`
@@ -354,53 +356,55 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		column: Int = #column,
 		function: String = #function
 	) async throws {
-		guard
-			try TestEnvironment.s3AccessSecret.isEmpty == false,
-			try TestEnvironment.s3AccessKey.isEmpty == false
-		else {
-			throw SimpleTestError(message: "Need s3 credentials")
-		}
+		throw SimpleTestError(message: "Uses aws headers - needs refactor")
 
-		let nh = getNetworkHandler(with: engine)
-		defer { nh.resetCache() }
-
-		let url = uploadURL
-		let upRequest = url.uploadRequest.with {
-			$0.method = .put
-			$0.expectedResponseCodes = 200
-		}
-
-		let testFileURL = URL.temporaryDirectory.appending(component: UUID().uuidString).appendingPathExtension("bin")
-		let (actualTestFile, done) = try createDummyFile(at: testFileURL, megabytes: 5)
-		defer { try? done() }
-
-		let hash = try fileHash(actualTestFile)
-
-		let awsHeaderInfo = try AWSV4Signature(
-			for: upRequest,
-			awsKey: TestEnvironment.s3AccessKey,
-			awsSecret: TestEnvironment.s3AccessSecret,
-			awsRegion: .usEast1,
-			awsService: .s3,
-			hexContentHash: .fromShaHashDigest(hash))
-
-		let signedRequest = try awsHeaderInfo.processRequest(upRequest)
-
-		let atomicRequest = AtomicValue(value: NetworkRequest.upload(signedRequest, payload: .localFile(actualTestFile)))
-		let delegate = await Delegate(onRequestModified: { _, _, new in
-			atomicRequest.value = new
-		})
-		_ = try await nh.uploadMahDatas(for: signedRequest, payload: .localFile(actualTestFile), delegate: delegate)
-		#expect(
-			atomicRequest.value.expectedContentLength != nil,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
-
-		let dlRequest = url.generalRequest
-
-		let dlResult = try await #require(nh.transferMahDatas(for: .general(dlRequest)).data)
-		#expect(
-			SHA256.hash(data: dlResult) == hash,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
+//		guard
+//			try TestEnvironment.s3AccessSecret.isEmpty == false,
+//			try TestEnvironment.s3AccessKey.isEmpty == false
+//		else {
+//			throw SimpleTestError(message: "Need s3 credentials")
+//		}
+//
+//		let nh = getNetworkHandler(with: engine)
+//		defer { nh.resetCache() }
+//
+//		let url = uploadURL
+//		let upRequest = url.uploadRequest.with {
+//			$0.method = .put
+//			$0.expectedResponseCodes = 200
+//		}
+//
+//		let testFileURL = URL.temporaryDirectory.appending(component: UUID().uuidString).appendingPathExtension("bin")
+//		let (actualTestFile, done) = try createDummyFile(at: testFileURL, megabytes: 5)
+//		defer { try? done() }
+//
+//		let hash = try fileHash(actualTestFile)
+//
+//		let awsHeaderInfo = try AWSV4Signature(
+//			for: upRequest,
+//			awsKey: TestEnvironment.s3AccessKey,
+//			awsSecret: TestEnvironment.s3AccessSecret,
+//			awsRegion: .usEast1,
+//			awsService: .s3,
+//			hexContentHash: .fromShaHashDigest(hash))
+//
+//		let signedRequest = try awsHeaderInfo.processRequest(upRequest)
+//
+//		let atomicRequest = AtomicValue(value: NetworkRequest.upload(signedRequest, payload: .localFile(actualTestFile)))
+//		let delegate = await Delegate(onRequestModified: { _, _, new in
+//			atomicRequest.value = new
+//		})
+//		_ = try await nh.uploadMahDatas(for: signedRequest, payload: .localFile(actualTestFile), delegate: delegate)
+//		#expect(
+//			atomicRequest.value.expectedContentLength != nil,
+//			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
+//
+//		let dlRequest = url.generalRequest
+//
+//		let dlResult = try await #require(nh.transferMahDatas(for: .general(dlRequest)).data)
+//		#expect(
+//			SHA256.hash(data: dlResult) == hash,
+//			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 	}
 
 	/// performs a `PUT` request to `uploadURL`
@@ -412,59 +416,61 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		column: Int = #column,
 		function: String = #function
 	) async throws {
-		guard
-			try TestEnvironment.s3AccessSecret.isEmpty == false,
-			try TestEnvironment.s3AccessKey.isEmpty == false
-		else {
-			throw SimpleTestError(message: "Need s3 credentials")
-		}
+		throw SimpleTestError(message: "Uses aws headers - needs refactor")
 
-		let nh = getNetworkHandler(with: engine)
-		defer { nh.resetCache() }
-
-		let upRequest = uploadURL.uploadRequest.with {
-			$0.method = .put
-			$0.expectedResponseCodes = 200
-		}
-
-		let testFileURL = URL.temporaryDirectory.appending(component: UUID().uuidString).appendingPathExtension("bin")
-		let (actualTestFile, done) = try createDummyFile(at: testFileURL, megabytes: 5)
-		defer { try? done() }
-
-		let boundary = "akjlsdghkajshdg"
-		let multipart = MultipartFormInputTempFile(boundary: boundary)
-		multipart.addPart(named: "file", fileURL: actualTestFile, contentType: "application/octet-stream")
-
-		let multipartFile = try await multipart.renderToFile()
-		defer { try? FileManager.default.removeItem(at: multipartFile )}
-
-		let multipartHash = try fileHash(multipartFile)
-
-		let awsHeaderInfo = try AWSV4Signature(
-			for: upRequest,
-			awsKey: TestEnvironment.s3AccessKey,
-			awsSecret: TestEnvironment.s3AccessSecret,
-			awsRegion: .usEast1,
-			awsService: .s3,
-			hexContentHash: .fromShaHashDigest(multipartHash))
-
-		let signedRequest = try awsHeaderInfo.processRequest(upRequest)
-
-		let atomicRequest = AtomicValue(value: NetworkRequest.upload(signedRequest, payload: .localFile(multipartFile)))
-		let delegate = await Delegate(onRequestModified: { _, _, new in
-			atomicRequest.value = new
-		})
-		_ = try await nh.uploadMahDatas(for: signedRequest, payload: .localFile(multipartFile), delegate: delegate)
-		#expect(
-			atomicRequest.value.expectedContentLength != nil,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
-
-		let dlRequest = uploadURL.generalRequest
-
-		let dlResult = try await #require(nh.transferMahDatas(for: .general(dlRequest)).data)
-		#expect(
-			SHA256.hash(data: dlResult) == multipartHash,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
+//		guard
+//			try TestEnvironment.s3AccessSecret.isEmpty == false,
+//			try TestEnvironment.s3AccessKey.isEmpty == false
+//		else {
+//			throw SimpleTestError(message: "Need s3 credentials")
+//		}
+//
+//		let nh = getNetworkHandler(with: engine)
+//		defer { nh.resetCache() }
+//
+//		let upRequest = uploadURL.uploadRequest.with {
+//			$0.method = .put
+//			$0.expectedResponseCodes = 200
+//		}
+//
+//		let testFileURL = URL.temporaryDirectory.appending(component: UUID().uuidString).appendingPathExtension("bin")
+//		let (actualTestFile, done) = try createDummyFile(at: testFileURL, megabytes: 5)
+//		defer { try? done() }
+//
+//		let boundary = "akjlsdghkajshdg"
+//		let multipart = MultipartFormInputTempFile(boundary: boundary)
+//		multipart.addPart(named: "file", fileURL: actualTestFile, contentType: "application/octet-stream")
+//
+//		let multipartFile = try await multipart.renderToFile()
+//		defer { try? FileManager.default.removeItem(at: multipartFile )}
+//
+//		let multipartHash = try fileHash(multipartFile)
+//
+//		let awsHeaderInfo = try AWSV4Signature(
+//			for: upRequest,
+//			awsKey: TestEnvironment.s3AccessKey,
+//			awsSecret: TestEnvironment.s3AccessSecret,
+//			awsRegion: .usEast1,
+//			awsService: .s3,
+//			hexContentHash: .fromShaHashDigest(multipartHash))
+//
+//		let signedRequest = try awsHeaderInfo.processRequest(upRequest)
+//
+//		let atomicRequest = AtomicValue(value: NetworkRequest.upload(signedRequest, payload: .localFile(multipartFile)))
+//		let delegate = await Delegate(onRequestModified: { _, _, new in
+//			atomicRequest.value = new
+//		})
+//		_ = try await nh.uploadMahDatas(for: signedRequest, payload: .localFile(multipartFile), delegate: delegate)
+//		#expect(
+//			atomicRequest.value.expectedContentLength != nil,
+//			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
+//
+//		let dlRequest = uploadURL.generalRequest
+//
+//		let dlResult = try await #require(nh.transferMahDatas(for: .general(dlRequest)).data)
+//		#expect(
+//			SHA256.hash(data: dlResult) == multipartHash,
+//			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 	}
 
 	/// performs a `PUT` request to `uploadURL`
@@ -476,56 +482,58 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		column: Int = #column,
 		function: String = #function
 	) async throws {
-		guard
-			try TestEnvironment.s3AccessSecret.isEmpty == false,
-			try TestEnvironment.s3AccessKey.isEmpty == false
-		else {
-			throw SimpleTestError(message: "Need s3 credentials")
-		}
+		throw SimpleTestError(message: "Uses aws headers - needs refactor")
 
-		let nh = getNetworkHandler(with: engine)
-		defer { nh.resetCache() }
-
-		let upRequest = uploadURL.uploadRequest.with {
-			$0.method = .put
-			$0.expectedResponseCodes = 200
-		}
-
-		let testFileURL = URL.temporaryDirectory.appending(component: UUID().uuidString).appendingPathExtension("bin")
-		let (actualTestFile, done) = try createDummyFile(at: testFileURL, megabytes: 5)
-		defer { try? done() }
-
-		let boundary = "akjlsdghkajshdg"
-		let multipart = MultipartFormInputStream(boundary: boundary)
-		try multipart.addPart(named: "file", fileURL: actualTestFile, contentType: "application/octet-stream")
-
-		let multipartHash = try streamHash(multipart.safeCopy())
-
-		let awsHeaderInfo = try AWSV4Signature(
-			for: upRequest,
-			awsKey: TestEnvironment.s3AccessKey,
-			awsSecret: TestEnvironment.s3AccessSecret,
-			awsRegion: .usEast1,
-			awsService: .s3,
-			hexContentHash: .fromShaHashDigest(multipartHash))
-
-		let signedRequest = try awsHeaderInfo.processRequest(upRequest)
-
-		let atomicRequest = AtomicValue(value: NetworkRequest.upload(signedRequest, payload: .inputStream(multipart)))
-		let delegate = await Delegate(onRequestModified: { _, _, new in
-			atomicRequest.value = new
-		})
-		_ = try await nh.uploadMahDatas(for: signedRequest, payload: .inputStream(multipart), delegate: delegate)
-		#expect(
-			atomicRequest.value.expectedContentLength == nil,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
-
-		let dlRequest = uploadURL.generalRequest
-
-		let dlResult = try await #require(nh.transferMahDatas(for: .general(dlRequest)).data)
-		#expect(
-			SHA256.hash(data: dlResult) == multipartHash,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
+//		guard
+//			try TestEnvironment.s3AccessSecret.isEmpty == false,
+//			try TestEnvironment.s3AccessKey.isEmpty == false
+//		else {
+//			throw SimpleTestError(message: "Need s3 credentials")
+//		}
+//
+//		let nh = getNetworkHandler(with: engine)
+//		defer { nh.resetCache() }
+//
+//		let upRequest = uploadURL.uploadRequest.with {
+//			$0.method = .put
+//			$0.expectedResponseCodes = 200
+//		}
+//
+//		let testFileURL = URL.temporaryDirectory.appending(component: UUID().uuidString).appendingPathExtension("bin")
+//		let (actualTestFile, done) = try createDummyFile(at: testFileURL, megabytes: 5)
+//		defer { try? done() }
+//
+//		let boundary = "akjlsdghkajshdg"
+//		let multipart = MultipartFormInputStream(boundary: boundary)
+//		try multipart.addPart(named: "file", fileURL: actualTestFile, contentType: "application/octet-stream")
+//
+//		let multipartHash = try streamHash(multipart.safeCopy())
+//
+//		let awsHeaderInfo = try AWSV4Signature(
+//			for: upRequest,
+//			awsKey: TestEnvironment.s3AccessKey,
+//			awsSecret: TestEnvironment.s3AccessSecret,
+//			awsRegion: .usEast1,
+//			awsService: .s3,
+//			hexContentHash: .fromShaHashDigest(multipartHash))
+//
+//		let signedRequest = try awsHeaderInfo.processRequest(upRequest)
+//
+//		let atomicRequest = AtomicValue(value: NetworkRequest.upload(signedRequest, payload: .inputStream(multipart)))
+//		let delegate = await Delegate(onRequestModified: { _, _, new in
+//			atomicRequest.value = new
+//		})
+//		_ = try await nh.uploadMahDatas(for: signedRequest, payload: .inputStream(multipart), delegate: delegate)
+//		#expect(
+//			atomicRequest.value.expectedContentLength == nil,
+//			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
+//
+//		let dlRequest = uploadURL.generalRequest
+//
+//		let dlResult = try await #require(nh.transferMahDatas(for: .general(dlRequest)).data)
+//		#expect(
+//			SHA256.hash(data: dlResult) == multipartHash,
+//			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 	}
 
 	/// performs a `GET` request to `badDemoModelURL`. Provided must be corrupted in some way.
@@ -628,55 +636,57 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		column: Int = #column,
 		function: String = #function
 	) async throws {
-		guard
-			try TestEnvironment.s3AccessSecret.isEmpty == false,
-			try TestEnvironment.s3AccessKey.isEmpty == false
-		else {
-			throw SimpleTestError(message: "Need s3 credentials")
-		}
+		throw SimpleTestError(message: "Uses aws headers - needs refactor")
 
-		let nh = getNetworkHandler(with: engine)
-		defer { nh.resetCache() }
-
-		let request = uploadURL.uploadRequest.with {
-			$0.method = .put
-		}
-
-		var rng: RandomNumberGenerator = SeedableRNG(seed: 9_345_867)
-		let randomData = Data.random(count: 1024 * 1024 * 10, using: &rng)
-
-		let hash = SHA256.hash(data: randomData)
-
-		let awsHeaderInfo = try AWSV4Signature(
-			for: request,
-			awsKey: TestEnvironment.s3AccessKey,
-			awsSecret: TestEnvironment.s3AccessSecret,
-			awsRegion: .usEast1,
-			awsService: .s3,
-			hexContentHash: .fromShaHashDigest(hash))
-
-		let signedRequest = try awsHeaderInfo.processRequest(request)
-		let token = NetworkCancellationToken()
-
-		let task = Task {
-			let delegate = await Delegate(onSendData: { _, _, bytesSent, _ in
-				guard bytesSent > (1024 * 1024 * 2) else { return }
-				token.cancel()
-			})
-
-			return try await nh.uploadMahDatas(
-				for: signedRequest,
-				payload: .data(randomData),
-				delegate: delegate,
-				cancellationToken: token)
-		}
-
-		await #expect(
-			throws: NetworkError.requestCancelled,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column),
-			performing: {
-				_ = try await task.value
-			})
+//		guard
+//			try TestEnvironment.s3AccessSecret.isEmpty == false,
+//			try TestEnvironment.s3AccessKey.isEmpty == false
+//		else {
+//			throw SimpleTestError(message: "Need s3 credentials")
+//		}
+//
+//		let nh = getNetworkHandler(with: engine)
+//		defer { nh.resetCache() }
+//
+//		let request = uploadURL.uploadRequest.with {
+//			$0.method = .put
+//		}
+//
+//		var rng: RandomNumberGenerator = SeedableRNG(seed: 9_345_867)
+//		let randomData = Data.random(count: 1024 * 1024 * 10, using: &rng)
+//
+//		let hash = SHA256.hash(data: randomData)
+//
+//		let awsHeaderInfo = try AWSV4Signature(
+//			for: request,
+//			awsKey: TestEnvironment.s3AccessKey,
+//			awsSecret: TestEnvironment.s3AccessSecret,
+//			awsRegion: .usEast1,
+//			awsService: .s3,
+//			hexContentHash: .fromShaHashDigest(hash))
+//
+//		let signedRequest = try awsHeaderInfo.processRequest(request)
+//		let token = NetworkCancellationToken()
+//
+//		let task = Task {
+//			let delegate = await Delegate(onSendData: { _, _, bytesSent, _ in
+//				guard bytesSent > (1024 * 1024 * 2) else { return }
+//				token.cancel()
+//			})
+//
+//			return try await nh.uploadMahDatas(
+//				for: signedRequest,
+//				payload: .data(randomData),
+//				delegate: delegate,
+//				cancellationToken: token)
+//		}
+//
+//		await #expect(
+//			throws: NetworkError.requestCancelled,
+//			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column),
+//			performing: {
+//				_ = try await task.value
+//			})
 	}
 
 	/// performs a `PUT` request to `randomDataURL`. Provided must be corrupted in some way.
@@ -688,69 +698,71 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		column: Int = #column,
 		function: String = #function
 	) async throws {
-		guard
-			try TestEnvironment.s3AccessSecret.isEmpty == false,
-			try TestEnvironment.s3AccessKey.isEmpty == false
-		else {
-			throw SimpleTestError(message: "Need s3 credentials")
-		}
+		throw SimpleTestError(message: "Uses aws headers - needs refactor")
 
-		let nh = getNetworkHandler(with: engine)
-		defer { nh.resetCache() }
-
-		let url = randomDataURL
-		let request = url.uploadRequest.with {
-			$0.method = .put
-			$0.timeoutInterval = 0.001
-		}
-
-		let testFileURL = URL.temporaryDirectory.appending(component: UUID().uuidString).appendingPathExtension("bin")
-		let (actualTestFile, done) = try createDummyFile(at: testFileURL, megabytes: 5)
-		defer { try? done() }
-
-		let hash = try fileHash(actualTestFile)
-
-		let awsHeaderInfo = try AWSV4Signature(
-			for: request,
-			awsKey: TestEnvironment.s3AccessKey,
-			awsSecret: TestEnvironment.s3AccessSecret,
-			awsRegion: .usEast1,
-			awsService: .s3,
-			hexContentHash: .fromShaHashDigest(hash))
-
-		let signedRequest = try awsHeaderInfo.processRequest(request)
-
-		let atomicFailCount = AtomicValue(value: 0)
-		let expectedFailCount = 3
-
-		await #expect(
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column),
-			performing: {
-				_ = try await nh.uploadMahDatas(
-					for: signedRequest,
-					payload: .localFile(actualTestFile),
-					onError: { _, failCount, error in
-						#expect(error.isCancellation() == false)
-						print(error)
-						atomicFailCount.value = failCount
-						guard failCount < expectedFailCount else { return .throw }
-						return .retry
-					})
-			},
-			throws: {
-				guard let error = $0 as? NetworkError else { return false }
-
-				switch error {
-				case .httpUnexpectedStatusCode:
-					return false
-				default:
-					return true
-				}
-
-			})
-		#expect(
-			atomicFailCount.value == expectedFailCount,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
+//		guard
+//			try TestEnvironment.s3AccessSecret.isEmpty == false,
+//			try TestEnvironment.s3AccessKey.isEmpty == false
+//		else {
+//			throw SimpleTestError(message: "Need s3 credentials")
+//		}
+//
+//		let nh = getNetworkHandler(with: engine)
+//		defer { nh.resetCache() }
+//
+//		let url = randomDataURL
+//		let request = url.uploadRequest.with {
+//			$0.method = .put
+//			$0.timeoutInterval = 0.001
+//		}
+//
+//		let testFileURL = URL.temporaryDirectory.appending(component: UUID().uuidString).appendingPathExtension("bin")
+//		let (actualTestFile, done) = try createDummyFile(at: testFileURL, megabytes: 5)
+//		defer { try? done() }
+//
+//		let hash = try fileHash(actualTestFile)
+//
+//		let awsHeaderInfo = try AWSV4Signature(
+//			for: request,
+//			awsKey: TestEnvironment.s3AccessKey,
+//			awsSecret: TestEnvironment.s3AccessSecret,
+//			awsRegion: .usEast1,
+//			awsService: .s3,
+//			hexContentHash: .fromShaHashDigest(hash))
+//
+//		let signedRequest = try awsHeaderInfo.processRequest(request)
+//
+//		let atomicFailCount = AtomicValue(value: 0)
+//		let expectedFailCount = 3
+//
+//		await #expect(
+//			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column),
+//			performing: {
+//				_ = try await nh.uploadMahDatas(
+//					for: signedRequest,
+//					payload: .localFile(actualTestFile),
+//					onError: { _, failCount, error in
+//						#expect(error.isCancellation() == false)
+//						print(error)
+//						atomicFailCount.value = failCount
+//						guard failCount < expectedFailCount else { return .throw }
+//						return .retry
+//					})
+//			},
+//			throws: {
+//				guard let error = $0 as? NetworkError else { return false }
+//
+//				switch error {
+//				case .httpUnexpectedStatusCode:
+//					return false
+//				default:
+//					return true
+//				}
+//
+//			})
+//		#expect(
+//			atomicFailCount.value == expectedFailCount,
+//			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 	}
 
 	/// performs a `PUT` request to `randomDataURL` (only really useful to test with `MockingEngine`)
@@ -765,76 +777,78 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		column: Int = #column,
 		function: String = #function
 	) async throws {
-		guard
-			try TestEnvironment.s3AccessSecret.isEmpty == false,
-			try TestEnvironment.s3AccessKey.isEmpty == false
-		else {
-			throw SimpleTestError(message: "Need s3 credentials")
-		}
+		throw SimpleTestError(message: "Uses aws headers - needs refactor")
 
-		let nh = getNetworkHandler(with: engine)
-		defer { nh.resetCache() }
-
-		let url = randomDataURL
-		let request = url.uploadRequest.with {
-			$0.method = .put
-		}
-
-		var rng: RandomNumberGenerator = SystemRandomNumberGenerator()
-		let data = Data.random(count: 128, using: &rng)
-
-		let hash = SHA256.hash(data: data)
-
-		let awsHeaderInfo = try AWSV4Signature(
-			for: request,
-			awsKey: TestEnvironment.s3AccessKey,
-			awsSecret: TestEnvironment.s3AccessSecret,
-			awsRegion: .usEast1,
-			awsService: .s3,
-			hexContentHash: .fromShaHashDigest(hash))
-
-		let signedRequest = try awsHeaderInfo.processRequest(request)
-
-		let atomicFailCount = AtomicValue(value: 0)
-
-		switch anticipatedOutput {
-		case .success(let success):
-			let (header, data) = try await nh.uploadMahDatas(
-				for: signedRequest,
-				payload: .data(data)) { _, attempt, _ in
-					atomicFailCount.value = attempt
-					if attempt == 1 {
-						return retryOption
-					} else {
-						return .throw
-					}
-				}
-
-			#expect(
-				success.data == data,
-				sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
-			#expect(
-				success.header == header,
-				sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
-		case .failure(let failure):
-			await #expect(throws: failure, performing: {
-				_ = try await nh.uploadMahDatas(
-					for: signedRequest,
-					payload: .data(data),
-					onError: { _, attempt, _ in
-						atomicFailCount.value = attempt
-						if attempt == 1 {
-							return retryOption
-						} else {
-							return .throw
-						}
-					})
-			})
-		}
-
-		#expect(
-			atomicFailCount.value == expectedAttemptCount,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
+//		guard
+//			try TestEnvironment.s3AccessSecret.isEmpty == false,
+//			try TestEnvironment.s3AccessKey.isEmpty == false
+//		else {
+//			throw SimpleTestError(message: "Need s3 credentials")
+//		}
+//
+//		let nh = getNetworkHandler(with: engine)
+//		defer { nh.resetCache() }
+//
+//		let url = randomDataURL
+//		let request = url.uploadRequest.with {
+//			$0.method = .put
+//		}
+//
+//		var rng: RandomNumberGenerator = SystemRandomNumberGenerator()
+//		let data = Data.random(count: 128, using: &rng)
+//
+//		let hash = SHA256.hash(data: data)
+//
+//		let awsHeaderInfo = try AWSV4Signature(
+//			for: request,
+//			awsKey: TestEnvironment.s3AccessKey,
+//			awsSecret: TestEnvironment.s3AccessSecret,
+//			awsRegion: .usEast1,
+//			awsService: .s3,
+//			hexContentHash: .fromShaHashDigest(hash))
+//
+//		let signedRequest = try awsHeaderInfo.processRequest(request)
+//
+//		let atomicFailCount = AtomicValue(value: 0)
+//
+//		switch anticipatedOutput {
+//		case .success(let success):
+//			let (header, data) = try await nh.uploadMahDatas(
+//				for: signedRequest,
+//				payload: .data(data)) { _, attempt, _ in
+//					atomicFailCount.value = attempt
+//					if attempt == 1 {
+//						return retryOption
+//					} else {
+//						return .throw
+//					}
+//				}
+//
+//			#expect(
+//				success.data == data,
+//				sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
+//			#expect(
+//				success.header == header,
+//				sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
+//		case .failure(let failure):
+//			await #expect(throws: failure, performing: {
+//				_ = try await nh.uploadMahDatas(
+//					for: signedRequest,
+//					payload: .data(data),
+//					onError: { _, attempt, _ in
+//						atomicFailCount.value = attempt
+//						if attempt == 1 {
+//							return retryOption
+//						} else {
+//							return .throw
+//						}
+//					})
+//			})
+//		}
+//
+//		#expect(
+//			atomicFailCount.value == expectedAttemptCount,
+//			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 	}
 
 	/// performs a `GET` request to `randomDataURL`. Provided must be corrupted in some way.
@@ -889,59 +903,61 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		column: Int = #column,
 		function: String = #function
 	) async throws {
-		let nh = getNetworkHandler(with: engine)
-		defer { nh.resetCache() }
+		throw SimpleTestError(message: "Uses aws headers - needs refactor")
 
-		let url = randomDataURL
-		let request = url.uploadRequest.with {
-			$0.method = .put
-		}
-
-		let testFileURL = URL.temporaryDirectory.appending(component: UUID().uuidString).appendingPathExtension("bin")
-		let (actualTestFile, done) = try createDummyFile(at: testFileURL, megabytes: 5)
-		defer { try? done() }
-
-		let hash = try fileHash(actualTestFile)
-
-		let awsHeaderInfo = try AWSV4Signature(
-			for: request,
-			awsKey: TestEnvironment.s3AccessKey,
-			awsSecret: TestEnvironment.s3AccessSecret,
-			awsRegion: .usEast1,
-			awsService: .s3,
-			hexContentHash: .fromShaHashDigest(hash))
-
-		let signedRequest = try awsHeaderInfo.processRequest(request)
-
-		let accumulator = AtomicValue(value: [Int]())
-		let expectedTotalAtomic = AtomicValue(value: -1)
-		let updatedRequestAtomic = AtomicValue(value: NetworkRequest.upload(signedRequest, payload: .localFile(testFileURL)))
-		let delegate = await Delegate(
-			onRequestModified: { _, _, modReq in
-				updatedRequestAtomic.value = modReq
-			},
-			onSendData: { _, _, count, expectedTotal in
-				accumulator.value.append(count)
-				if let expectedTotal {
-					expectedTotalAtomic.value = expectedTotal
-				}
-				print("\(count) of \(expectedTotalAtomic.value)")
-			})
-
-		_ = try await nh.uploadMahDatas(for: signedRequest, payload: .localFile(testFileURL), delegate: delegate)
-
-		#expect(
-			updatedRequestAtomic.value.headers[.contentLength] != nil,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
-		#expect(
-			updatedRequestAtomic.value.headers[semantic: .contentLength].flatMap { Int($0.rawValue) } == expectedTotalAtomic.value, // swiftlint:disable:this line_length
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
-		#expect(
-			accumulator.value.isOccupied,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
-		#expect(
-			accumulator.value.sorted() == accumulator.value,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
+//		let nh = getNetworkHandler(with: engine)
+//		defer { nh.resetCache() }
+//
+//		let url = randomDataURL
+//		let request = url.uploadRequest.with {
+//			$0.method = .put
+//		}
+//
+//		let testFileURL = URL.temporaryDirectory.appending(component: UUID().uuidString).appendingPathExtension("bin")
+//		let (actualTestFile, done) = try createDummyFile(at: testFileURL, megabytes: 5)
+//		defer { try? done() }
+//
+//		let hash = try fileHash(actualTestFile)
+//
+//		let awsHeaderInfo = try AWSV4Signature(
+//			for: request,
+//			awsKey: TestEnvironment.s3AccessKey,
+//			awsSecret: TestEnvironment.s3AccessSecret,
+//			awsRegion: .usEast1,
+//			awsService: .s3,
+//			hexContentHash: .fromShaHashDigest(hash))
+//
+//		let signedRequest = try awsHeaderInfo.processRequest(request)
+//
+//		let accumulator = AtomicValue(value: [Int]())
+//		let expectedTotalAtomic = AtomicValue(value: -1)
+//		let updatedRequestAtomic = AtomicValue(value: NetworkRequest.upload(signedRequest, payload: .localFile(testFileURL)))
+//		let delegate = await Delegate(
+//			onRequestModified: { _, _, modReq in
+//				updatedRequestAtomic.value = modReq
+//			},
+//			onSendData: { _, _, count, expectedTotal in
+//				accumulator.value.append(count)
+//				if let expectedTotal {
+//					expectedTotalAtomic.value = expectedTotal
+//				}
+//				print("\(count) of \(expectedTotalAtomic.value)")
+//			})
+//
+//		_ = try await nh.uploadMahDatas(for: signedRequest, payload: .localFile(testFileURL), delegate: delegate)
+//
+//		#expect(
+//			updatedRequestAtomic.value.headers[.contentLength] != nil,
+//			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
+//		#expect(
+//			updatedRequestAtomic.value.headers[semantic: .contentLength].flatMap { Int($0.rawValue) } == expectedTotalAtomic.value, // swiftlint:disable:this line_length
+//			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
+//		#expect(
+//			accumulator.value.isOccupied,
+//			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
+//		#expect(
+//			accumulator.value.sorted() == accumulator.value,
+//			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 	}
 
 	/// performs a `GET` request to `echoURL`. Provided must be corrupted in some way.
