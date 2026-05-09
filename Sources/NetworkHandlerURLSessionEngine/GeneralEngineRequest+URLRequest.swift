@@ -1,7 +1,7 @@
 import Foundation
 import NetworkHandler
 
-extension GeneralEngineRequest {
+extension StandardRequest {
 	package var urlRequest: URLRequest {
 		var new = URLRequest(url: self.url)
 		for header in self.headers {
