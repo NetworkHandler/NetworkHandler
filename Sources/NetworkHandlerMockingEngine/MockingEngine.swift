@@ -50,7 +50,7 @@ public actor MockingEngine: NetworkEngine {
 		from request: StandardRequest,
 		requestLogger: Logger?
 	) async throws(NetworkError) -> (EngineResponseHeader, ResponseBodyStream) {
-		try await performServerInteraction(for: .general(request), uploadProgCont: nil)
+		try await performServerInteraction(for: .standard(request), uploadProgCont: nil)
 	}
 
 	public func performNetworkTransfer(
@@ -194,7 +194,7 @@ public actor MockingEngine: NetworkEngine {
 
 			defer { try? sendContinuation.finish() }
 			switch request {
-			case .general(let downloadRequest):
+			case .standard(let downloadRequest):
 				if let sendBody = downloadRequest.payload {
 					for chunk in sendBody.chunks(ofCount: 1024) {
 						try await Task.sleep(for: .milliseconds(20))

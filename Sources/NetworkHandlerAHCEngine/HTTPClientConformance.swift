@@ -15,7 +15,7 @@ extension HTTPClient: NetworkEngine {
 		requestLogger: Logger?
 	) async throws(NetworkError) -> (responseHeader: EngineResponseHeader, responseBody: ResponseBodyStream) {
 		switch request {
-		case .general(let generalRequest):
+		case .standard(let generalRequest):
 			try await fetchNetworkData(from: generalRequest, requestLogger: requestLogger)
 		case .upload(let uploadRequest, payload: let payload):
 			try await uploadNetworkData(

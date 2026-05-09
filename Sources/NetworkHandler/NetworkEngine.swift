@@ -40,7 +40,7 @@ public protocol NetworkEngine: Sendable, Withable {
 	/// - Parameters:
 	///   - request: The request
 	///   - uploadProgressContinuation: Stream Continuation to foward upload progress updates to NetworkHandler.
-	///   Required to use when performing an upload request. Nice to have when performing a general request.
+	///   Required to use when performing an upload request. Nice to have when performing a standard request.
 	///   - requestLogger: logger to use
 	func performNetworkTransfer(
 		request: NetworkRequest,

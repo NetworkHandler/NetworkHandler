@@ -225,7 +225,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 			$0.expectedResponseCodes = 200
 		}
 		_ = try await nh.transferMahDatas(
-			for: .general(request),
+			for: .standard(request),
 			requestLogger: logger,
 			onError: { _, _, _  in .throw })
 	}
@@ -581,7 +581,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 				cancelToken.cancel()
 			})
 
-			return try await nh.transferMahDatas(for: .general(request), delegate: delegate, cancellationToken: cancelToken)
+			return try await nh.transferMahDatas(for: .standard(request), delegate: delegate, cancellationToken: cancelToken)
 		}
 
 		await #expect(throws: NetworkError.requestCancelled, performing: {
@@ -603,7 +603,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 
 		let request = randomDataURL.generalRequest
 
-		let stream = try await nh.streamMahDatas(for: .general(request)).stream
+		let stream = try await nh.streamMahDatas(for: .standard(request)).stream
 
 		let forCancel = Task {
 			var accumulated = Data()
@@ -960,7 +960,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		let request = url.generalRequest
 
 		let echo: BeeEchoModel = try await nh.poll(
-			request: .general(request),
+			request: .standard(request),
 			requestLogger: logger,
 			until: { pollRequest, pollResult in
 				do {

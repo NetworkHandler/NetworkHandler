@@ -105,7 +105,7 @@ extension URLSession: NetworkEngine {
 
 			let task = uploadTask(withStreamedRequest: urlRequest)
 			return (task, payloadStream)
-		case .general(let standardRequest):
+		case .standard(let standardRequest):
 			let task = dataTask(with: standardRequest.urlRequest)
 			return (task, nil)
 		}

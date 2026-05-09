@@ -232,7 +232,7 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 		}
 
 		let (header, _) = try await retryHandler(
-			originalRequest: .general(request),
+			originalRequest: .standard(request),
 			transferTask: { transferRequest, _ in
 				let (streamHeader, stream) = try await streamMahDatas(
 					for: transferRequest,
@@ -301,7 +301,7 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 		onError: @escaping RetryOptionBlock = { _, _, _ in .throw }
 	) async throws(NetworkError) -> (responseHeader: EngineResponseHeader, data: Data?) {
 		try await transferMahDatas(
-			for: .general(request),
+			for: .standard(request),
 			delegate: delegate,
 			usingCache: cacheOption,
 			requestLogger: requestLogger,
@@ -434,10 +434,10 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 				httpResponse = response
 				delegate?.responseHeaderRetrieved(for: request, header: httpResponse)
 				bodyResponseStream = bodyStream
-			case .general(let generalRequest):
+			case .standard(let generalRequest):
 				try cancellationToken?.checkIsCancelled()
 				let (header, bodyStream) = try await engine.performNetworkTransfer(
-					request: .general(generalRequest),
+					request: .standard(generalRequest),
 					uploadProgressContinuation: nil,
 					requestLogger: requestLogger)
 				cancellationToken?.onCancel = { bodyStream.cancel() }
