@@ -1,7 +1,7 @@
 import Foundation
 import NetworkHandler
 
-public extension EngineRequestCommonData {
+public extension CommonRequestData {
 	internal var derivedURLRequest: URLRequest {
 		get {
 			if let existing: URLRequest = extensionStorageRetrieve(valueForKey: #function) {
