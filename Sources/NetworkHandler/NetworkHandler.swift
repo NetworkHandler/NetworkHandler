@@ -160,7 +160,7 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 
 	/// Send a large blob to a server
 	/// - Parameters:
-	///   - request: UploadEngineRequest
+	///   - request: UploadRequest
 	///   - payload: The file/data/stream you're uploading.
 	///   - delegate: Provides transfer lifecycle information
 	///   - requestLogger: Logger to use for this request
@@ -171,7 +171,7 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 	@NHActor
 	@discardableResult
 	public func uploadMahDatas(
-		for request: UploadEngineRequest,
+		for request: UploadRequest,
 		payload: UploadFile,
 		delegate: NetworkHandlerTaskDelegate? = nil,
 		requestLogger: Logger? = nil,

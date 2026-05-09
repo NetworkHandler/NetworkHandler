@@ -3,7 +3,7 @@ import HTTPTypes
 import NetworkHandler
 import NIOCore
 
-extension UploadEngineRequest {
+extension UploadRequest {
 	public var httpClientFutureRequest: HTTPClient.Request {
 		get throws {
 			try HTTPClient.Request(

@@ -5,7 +5,7 @@ public extension URL {
 		StandardRequest(url: self)
 	}
 
-	var uploadRequest: UploadEngineRequest {
-		UploadEngineRequest(url: self)
+	var uploadRequest: UploadRequest {
+		UploadRequest(url: self)
 	}
 }
