@@ -77,7 +77,7 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 		request: NetworkRequest,
 		delegate: NetworkHandlerTaskDelegate? = nil,
 		usingCache cacheOption: NetworkHandler.CacheKeyOption = .dontUseCache,
-		decoder: NHDecoder = GeneralEngineRequest.defaultDecoder,
+		decoder: NHDecoder = StandardRequest.defaultDecoder,
 		requestLogger: Logger? = nil,
 		cancellationToken: NetworkCancellationToken? = nil,
 		until: @escaping @NHActor (NetworkRequest, PollResult<T>) async throws(NetworkError) -> PollContinuation<T>
@@ -138,10 +138,10 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 	@NHActor
 	@discardableResult
 	public func downloadMahCodableDatas<DecodableType: Decodable>(
-		for request: GeneralEngineRequest,
+		for request: StandardRequest,
 		delegate: NetworkHandlerTaskDelegate? = nil,
 		usingCache cacheOption: NetworkHandler.CacheKeyOption = .dontUseCache,
-		decoder: NHDecoder = GeneralEngineRequest.defaultDecoder,
+		decoder: NHDecoder = StandardRequest.defaultDecoder,
 		requestLogger: Logger? = nil,
 		cancellationToken: NetworkCancellationToken? = nil,
 		onError: @escaping RetryOptionBlock = { _, _, _ in .throw }
@@ -189,7 +189,7 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 
 	/// Downloads remote data to a local file URL.
 	/// - Parameters:
-	///   - request: GeneralEngineRequest
+	///   - request: StandardRequest
 	///   - outFileURL: The file URL to save the final data into (also used as the temporary file if none
 	///   is explicitly specified)
 	///   - tempoaryFileURL: The file URL to save file into as it's accumulated before the transfer is completed.
@@ -204,7 +204,7 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 	@NHActor
 	@discardableResult
 	public func downloadMahFile(
-		for request: GeneralEngineRequest,
+		for request: StandardRequest,
 		savingToLocalFileURL outFileURL: URL,
 		withTemporaryFile tempoaryFileURL: URL? = nil,
 		delegate: NetworkHandlerTaskDelegate? = nil,
@@ -281,7 +281,7 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 
 	/// Downloads data from a server. Also used to send smaller chunks of data, like REST requests, etc.
 	/// - Parameters:
-	///   - request: GeneralEngineRequest
+	///   - request: StandardRequest
 	///   - delegate: Provides transfer lifecycle information
 	///   - cacheOption:  NetworkHandler.CacheKeyOption indicating whether to use cache with or without a key
 	///   overrride or not at all. **Default**: `.dontUseCache`
@@ -293,7 +293,7 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 	@NHActor
 	@discardableResult
 	public func downloadMahDatas(
-		for request: GeneralEngineRequest,
+		for request: StandardRequest,
 		delegate: NetworkHandlerTaskDelegate? = nil,
 		usingCache cacheOption: NetworkHandler.CacheKeyOption = .dontUseCache,
 		requestLogger: Logger? = nil,
