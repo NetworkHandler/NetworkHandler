@@ -14,15 +14,15 @@ public struct GeneralEngineRequest: Hashable, Sendable, Withable {
 	/// Internal metadata used to store common HTTP request properties, such as HTTP headers, response codes,
 	/// and URLs. This allows `GeneralEngineRequest` to provide a lightweight wrapper around core functionality
 	/// without duplicating state or logic.
-	package var metadata: EngineRequestMetadata
+	package var commonData: EngineRequestCommonData
 
-	public subscript<T>(dynamicMember member: WritableKeyPath<EngineRequestMetadata, T>) -> T {
-		get { metadata[keyPath: member] }
-		set { metadata[keyPath: member] = newValue }
+	public subscript<T>(dynamicMember member: WritableKeyPath<EngineRequestCommonData, T>) -> T {
+		get { commonData[keyPath: member] }
+		set { commonData[keyPath: member] = newValue }
 	}
 
-	public subscript<T>(dynamicMember member: KeyPath<EngineRequestMetadata, T>) -> T {
-		metadata[keyPath: member]
+	public subscript<T>(dynamicMember member: KeyPath<EngineRequestCommonData, T>) -> T {
+		commonData[keyPath: member]
 	}
 
 	nonisolated(unsafe)
@@ -63,14 +63,14 @@ public struct GeneralEngineRequest: Hashable, Sendable, Withable {
 		autogenerateRequestID: Bool = true
 	) {
 		self.payload = payload
-		self.metadata = EngineRequestMetadata(
+		self.commonData = EngineRequestCommonData(
 			expectedResponseCodes: expectedResponseCodes,
 			headers: headers,
 			method: method,
 			url: url,
 			autogenerateRequestID: autogenerateRequestID)
 	}
-	public typealias ResponseCodes = EngineRequestMetadata.ResponseCodes
+	public typealias ResponseCodes = EngineRequestCommonData.ResponseCodes
 
 	/// Encodes an object conforming to `Encodable` into a `Data` payload using the specified or default encoder.
 	///

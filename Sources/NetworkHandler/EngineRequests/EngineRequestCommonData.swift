@@ -6,7 +6,7 @@ import SwiftPizzaSnips
 /// Encapsulates shared metadata for a network engine request, such as headers, response codes,
 /// HTTP method, and URL. Designed to be shared across related request types (`GeneralEngineRequest`
 /// and `UploadEngineRequest`) for centralized management of common attributes.
-public struct EngineRequestMetadata: Hashable, @unchecked Sendable, Withable {
+public struct EngineRequestCommonData: Hashable, @unchecked Sendable, Withable {
 	/// Defines the range of acceptable HTTP response status codes for a request.
 	/// This type encapsulates response codes as a set of integers and provides
 	/// conveniences for constructing it from individual integers, ranges, or arrays.
@@ -48,8 +48,8 @@ public struct EngineRequestMetadata: Hashable, @unchecked Sendable, Withable {
 	///
 	/// Example:
 	/// ```swift
-	/// metadata.expectedResponseCodes = [200, 201, 202]
-	/// metadata.expectedResponseCodes = ResponseCodes(range: 200..<300)
+	/// commonData.expectedResponseCodes = [200, 201, 202]
+	/// commonData.expectedResponseCodes = ResponseCodes(range: 200..<300)
 	/// ```
 	public var expectedResponseCodes: ResponseCodes
 

@@ -14,15 +14,15 @@ import SwiftPizzaSnips
 /// a `UploadEngineRequest` to the request type native to your engine.
 @dynamicMemberLookup
 public struct UploadEngineRequest: Hashable, Sendable, Withable {
-	package var metadata: EngineRequestMetadata
+	package var commonData: EngineRequestCommonData
 
-	public subscript<T>(dynamicMember member: WritableKeyPath<EngineRequestMetadata, T>) -> T {
-		get { metadata[keyPath: member] }
-		set { metadata[keyPath: member] = newValue }
+	public subscript<T>(dynamicMember member: WritableKeyPath<EngineRequestCommonData, T>) -> T {
+		get { commonData[keyPath: member] }
+		set { commonData[keyPath: member] = newValue }
 	}
 
-	public subscript<T>(dynamicMember member: KeyPath<EngineRequestMetadata, T>) -> T {
-		metadata[keyPath: member]
+	public subscript<T>(dynamicMember member: KeyPath<EngineRequestCommonData, T>) -> T {
+		commonData[keyPath: member]
 	}
 
 	/// - Parameters:
@@ -38,7 +38,7 @@ public struct UploadEngineRequest: Hashable, Sendable, Withable {
 		url: URL,
 		autogenerateRequestID: Bool = true
 	) {
-		self.metadata = EngineRequestMetadata(
+		self.commonData = EngineRequestCommonData(
 			expectedResponseCodes: expectedResponseCodes,
 			headers: headers,
 			method: method,
@@ -46,5 +46,5 @@ public struct UploadEngineRequest: Hashable, Sendable, Withable {
 			autogenerateRequestID: autogenerateRequestID)
 	}
 
-	public typealias ResponseCodes = EngineRequestMetadata.ResponseCodes
+	public typealias ResponseCodes = EngineRequestCommonData.ResponseCodes
 }
