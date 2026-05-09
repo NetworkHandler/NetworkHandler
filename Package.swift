@@ -2,7 +2,6 @@
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
-import CompilerPluginSupport
 
 var products: [Product] = [
 	.library(
@@ -20,20 +19,6 @@ var products: [Product] = [
 ]
 
 var targets: [Target] = [
-	.macro(
-		name: "NHMacrosImp",
-		dependencies: [
-			.product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
-			.product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
-			.product(name: "HTTPTypes", package: "swift-http-types"),
-		]
-	),
-	.target(
-		name: "NHMacros",
-		dependencies: [
-			"NHMacrosImp",
-			.product(name: "HTTPTypes", package: "swift-http-types"),
-		]),
 	.target(
 		name: "NetworkHandler",
 		dependencies: [
@@ -192,7 +177,7 @@ let package = Package(
 	products: products,
 	dependencies: [
 		.package(url: "https://github.com/apple/swift-crypto.git", .upToNextMajor(from: "3.0.0")),
-		.package(url: "https://github.com/mredig/PizzaMacros.git", .upToNextMajor(from: "0.1.0")),
+		.package(url: "https://github.com/mredig/PizzaMacros.git", .upToNextMajor(from: "0.1.6")),
 		.package(url: "https://github.com/mredig/SwiftPizzaSnips.git", .upToNextMajor(from: "0.4.35")),
 		//		.package(url: "https://github.com/mredig/SwiftPizzaSnips.git", branch: "0.4.34h"),
 		.package(url: "https://github.com/mredig/SwiftlyDotEnv.git", .upToNextMinor(from: "0.2.3")),
@@ -201,6 +186,6 @@ let package = Package(
 		.package(url: "https://github.com/apple/swift-algorithms.git", .upToNextMajor(from: "1.2.1")),
 		.package(url: "https://github.com/SimplyDanny/SwiftLintPlugins", from: "0.58.2"),
 		.package(url: "https://github.com/apple/swift-http-types.git", from: "1.5.1"),
-		.package(url: "https://github.com/apple/swift-syntax.git", from: "601.0.0"),
+		.package(url: "https://github.com/NetworkHandler/NHMacros.git", .upToNextMajor(from: "0.0.1")),
 	],
 	targets: targets)

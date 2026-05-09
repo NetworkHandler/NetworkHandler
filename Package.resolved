@@ -1,5 +1,5 @@
 {
-  "originHash" : "409280dd832f9281fb715314b9dcd65b8d5536c70758b7df9f5dd552ee381aa2",
+  "originHash" : "3e1982ffd6205dff12d9eb2d3095e28282a9bb9d3a8b47e3ae8437dccca26c38",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -11,12 +11,21 @@
       }
     },
     {
+      "identity" : "nhmacros",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/NetworkHandler/NHMacros.git",
+      "state" : {
+        "revision" : "1e3dd70a55afa1e439fc6b432183b1ac15f7b56e",
+        "version" : "0.0.1"
+      }
+    },
+    {
       "identity" : "pizzamacros",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/mredig/PizzaMacros.git",
       "state" : {
-        "revision" : "def68ffcec28d916e4051c1011e4d368ae412551",
-        "version" : "0.1.5"
+        "revision" : "db38d2e594c2931f4b4632382069c0f92d2318f3",
+        "version" : "0.1.6"
       }
     },
     {
@@ -204,8 +213,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-syntax.git",
       "state" : {
-        "revision" : "f99ae8aa18f0cf0d53481901f88a0991dc3bd4a2",
-        "version" : "601.0.1"
+        "revision" : "4799286537280063c85a32f09884cfbca301b1a1",
+        "version" : "602.0.0"
       }
     },
     {
