@@ -6,7 +6,7 @@ public enum NetworkRequest: Sendable {
 	case upload(UploadRequest, payload: UploadFile)
 	case general(StandardRequest)
 
-	private var commonData: EngineRequestCommonData {
+	private var commonData: CommonRequestData {
 		get {
 			switch self {
 			case .upload(let uploadEngineRequest, _):
@@ -28,12 +28,12 @@ public enum NetworkRequest: Sendable {
 		}
 	}
 
-	public subscript<T>(dynamicMember member: WritableKeyPath<EngineRequestCommonData, T>) -> T {
+	public subscript<T>(dynamicMember member: WritableKeyPath<CommonRequestData, T>) -> T {
 		get { commonData[keyPath: member] }
 		set { commonData[keyPath: member] = newValue }
 	}
 
-	public subscript<T>(dynamicMember member: KeyPath<EngineRequestCommonData, T>) -> T {
+	public subscript<T>(dynamicMember member: KeyPath<CommonRequestData, T>) -> T {
 		commonData[keyPath: member]
 	}
 }
