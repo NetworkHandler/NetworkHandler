@@ -63,7 +63,7 @@ class AWSv4AuthTests: XCTestCase {
 			])
 
 		XCTAssertNil(request.headers[headerKey])
-		let dlRequest = try awsSignature.processRequest(.general(request))
+		let dlRequest = try awsSignature.processRequest(request)
 
 		XCTAssertEqual(dlRequest.headers[headerKey], headerValue.rawValue)
 	}

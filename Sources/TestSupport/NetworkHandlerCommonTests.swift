@@ -277,7 +277,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column),
 			performing: {
 				_ = try await nh.transferMahDatas(
-					for: .general(signedRequest),
+					for: .standard(signedRequest),
 					requestLogger: logger,
 					onError: { _, _, _  in .throw })
 			},
@@ -304,7 +304,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		defer { nh.resetCache() }
 
 		let url = randomDataURL
-		let request = url.uploadRequest.with {
+		let request = url.generalRequest.with {
 			$0.method = .put
 		}
 
@@ -365,7 +365,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		defer { nh.resetCache() }
 
 		let url = uploadURL
-		let upRequest = url.uploadRequest.with {
+		let upRequest = url.generalRequest.with {
 			$0.method = .put
 			$0.expectedResponseCodes = 200
 		}
@@ -397,7 +397,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 
 		let dlRequest = url.generalRequest
 
-		let dlResult = try await #require(nh.transferMahDatas(for: .general(dlRequest)).data)
+		let dlResult = try await #require(nh.transferMahDatas(for: .standard(dlRequest)).data)
 		#expect(
 			SHA256.hash(data: dlResult) == hash,
 			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
@@ -422,7 +422,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		let nh = getNetworkHandler(with: engine)
 		defer { nh.resetCache() }
 
-		let upRequest = uploadURL.uploadRequest.with {
+		let upRequest = uploadURL.generalRequest.with {
 			$0.method = .put
 			$0.expectedResponseCodes = 200
 		}
@@ -461,7 +461,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 
 		let dlRequest = uploadURL.generalRequest
 
-		let dlResult = try await #require(nh.transferMahDatas(for: .general(dlRequest)).data)
+		let dlResult = try await #require(nh.transferMahDatas(for: .standard(dlRequest)).data)
 		#expect(
 			SHA256.hash(data: dlResult) == multipartHash,
 			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
@@ -486,7 +486,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		let nh = getNetworkHandler(with: engine)
 		defer { nh.resetCache() }
 
-		let upRequest = uploadURL.uploadRequest.with {
+		let upRequest = uploadURL.generalRequest.with {
 			$0.method = .put
 			$0.expectedResponseCodes = 200
 		}
@@ -522,7 +522,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 
 		let dlRequest = uploadURL.generalRequest
 
-		let dlResult = try await #require(nh.transferMahDatas(for: .general(dlRequest)).data)
+		let dlResult = try await #require(nh.transferMahDatas(for: .standard(dlRequest)).data)
 		#expect(
 			SHA256.hash(data: dlResult) == multipartHash,
 			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
@@ -638,7 +638,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		let nh = getNetworkHandler(with: engine)
 		defer { nh.resetCache() }
 
-		let request = uploadURL.uploadRequest.with {
+		let request = uploadURL.generalRequest.with {
 			$0.method = .put
 		}
 
@@ -699,7 +699,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		defer { nh.resetCache() }
 
 		let url = randomDataURL
-		let request = url.uploadRequest.with {
+		let request = url.generalRequest.with {
 			$0.method = .put
 			$0.timeoutInterval = 0.001
 		}
@@ -776,7 +776,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		defer { nh.resetCache() }
 
 		let url = randomDataURL
-		let request = url.uploadRequest.with {
+		let request = url.generalRequest.with {
 			$0.method = .put
 		}
 
@@ -893,7 +893,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		defer { nh.resetCache() }
 
 		let url = randomDataURL
-		let request = url.uploadRequest.with {
+		let request = url.generalRequest.with {
 			$0.method = .put
 		}
 
