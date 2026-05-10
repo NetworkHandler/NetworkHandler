@@ -174,7 +174,7 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 	@discardableResult
 	public func uploadMahDatas(
 		for request: NetworkRequest,
-		payload: UploadFile,
+		payload: CompleteNetworkRequest.UploadFile,
 		delegate: NetworkHandlerTaskDelegate? = nil,
 		requestLogger: Logger? = nil,
 		cancellationToken: NetworkCancellationToken? = nil,

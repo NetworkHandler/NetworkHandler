@@ -77,7 +77,7 @@ extension HTTPClient: NetworkEngine {
 
 	private func uploadNetworkData(
 		request: NetworkRequest,
-		with payload: UploadFile,
+		with payload: CompleteNetworkRequest.UploadFile,
 		uploadProgressContinuation upProgContinuation: UploadProgressStream.Continuation?,
 		requestLogger: Logger?
 	) async throws(NetworkError) -> (responseHeader: EngineResponseHeader, responseBody: ResponseBodyStream) {
