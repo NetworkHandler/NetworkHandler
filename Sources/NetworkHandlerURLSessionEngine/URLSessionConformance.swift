@@ -101,12 +101,12 @@ extension URLSession: NetworkEngine {
 			case .inputStream(let stream):
 				payloadStream = stream
 			}
-			let urlRequest = uploadEngineRequest.urlRequest
+			let urlRequest = uploadEngineRequest.urlRequest(forUpload: true)
 
 			let task = uploadTask(withStreamedRequest: urlRequest)
 			return (task, payloadStream)
 		case .standard(let standardRequest):
-			let task = dataTask(with: standardRequest.urlRequest)
+			let task = dataTask(with: standardRequest.urlRequest(forUpload: false))
 			return (task, nil)
 		}
 	}

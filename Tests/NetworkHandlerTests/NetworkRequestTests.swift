@@ -129,8 +129,5 @@ struct NetworkRequestTests {
 
 		let downRequest = dummyURL.generalRequest
 		#expect(downRequest.requestID != nil)
-
-		let upRequest = dummyURL.uploadRequest
-		#expect(upRequest.requestID != nil)
 	}
 }

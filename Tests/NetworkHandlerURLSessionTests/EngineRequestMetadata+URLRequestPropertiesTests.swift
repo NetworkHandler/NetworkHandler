@@ -17,7 +17,8 @@ struct EngineRequestMetadata_URLRequestProperties {
 
 		request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
 		#expect(request.cachePolicy == .reloadIgnoringLocalAndRemoteCacheData)
-		#expect(request.urlRequest.cachePolicy == .reloadIgnoringLocalAndRemoteCacheData)
+		#expect(request.urlRequest(forUpload: false).cachePolicy == .reloadIgnoringLocalAndRemoteCacheData)
+		#expect(request.urlRequest(forUpload: true).cachePolicy == .reloadIgnoringLocalAndRemoteCacheData)
 		#expect(request.cachePolicy != plainURLRequest.cachePolicy)
 	}
 
@@ -32,7 +33,8 @@ struct EngineRequestMetadata_URLRequestProperties {
 		request.mainDocumentURL = fooURL
 		#expect(request.mainDocumentURL == fooURL)
 		#expect(request.mainDocumentURL != plainURLRequest.mainDocumentURL)
-		#expect(request.urlRequest.mainDocumentURL == fooURL)
+		#expect(request.urlRequest(forUpload: true).mainDocumentURL == fooURL)
+		#expect(request.urlRequest(forUpload: false).mainDocumentURL == fooURL)
 	}
 
 	@Test func httpShouldHandleCookies() {
@@ -44,7 +46,8 @@ struct EngineRequestMetadata_URLRequestProperties {
 
 		request.httpShouldHandleCookies = false
 		#expect(request.httpShouldHandleCookies == false)
-		#expect(request.urlRequest.httpShouldHandleCookies == false)
+		#expect(request.urlRequest(forUpload: false).httpShouldHandleCookies == false)
+		#expect(request.urlRequest(forUpload: true).httpShouldHandleCookies == false)
 		#expect(request.httpShouldHandleCookies != plainURLRequest.httpShouldHandleCookies)
 	}
 
@@ -57,7 +60,8 @@ struct EngineRequestMetadata_URLRequestProperties {
 
 		request.httpShouldUsePipelining = true
 		#expect(request.httpShouldUsePipelining == true)
-		#expect(request.urlRequest.httpShouldUsePipelining == true)
+		#expect(request.urlRequest(forUpload: false).httpShouldUsePipelining == true)
+		#expect(request.urlRequest(forUpload: true).httpShouldUsePipelining == true)
 		#expect(request.httpShouldUsePipelining != plainURLRequest.httpShouldUsePipelining)
 	}
 
@@ -70,7 +74,8 @@ struct EngineRequestMetadata_URLRequestProperties {
 
 		request.allowsCellularAccess = false
 		#expect(request.allowsCellularAccess == false)
-		#expect(request.urlRequest.allowsCellularAccess == false)
+		#expect(request.urlRequest(forUpload: false).allowsCellularAccess == false)
+		#expect(request.urlRequest(forUpload: true).allowsCellularAccess == false)
 		#expect(request.allowsCellularAccess != plainURLRequest.allowsCellularAccess)
 	}
 
@@ -83,7 +88,8 @@ struct EngineRequestMetadata_URLRequestProperties {
 
 		request.allowsConstrainedNetworkAccess = false
 		#expect(request.allowsConstrainedNetworkAccess == false)
-		#expect(request.urlRequest.allowsConstrainedNetworkAccess == false)
+		#expect(request.urlRequest(forUpload: false).allowsConstrainedNetworkAccess == false)
+		#expect(request.urlRequest(forUpload: true).allowsConstrainedNetworkAccess == false)
 		#expect(request.allowsConstrainedNetworkAccess != plainURLRequest.allowsConstrainedNetworkAccess)
 	}
 
@@ -96,7 +102,8 @@ struct EngineRequestMetadata_URLRequestProperties {
 
 		request.allowsExpensiveNetworkAccess = false
 		#expect(request.allowsExpensiveNetworkAccess == false)
-		#expect(request.urlRequest.allowsExpensiveNetworkAccess == false)
+		#expect(request.urlRequest(forUpload: false).allowsExpensiveNetworkAccess == false)
+		#expect(request.urlRequest(forUpload: true).allowsExpensiveNetworkAccess == false)
 		#expect(request.allowsExpensiveNetworkAccess != plainURLRequest.allowsExpensiveNetworkAccess)
 	}
 
@@ -109,7 +116,8 @@ struct EngineRequestMetadata_URLRequestProperties {
 
 		request.networkServiceType = .video
 		#expect(request.networkServiceType == .video)
-		#expect(request.urlRequest.networkServiceType == .video)
+		#expect(request.urlRequest(forUpload: false).networkServiceType == .video)
+		#expect(request.urlRequest(forUpload: true).networkServiceType == .video)
 		#expect(request.networkServiceType != plainURLRequest.networkServiceType)
 	}
 
@@ -122,7 +130,8 @@ struct EngineRequestMetadata_URLRequestProperties {
 
 		request.attribution = .user
 		#expect(request.attribution == .user)
-		#expect(request.urlRequest.attribution == .user)
+		#expect(request.urlRequest(forUpload: false).attribution == .user)
+		#expect(request.urlRequest(forUpload: true).attribution == .user)
 		#expect(request.attribution != plainURLRequest.attribution)
 	}
 
@@ -136,7 +145,8 @@ struct EngineRequestMetadata_URLRequestProperties {
 
 		request.allowsPersistentDNS = true
 		#expect(request.allowsPersistentDNS == true)
-		#expect(request.urlRequest.allowsPersistentDNS == true)
+		#expect(request.urlRequest(forUpload: false).allowsPersistentDNS == true)
+		#expect(request.urlRequest(forUpload: true).allowsPersistentDNS == true)
 		#expect(request.allowsPersistentDNS != plainURLRequest.allowsPersistentDNS)
 	}
 
@@ -149,7 +159,8 @@ struct EngineRequestMetadata_URLRequestProperties {
 
 		request.assumesHTTP3Capable = true
 		#expect(request.assumesHTTP3Capable == true)
-		#expect(request.urlRequest.assumesHTTP3Capable == true)
+		#expect(request.urlRequest(forUpload: false).assumesHTTP3Capable == true)
+		#expect(request.urlRequest(forUpload: true).assumesHTTP3Capable == true)
 		#expect(request.assumesHTTP3Capable != plainURLRequest.assumesHTTP3Capable)
 	}
 
@@ -163,7 +174,8 @@ struct EngineRequestMetadata_URLRequestProperties {
 
 		request.requiresDNSSECValidation = true
 		#expect(request.requiresDNSSECValidation == true)
-		#expect(request.urlRequest.requiresDNSSECValidation == true)
+		#expect(request.urlRequest(forUpload: false).requiresDNSSECValidation == true)
+		#expect(request.urlRequest(forUpload: true).requiresDNSSECValidation == true)
 		#expect(request.requiresDNSSECValidation != plainURLRequest.requiresDNSSECValidation)
 	}
 }

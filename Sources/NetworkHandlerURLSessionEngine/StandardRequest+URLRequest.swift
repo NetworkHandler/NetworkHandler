@@ -2,14 +2,16 @@ import Foundation
 import NetworkHandler
 
 extension StandardRequest {
-	package var urlRequest: URLRequest {
+	package func urlRequest(forUpload uploadFlag: Bool) -> URLRequest {
 		var new = URLRequest(url: self.url)
 		for header in self.headers {
 			new.addValue(header.value, forHTTPHeaderField: header.name.rawName)
 		}
 		new.httpMethod = self.method.rawValue
 
-		new.httpBody = payload
+		if uploadFlag == false {
+			new.httpBody = payload
+		}
 		new.timeoutInterval = self.timeoutInterval
 
 		let storedRequest = self.derivedURLRequest

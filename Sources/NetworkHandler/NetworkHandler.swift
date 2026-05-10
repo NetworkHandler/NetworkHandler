@@ -158,7 +158,9 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 		return try (header, decodeData(data: rawData, using: decoder))
 	}
 
-	/// Send a large blob to a server
+	/// Send a large blob to a server. If `request.payload` is non nil, it will be ignored in favor of
+	/// the `payload` parameter passed in.
+	///
 	/// - Parameters:
 	///   - request: UploadRequest
 	///   - payload: The file/data/stream you're uploading.
@@ -171,7 +173,7 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 	@NHActor
 	@discardableResult
 	public func uploadMahDatas(
-		for request: UploadRequest,
+		for request: StandardRequest,
 		payload: UploadFile,
 		delegate: NetworkHandlerTaskDelegate? = nil,
 		requestLogger: Logger? = nil,
@@ -179,7 +181,7 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 		onError: @escaping RetryOptionBlock = { _, _, _ in .throw }
 	) async throws -> (responseHeader: EngineResponseHeader, data: Data?) {
 		try await transferMahDatas(
-			for: .upload(request, payload: payload),
+			for: .upload(request.with { $0.payload = nil }, payload: payload),
 			delegate: delegate,
 			usingCache: .dontUseCache,
 			requestLogger: requestLogger,
