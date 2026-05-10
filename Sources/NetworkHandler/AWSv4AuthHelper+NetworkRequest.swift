@@ -15,7 +15,7 @@ extension AWSV4Signature {
 	///   - awsService: The AWS service name (e.g., `s3`).
 	///   - hexContentHash: The precomputed SHA-256 hash of the request payload, as a hex string.
 	public init(
-		for request: StandardRequest,
+		for request: NetworkRequest,
 		date: Date = Date(),
 		awsKey: String,
 		awsSecret: String,
@@ -44,7 +44,7 @@ extension AWSV4Signature {
 	/// - Returns: The updated `StandardRequest` with the signed headers integrated.
 	/// - Throws: `AWSAuthError` if the `url` or `method` on the request does not match
 	///   those defined in the signature context.
-	public func processRequest(_ request: StandardRequest) throws -> StandardRequest {
+	public func processRequest(_ request: NetworkRequest) throws -> NetworkRequest {
 		try processRequestInfo(url: request.url, method: request.method) { newHeaders in
 			var new = request
 			new.headers += newHeaders

@@ -3,8 +3,8 @@ import SwiftPizzaSnips
 
 @dynamicMemberLookup
 public enum CompleteNetworkRequest: Sendable {
-	case upload(StandardRequest, payload: UploadFile)
-	case standard(StandardRequest)
+	case upload(NetworkRequest, payload: UploadFile)
+	case standard(NetworkRequest)
 
 	private var commonData: CommonRequestData {
 		get {

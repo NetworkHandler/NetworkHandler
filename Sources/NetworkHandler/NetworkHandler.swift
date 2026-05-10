@@ -77,7 +77,7 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 		request: CompleteNetworkRequest,
 		delegate: NetworkHandlerTaskDelegate? = nil,
 		usingCache cacheOption: NetworkHandler.CacheKeyOption = .dontUseCache,
-		decoder: NHDecoder = StandardRequest.defaultDecoder,
+		decoder: NHDecoder = NetworkRequest.defaultDecoder,
 		requestLogger: Logger? = nil,
 		cancellationToken: NetworkCancellationToken? = nil,
 		until: @escaping @NHActor (CompleteNetworkRequest, PollResult<T>) async throws(NetworkError) -> PollContinuation<T>
@@ -138,10 +138,10 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 	@NHActor
 	@discardableResult
 	public func downloadMahCodableDatas<DecodableType: Decodable>(
-		for request: StandardRequest,
+		for request: NetworkRequest,
 		delegate: NetworkHandlerTaskDelegate? = nil,
 		usingCache cacheOption: NetworkHandler.CacheKeyOption = .dontUseCache,
-		decoder: NHDecoder = StandardRequest.defaultDecoder,
+		decoder: NHDecoder = NetworkRequest.defaultDecoder,
 		requestLogger: Logger? = nil,
 		cancellationToken: NetworkCancellationToken? = nil,
 		onError: @escaping RetryOptionBlock = { _, _, _ in .throw }
@@ -173,7 +173,7 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 	@NHActor
 	@discardableResult
 	public func uploadMahDatas(
-		for request: StandardRequest,
+		for request: NetworkRequest,
 		payload: UploadFile,
 		delegate: NetworkHandlerTaskDelegate? = nil,
 		requestLogger: Logger? = nil,
@@ -206,7 +206,7 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 	@NHActor
 	@discardableResult
 	public func downloadMahFile(
-		for request: StandardRequest,
+		for request: NetworkRequest,
 		savingToLocalFileURL outFileURL: URL,
 		withTemporaryFile tempoaryFileURL: URL? = nil,
 		delegate: NetworkHandlerTaskDelegate? = nil,
@@ -295,7 +295,7 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 	@NHActor
 	@discardableResult
 	public func downloadMahDatas(
-		for request: StandardRequest,
+		for request: NetworkRequest,
 		delegate: NetworkHandlerTaskDelegate? = nil,
 		usingCache cacheOption: NetworkHandler.CacheKeyOption = .dontUseCache,
 		requestLogger: Logger? = nil,

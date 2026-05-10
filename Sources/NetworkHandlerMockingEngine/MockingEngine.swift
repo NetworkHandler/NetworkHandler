@@ -47,7 +47,7 @@ public actor MockingEngine: NetworkEngine {
 	}
 
 	public func fetchNetworkData(
-		from request: StandardRequest,
+		from request: NetworkRequest,
 		requestLogger: Logger?
 	) async throws(NetworkError) -> (EngineResponseHeader, ResponseBodyStream) {
 		try await performServerInteraction(for: .standard(request), uploadProgCont: nil)

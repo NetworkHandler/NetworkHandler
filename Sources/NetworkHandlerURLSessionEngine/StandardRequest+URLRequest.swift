@@ -1,7 +1,7 @@
 import Foundation
 import NetworkHandler
 
-extension StandardRequest {
+extension NetworkRequest {
 	package func urlRequest(forUpload uploadFlag: Bool) -> URLRequest {
 		var new = URLRequest(url: self.url)
 		for header in self.headers {

@@ -27,7 +27,7 @@ extension HTTPClient: NetworkEngine {
 	}
 
 	private func fetchNetworkData(
-		from request: StandardRequest,
+		from request: NetworkRequest,
 		requestLogger: Logger?
 	) async throws(NetworkError) -> (EngineResponseHeader, ResponseBodyStream) {
 		let httpClientRequest = request.httpClientRequest
@@ -76,7 +76,7 @@ extension HTTPClient: NetworkEngine {
 	}
 
 	private func uploadNetworkData(
-		request: StandardRequest,
+		request: NetworkRequest,
 		with payload: UploadFile,
 		uploadProgressContinuation upProgContinuation: UploadProgressStream.Continuation?,
 		requestLogger: Logger?

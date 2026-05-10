@@ -2,7 +2,7 @@ import AsyncHTTPClient
 import NetworkHandler
 import NIOCore
 
-extension StandardRequest {
+extension NetworkRequest {
 	var httpClientRequest: HTTPClientRequest {
 		var request = HTTPClientRequest(url: self.url.absoluteURL.absoluteString)
 		request.method = .init(rawValue: self.method.rawValue)

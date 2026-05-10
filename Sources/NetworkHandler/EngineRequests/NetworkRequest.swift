@@ -10,7 +10,7 @@ import SwiftPizzaSnips
 /// engine to `NetworkEngine`, you'll most likely want to add a computed property or function to convert
 /// a `StandardRequest` to the request type native to your engine.
 @dynamicMemberLookup
-public struct StandardRequest: Hashable, Sendable, Withable {
+public struct NetworkRequest: Hashable, Sendable, Withable {
 	/// Internal metadata used to store common HTTP request properties, such as HTTP headers, response codes,
 	/// and URLs. This allows `StandardRequest` to provide a lightweight wrapper around core functionality
 	/// without duplicating state or logic.
@@ -86,7 +86,7 @@ public struct StandardRequest: Hashable, Sendable, Withable {
 		_ encodableType: EncodableType,
 		withEncoder encoder: NHEncoder? = nil
 	) throws -> Data {
-		let encoder = encoder ?? StandardRequest.defaultEncoder
+		let encoder = encoder ?? NetworkRequest.defaultEncoder
 
 		let data = try encoder.encode(encodableType)
 
