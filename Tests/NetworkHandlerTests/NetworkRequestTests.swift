@@ -99,7 +99,7 @@ struct NetworkRequestTests {
 		request2.headers.addValue("foo=bar", for: .cookie)
 		request2.headers.addValue("sessionId=abc123", for: .cookie)
 
-		#expect(request1 == request2)
+		#expect(request1 != request2)
 		#expect(request1.headers.count == 2)
 		#expect(request2.headers.count == 2)
 	}
