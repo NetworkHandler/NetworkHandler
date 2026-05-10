@@ -341,7 +341,7 @@ struct NetworkHandlerMockingTests: Sendable {
 			anticipatedOutput: .success((expectedHeader, Data("foo".utf8))),
 			expectedAttemptCount: 1)
 
-		let retryRequest = NetworkRequest.standard(commonTests.demoModelURL.generalRequest)
+		let retryRequest = CompleteNetworkRequest.standard(commonTests.demoModelURL.generalRequest)
 		try await commonTests.retryOptions(
 			engine: mockingEngine,
 			retryOption: .retry(withDelay: 0.5, updatedRequest: retryRequest),
@@ -357,7 +357,7 @@ struct NetworkHandlerMockingTests: Sendable {
 extension NetworkHandlerMockingTests {
 	private func s3MockPutSimlulator(
 		server: MockingEngine.MockingServer,
-		request: NetworkRequest,
+		request: CompleteNetworkRequest,
 		requestBody: Data?,
 		mockingEngine: MockingEngine
 	) async throws -> (data: Data?, response: EngineResponseHeader) {
@@ -387,7 +387,7 @@ extension NetworkHandlerMockingTests {
 
 	private func s3MockGetSimulator(
 		server: MockingEngine.MockingServer,
-		request: NetworkRequest,
+		request: CompleteNetworkRequest,
 		mockingEngine: MockingEngine
 	) async throws -> (data: Data?, response: EngineResponseHeader) {
 		guard

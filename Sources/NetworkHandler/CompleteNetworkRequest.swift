@@ -2,7 +2,7 @@ import Foundation
 import SwiftPizzaSnips
 
 @dynamicMemberLookup
-public enum NetworkRequest: Sendable {
+public enum CompleteNetworkRequest: Sendable {
 	case upload(StandardRequest, payload: UploadFile)
 	case standard(StandardRequest)
 
@@ -38,4 +38,4 @@ public enum NetworkRequest: Sendable {
 	}
 }
 
-extension NetworkRequest: Hashable, Withable {}
+extension CompleteNetworkRequest: Hashable, Withable {}

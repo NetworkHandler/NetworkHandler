@@ -27,7 +27,7 @@ struct NetworkRequestTests {
 		let origRequest = dummyURL.generalRequest.with {
 			$0.requestID = nil
 		}
-		var request = NetworkRequest.standard(origRequest)
+		var request = CompleteNetworkRequest.standard(origRequest)
 
 		request.headers.addValue(.json, for: .contentType)
 		#expect("application/json" == request.headers[.contentType])

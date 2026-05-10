@@ -52,7 +52,7 @@ extension NetworkError {
 	/// Creates a collection of Network errors covering most of the spectrum
 	static func allErrorCases() -> [NetworkError] {
 		let dummyError = NSError(domain: "com.redeggproductions.NetworkHandler", code: -1, userInfo: nil)
-		let originalRequest = NetworkRequest.standard(NetworkErrorTests.simpleURL.generalRequest).with {
+		let originalRequest = CompleteNetworkRequest.standard(NetworkErrorTests.simpleURL.generalRequest).with {
 			$0.requestID = nil
 		}
 		let allErrorCases: [NetworkError] = [

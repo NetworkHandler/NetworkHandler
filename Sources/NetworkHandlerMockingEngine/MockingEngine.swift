@@ -54,7 +54,7 @@ public actor MockingEngine: NetworkEngine {
 	}
 
 	public func performNetworkTransfer(
-		request: NetworkRequest,
+		request: CompleteNetworkRequest,
 		uploadProgressContinuation: UploadProgressStream.Continuation?,
 		requestLogger: Logger?
 	) async throws(NetworkError) -> (responseHeader: EngineResponseHeader, responseBody: ResponseBodyStream) {
@@ -62,7 +62,7 @@ public actor MockingEngine: NetworkEngine {
 	}
 
 	private func performServerInteraction(
-		for request: NetworkRequest,
+		for request: CompleteNetworkRequest,
 		uploadProgCont: UploadProgressStream.Continuation?
 	) async throws(NetworkError) -> (
 		responseHeader: EngineResponseHeader,
@@ -147,7 +147,7 @@ public actor MockingEngine: NetworkEngine {
 	}
 
 	private func serverTransfer( // swiftlint:disable:this cyclomatic_complexity
-		request: NetworkRequest,
+		request: CompleteNetworkRequest,
 		uploadProgressContinuation: UploadProgressStream.Continuation?,
 		responseContinuation: ResponseBodyStream.Continuation,
 		headerDelegate: HeaderTrackingDelegate
@@ -249,7 +249,7 @@ public actor MockingEngine: NetworkEngine {
 		}
 	}
 
-	public static func noMockCreated404ErrorText(for request: NetworkRequest) -> String {
+	public static func noMockCreated404ErrorText(for request: CompleteNetworkRequest) -> String {
 		"No mock for \(request.url) (\(request.method.rawValue))"
 	}
 
@@ -277,7 +277,7 @@ extension MockingEngine {
 			sendStream: ServerStream,
 			responseStreamContinuation: ServerStream.Continuation
 		) async throws {
-			var header: NetworkRequest?
+			var header: CompleteNetworkRequest?
 			var responseBlock: SmartResponseMockBlock?
 			var bodyAccumulator: Data?
 			var pathItems: [String: String] = [:]
@@ -324,7 +324,7 @@ extension MockingEngine {
 		}
 
 		enum TransferChunk {
-			case requestHeader(NetworkRequest)
+			case requestHeader(CompleteNetworkRequest)
 			case bodyStreamChunk([UInt8])
 			case responseHeader(EngineResponseHeader)
 		}
@@ -399,7 +399,7 @@ extension MockingEngine {
 
 		public typealias SmartResponseMockBlock = @Sendable (
 			_ server: isolated MockingServer,
-			_ request: NetworkRequest,
+			_ request: CompleteNetworkRequest,
 			_ requestPathArguments: [String: String],
 			_ requestBody: Data?
 		) async throws -> (data: Data?, response: EngineResponseHeader)

@@ -43,7 +43,7 @@ public protocol NetworkEngine: Sendable, Withable {
 	///   Required to use when performing an upload request. Nice to have when performing a standard request.
 	///   - requestLogger: logger to use
 	func performNetworkTransfer(
-		request: NetworkRequest,
+		request: CompleteNetworkRequest,
 		uploadProgressContinuation: UploadProgressStream.Continuation?,
 		requestLogger: Logger?
 	) async throws(NetworkError) -> (responseHeader: EngineResponseHeader, responseBody: ResponseBodyStream)

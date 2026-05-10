@@ -4,17 +4,17 @@ import SwiftPizzaSnips
 extension NetworkHandler {
 	/// (previousRequest, failedAttempts, mostRecentError)
 	/// Return whatever option you wish to proceed with.
-	public typealias RetryOptionBlock = @NHActor (NetworkRequest, Int, NetworkError) -> RetryOption
+	public typealias RetryOptionBlock = @NHActor (CompleteNetworkRequest, Int, NetworkError) -> RetryOption
 
 	public struct RetryConfiguration: Hashable, Sendable, Withable {
 		public static var simple: Self { RetryConfiguration(delay: 0) }
 
 		public var delay: TimeInterval
-		public var updatedRequest: NetworkRequest?
+		public var updatedRequest: CompleteNetworkRequest?
 
 		public init(
 			delay: TimeInterval,
-			updatedRequest: NetworkRequest? = nil
+			updatedRequest: CompleteNetworkRequest? = nil
 		) {
 			self.delay = delay
 			self.updatedRequest = updatedRequest
@@ -36,7 +36,7 @@ extension NetworkHandler {
 		case retryWithConfiguration(config: RetryConfiguration)
 		public static func retry(
 			withDelay delay: TimeInterval = 0,
-			updatedRequest: NetworkRequest? = nil
+			updatedRequest: CompleteNetworkRequest? = nil
 		) -> RetryOption {
 			let config = RetryConfiguration(delay: delay, updatedRequest: updatedRequest)
 			return .retryWithConfiguration(config: config)

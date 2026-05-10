@@ -10,7 +10,7 @@ import SwiftPizzaSnips
 extension HTTPClient: @retroactive Withable {}
 extension HTTPClient: NetworkEngine {
 	public func performNetworkTransfer(
-		request: NetworkRequest,
+		request: CompleteNetworkRequest,
 		uploadProgressContinuation: UploadProgressStream.Continuation?,
 		requestLogger: Logger?
 	) async throws(NetworkError) -> (responseHeader: EngineResponseHeader, responseBody: ResponseBodyStream) {

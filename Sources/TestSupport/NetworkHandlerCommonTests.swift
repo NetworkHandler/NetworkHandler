@@ -327,7 +327,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 
 		let signedRequest = try awsHeaderInfo.processRequest(request)
 
-		let atomicRequest = AtomicValue(value: NetworkRequest.upload(signedRequest, payload: .data(randomData)))
+		let atomicRequest = AtomicValue(value: CompleteNetworkRequest.upload(signedRequest, payload: .data(randomData)))
 		let delegate = await Delegate(onRequestModified: { _, _, new in
 			atomicRequest.value = new
 		})
@@ -386,7 +386,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 
 		let signedRequest = try awsHeaderInfo.processRequest(upRequest)
 
-		let atomicRequest = AtomicValue(value: NetworkRequest.upload(signedRequest, payload: .localFile(actualTestFile)))
+		let atomicRequest = AtomicValue(value: CompleteNetworkRequest.upload(signedRequest, payload: .localFile(actualTestFile)))
 		let delegate = await Delegate(onRequestModified: { _, _, new in
 			atomicRequest.value = new
 		})
@@ -450,7 +450,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 
 		let signedRequest = try awsHeaderInfo.processRequest(upRequest)
 
-		let atomicRequest = AtomicValue(value: NetworkRequest.upload(signedRequest, payload: .localFile(multipartFile)))
+		let atomicRequest = AtomicValue(value: CompleteNetworkRequest.upload(signedRequest, payload: .localFile(multipartFile)))
 		let delegate = await Delegate(onRequestModified: { _, _, new in
 			atomicRequest.value = new
 		})
@@ -511,7 +511,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 
 		let signedRequest = try awsHeaderInfo.processRequest(upRequest)
 
-		let atomicRequest = AtomicValue(value: NetworkRequest.upload(signedRequest, payload: .inputStream(multipart)))
+		let atomicRequest = AtomicValue(value: CompleteNetworkRequest.upload(signedRequest, payload: .inputStream(multipart)))
 		let delegate = await Delegate(onRequestModified: { _, _, new in
 			atomicRequest.value = new
 		})
@@ -915,7 +915,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 
 		let accumulator = AtomicValue(value: [Int]())
 		let expectedTotalAtomic = AtomicValue(value: -1)
-		let updatedRequestAtomic = AtomicValue(value: NetworkRequest.upload(signedRequest, payload: .localFile(testFileURL)))
+		let updatedRequestAtomic = AtomicValue(value: CompleteNetworkRequest.upload(signedRequest, payload: .localFile(testFileURL)))
 		let delegate = await Delegate(
 			onRequestModified: { _, _, modReq in
 				updatedRequestAtomic.value = modReq
@@ -1076,26 +1076,26 @@ extension NetworkHandlerCommonTests {
 	class Delegate: NetworkHandlerTaskDelegate {
 		let onRequestModified: @Sendable (
 			_ delegate: Delegate,
-			_ original: NetworkRequest,
-			_ modified: NetworkRequest
+			_ original: CompleteNetworkRequest,
+			_ modified: CompleteNetworkRequest
 		) -> Void
-		let onStart: @Sendable (_ delegate: Delegate, NetworkRequest) -> Void
+		let onStart: @Sendable (_ delegate: Delegate, CompleteNetworkRequest) -> Void
 		let onSendData: @Sendable (
 			_ delegate: Delegate,
-			_ request: NetworkRequest,
+			_ request: CompleteNetworkRequest,
 			_ totalByteCountSent: Int,
 			_ totalExpected: Int?
 		) -> Void
-		let onSendingFinish: @Sendable (_ delegate: Delegate, NetworkRequest) -> Void
+		let onSendingFinish: @Sendable (_ delegate: Delegate, CompleteNetworkRequest) -> Void
 		let onResponseHeader: @Sendable (
 			_ delegate: Delegate,
-			_ request: NetworkRequest,
+			_ request: CompleteNetworkRequest,
 			_ header: EngineResponseHeader
 		) -> Void
-		let onResponseBodyProgress: @Sendable (_ delegate: Delegate, _ request: NetworkRequest, _ bytes: Data) -> Void
+		let onResponseBodyProgress: @Sendable (_ delegate: Delegate, _ request: CompleteNetworkRequest, _ bytes: Data) -> Void
 		let onResponseBodyProgressCount: @Sendable (
 			_ delegate: Delegate,
-			_ request: NetworkRequest,
+			_ request: CompleteNetworkRequest,
 			_ byteCount: Int,
 			_ expectedTotal: Int?
 		) -> Void
@@ -1104,30 +1104,30 @@ extension NetworkHandlerCommonTests {
 		init(
 			onRequestModified: @escaping @Sendable (
 				_ delegate: Delegate,
-				_ original: NetworkRequest,
-				_ modified: NetworkRequest
+				_ original: CompleteNetworkRequest,
+				_ modified: CompleteNetworkRequest
 			) -> Void = { _, _, _ in },
-			onStart: @escaping @Sendable (_ delegate: Delegate, NetworkRequest) -> Void = { _, _ in },
+			onStart: @escaping @Sendable (_ delegate: Delegate, CompleteNetworkRequest) -> Void = { _, _ in },
 			onSendData: @escaping @Sendable (
 				_ delegate: Delegate,
-				_: NetworkRequest,
+				_: CompleteNetworkRequest,
 				_: Int,
 				_: Int?
 			) -> Void = { _, _, _, _ in },
-			onSendingFinish: @escaping @Sendable (_ delegate: Delegate, NetworkRequest) -> Void = { _, _ in },
+			onSendingFinish: @escaping @Sendable (_ delegate: Delegate, CompleteNetworkRequest) -> Void = { _, _ in },
 			onResponseHeader: @escaping @Sendable (
 				_ delegate: Delegate,
-				_: NetworkRequest,
+				_: CompleteNetworkRequest,
 				_: EngineResponseHeader
 			) -> Void = { _, _, _ in },
 			onResponseBodyProgress: @escaping @Sendable (
 				_ delegate: Delegate,
-				_: NetworkRequest,
+				_: CompleteNetworkRequest,
 				_: Data
 			) -> Void = { _, _, _ in },
 			onResponseBodyProgressCount: @escaping @Sendable (
 				_ delegate: Delegate,
-				_ request: NetworkRequest,
+				_ request: CompleteNetworkRequest,
 				_ byteCount: Int,
 				_ expectedTotal: Int?
 			) -> Void = { _, _, _, _ in },
@@ -1143,31 +1143,31 @@ extension NetworkHandlerCommonTests {
 			self.onRequestFinished = onRequestFinished
 		}
 
-		func requestModified(from oldVersion: NetworkRequest, to newVersion: NetworkRequest) {
+		func requestModified(from oldVersion: CompleteNetworkRequest, to newVersion: CompleteNetworkRequest) {
 			onRequestModified(self, oldVersion, newVersion)
 		}
 
-		func transferDidStart(for request: NetworkRequest) {
+		func transferDidStart(for request: CompleteNetworkRequest) {
 			onStart(self, request)
 		}
 
-		func sentData(for request: NetworkRequest, totalByteCountSent: Int, totalExpectedToSend: Int?) {
+		func sentData(for request: CompleteNetworkRequest, totalByteCountSent: Int, totalExpectedToSend: Int?) {
 			onSendData(self, request, totalByteCountSent, totalExpectedToSend)
 		}
 
-		func sendingDataDidFinish(for request: NetworkRequest) {
+		func sendingDataDidFinish(for request: CompleteNetworkRequest) {
 			onSendingFinish(self, request)
 		}
 
-		func responseHeaderRetrieved(for request: NetworkRequest, header: EngineResponseHeader) {
+		func responseHeaderRetrieved(for request: CompleteNetworkRequest, header: EngineResponseHeader) {
 			onResponseHeader(self, request, header)
 		}
 
-		func responseBodyReceived(for request: NetworkRequest, bytes: Data) {
+		func responseBodyReceived(for request: CompleteNetworkRequest, bytes: Data) {
 			onResponseBodyProgress(self, request, bytes)
 		}
 
-		func responseBodyReceived(for request: NetworkRequest, byteCount: Int, totalExpectedToReceive: Int?) {
+		func responseBodyReceived(for request: CompleteNetworkRequest, byteCount: Int, totalExpectedToReceive: Int?) {
 			onResponseBodyProgressCount(self, request, byteCount, totalExpectedToReceive)
 		}
 

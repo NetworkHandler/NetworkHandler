@@ -18,7 +18,7 @@ public enum NetworkError: Error, Equatable {
 	/// Thrown when a `URLResponse` includes a response code other than 200, or a range
 	/// of 200-299 (depending on whether `strict200CodeResponse` is on or off). Wraps
 	/// the response code and included `Data?`, if there is any.
-	case httpUnexpectedStatusCode(code: Int, originalRequest: NetworkRequest, data: Data?)
+	case httpUnexpectedStatusCode(code: Int, originalRequest: CompleteNetworkRequest, data: Data?)
 	case requestCancelled
 	/// If you need to provide an error state but none of the other specified cases
 	/// apply, use this. Optionally provide a reason. Useful for when guard statements fail.

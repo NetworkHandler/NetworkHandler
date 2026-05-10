@@ -4,17 +4,17 @@ import Foundation
 public protocol NetworkHandlerTaskDelegate: AnyObject, Sendable {
 	/// Called when the engine modifies the request in some way. This can happen, for example, on
 	/// an upload when the `ContentLength` header gets set.
-	func requestModified(from oldVersion: NetworkRequest, to newVersion: NetworkRequest)
+	func requestModified(from oldVersion: CompleteNetworkRequest, to newVersion: CompleteNetworkRequest)
 	/// Only called on uploads
-	func transferDidStart(for request: NetworkRequest)
+	func transferDidStart(for request: CompleteNetworkRequest)
 	/// Only called on uploads
-	func sentData(for request: NetworkRequest, totalByteCountSent: Int, totalExpectedToSend: Int?)
+	func sentData(for request: CompleteNetworkRequest, totalByteCountSent: Int, totalExpectedToSend: Int?)
 	/// Only called on uploads
-	func sendingDataDidFinish(for request: NetworkRequest)
-	func responseHeaderRetrieved(for request: NetworkRequest, header: EngineResponseHeader)
+	func sendingDataDidFinish(for request: CompleteNetworkRequest)
+	func responseHeaderRetrieved(for request: CompleteNetworkRequest, header: EngineResponseHeader)
 	/// Only called on downloads
-	func responseBodyReceived(for request: NetworkRequest, bytes: Data)
+	func responseBodyReceived(for request: CompleteNetworkRequest, bytes: Data)
 	/// Only called on downloads
-	func responseBodyReceived(for request: NetworkRequest, byteCount: Int, totalExpectedToReceive: Int?)
+	func responseBodyReceived(for request: CompleteNetworkRequest, byteCount: Int, totalExpectedToReceive: Int?)
 	func requestFinished(withError error: Error?)
 }

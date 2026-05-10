@@ -63,7 +63,7 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 	// MARK: - Network Handling
 	public enum PollContinuation<T: Sendable>: Sendable {
 		case finish(PollResult<T>)
-		case `continue`(NetworkRequest, TimeInterval)
+		case `continue`(CompleteNetworkRequest, TimeInterval)
 	}
 
 	public typealias PollResult<T: Sendable> = Result<(EngineResponseHeader, T), Error>
@@ -74,15 +74,15 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 	@NHActor
 	@discardableResult
 	public func poll<T: Decodable>(
-		request: NetworkRequest,
+		request: CompleteNetworkRequest,
 		delegate: NetworkHandlerTaskDelegate? = nil,
 		usingCache cacheOption: NetworkHandler.CacheKeyOption = .dontUseCache,
 		decoder: NHDecoder = StandardRequest.defaultDecoder,
 		requestLogger: Logger? = nil,
 		cancellationToken: NetworkCancellationToken? = nil,
-		until: @escaping @NHActor (NetworkRequest, PollResult<T>) async throws(NetworkError) -> PollContinuation<T>
+		until: @escaping @NHActor (CompleteNetworkRequest, PollResult<T>) async throws(NetworkError) -> PollContinuation<T>
 	) async throws -> (responseHeader: EngineResponseHeader, result: T) {
-		func doPoll(request: NetworkRequest) async -> PollResult<T> {
+		func doPoll(request: CompleteNetworkRequest) async -> PollResult<T> {
 			let polledResult: PollResult<T>
 			do throws(NetworkError) {
 				let (header, data) = try await transferMahDatas(
@@ -325,7 +325,7 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 	@NHActor
 	@discardableResult
 	public func transferMahDatas(
-		for request: NetworkRequest,
+		for request: CompleteNetworkRequest,
 		delegate: NetworkHandlerTaskDelegate? = nil,
 		usingCache cacheOption: NetworkHandler.CacheKeyOption = .dontUseCache,
 		requestLogger: Logger? = nil,
@@ -373,7 +373,7 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 	@NHActor
 	@discardableResult
 	public func streamMahDatas( // swiftlint:disable:this cyclomatic_complexity
-		for request: NetworkRequest,
+		for request: CompleteNetworkRequest,
 		delegate: NetworkHandlerTaskDelegate? = nil,
 		requestLogger: Logger? = nil,
 		cancellationToken: NetworkCancellationToken? = nil
@@ -506,8 +506,8 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 	/// Internal retry loop. Evaluates conditions and output from `errorHandler` to determine what to try next.
 	@NHActor
 	private func retryHandler( // swiftlint:disable:this cyclomatic_complexity
-		originalRequest: NetworkRequest,
-		transferTask: @NHActor (_ request: NetworkRequest, _ attempt: Int) async throws -> (EngineResponseHeader, Data?),
+		originalRequest: CompleteNetworkRequest,
+		transferTask: @NHActor (_ request: CompleteNetworkRequest, _ attempt: Int) async throws -> (EngineResponseHeader, Data?),
 		errorHandler: RetryOptionBlock
 	) async throws(NetworkError) -> (EngineResponseHeader, Data?) {
 		var retryOption = RetryOption.retry

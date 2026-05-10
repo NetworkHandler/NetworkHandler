@@ -23,7 +23,7 @@ extension URLSession: NetworkEngine {
 	}
 
 	public func performNetworkTransfer(
-		request: NetworkRequest,
+		request: CompleteNetworkRequest,
 		uploadProgressContinuation: UploadProgressStream.Continuation?,
 		requestLogger: Logger?
 	) async throws(NetworkError) -> (responseHeader: EngineResponseHeader, responseBody: ResponseBodyStream) {
@@ -85,7 +85,7 @@ extension URLSession: NetworkEngine {
 	}
 
 	private func getSessionTask(
-		from request: NetworkRequest
+		from request: CompleteNetworkRequest
 	) throws(NetworkError) -> (task: URLSessionTask, inputStream: InputStream?) {
 		switch request {
 		case .upload(let uploadEngineRequest, let payload):
