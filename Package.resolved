@@ -1,5 +1,5 @@
 {
-  "originHash" : "3e1982ffd6205dff12d9eb2d3095e28282a9bb9d3a8b47e3ae8437dccca26c38",
+  "originHash" : "fdbefda4e7362253537a40957297ce1d62ec40e0cc3a89694ac0674a157703d5",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -8,6 +8,15 @@
       "state" : {
         "revision" : "3a5b74a58782c3b4c1f0bc75e9b67b10c2494e8f",
         "version" : "1.33.1"
+      }
+    },
+    {
+      "identity" : "embassy",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/envoy/Embassy.git",
+      "state" : {
+        "revision" : "8469f2c1b334a7c1c3566e2cb2f97826c7cca898",
+        "version" : "4.1.6"
       }
     },
     {
