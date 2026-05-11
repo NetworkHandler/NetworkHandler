@@ -124,35 +124,35 @@ public class MockingServer {
 							runLoop.call {
 								startResponseSendable.value(header)
 							}
-							tracker.value.header = true
+							tracker.header = true
 						case .data(let data):
 							guard data.isOccupied else { return }
 							runLoop.call {
 								sendDataSendable.value(data)
 							}
-							tracker.value.body = true
+							tracker.body = true
 						case .complete:
 							runLoop.call {
 								sendDataSendable.value(Data())
 							}
-							tracker.value.finish = true
+							tracker.finish = true
 						}
 					}
 				} catch {
-					guard tracker.value.finish == false else { return }
-					if tracker.value.header == false {
+					guard tracker.finish == false else { return }
+					if tracker.header == false {
 						runLoop.call {
 							startResponseSendable.value(
 								OutboundResponseHeader(
 									responseCode: 500,
 									responseHeader: [#HTTPFieldName("Error"): "\(error)"]))
 						}
-						tracker.value.header = true
+						tracker.header = true
 					}
 					runLoop.call {
 						sendDataSendable.value(Data())
 					}
-					tracker.value.finish = true
+					tracker.finish = true
 				}
 			}
 		}

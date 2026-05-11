@@ -1,28 +1,38 @@
 import SwiftPizzaSnips
 
-final package class Sendify<T>: @unchecked Sendable {
-	public var value: T {
+@dynamicMemberLookup
+final package class Sendify<NonSendable>: @unchecked Sendable {
+	public var value: NonSendable {
 		get { lock.withLock { _value } }
 		set { lock.withLock { _value = newValue } }
 	}
 
-	private var _value: T
+	private var _value: NonSendable
 
 	private let lock = MutexLock()
 
-	public init(_ value: T) {
+	public init(_ value: NonSendable) {
 		lock.lock()
 		defer { lock.unlock() }
 		self._value = value
 	}
+
+	package subscript<T>(dynamicMember member: WritableKeyPath<NonSendable, T>) -> T {
+		get { value[keyPath: member] }
+		set { value[keyPath: member] = newValue }
+	}
+
+	package subscript<T>(dynamicMember member: KeyPath<NonSendable, T>) -> T {
+		value[keyPath: member]
+	}
 }
 
-extension Sendify: Equatable where T: Equatable {
-	package static func == (lhs: Sendify<T>, rhs: Sendify<T>) -> Bool {
+extension Sendify: Equatable where NonSendable: Equatable {
+	package static func == (lhs: Sendify<NonSendable>, rhs: Sendify<NonSendable>) -> Bool {
 		lhs.value == rhs.value
 	}
 }
-extension Sendify: Hashable where T: Hashable {
+extension Sendify: Hashable where NonSendable: Hashable {
 	package func hash(into hasher: inout Hasher) {
 		hasher.combine(value)
 	}
