@@ -40,14 +40,7 @@ public class MockingServer {
 		}
 	}
 
-	public enum ResponseStreamChunk: Sendable {
-		case header(OutboundResponseHeader)
-		case data(Data)
-		case complete
-	}
-	public typealias ResponseStreamBlock = @Sendable (ResponseStreamChunk) -> Void
-
-	public typealias Endpoint = @Sendable (_ request: IncomingRequest, _ stream: ResponseStreamBlock) async throws -> Void
+	public typealias Endpoint = @Sendable (_ request: IncomingRequest, _ stream: ResponseStreamer.Block) async throws -> Void
 
 	private struct EndpointPath: Hashable {
 		let path: Path
@@ -150,7 +143,9 @@ public class MockingServer {
 					responseStream(chunk)
 				}
 			} catch {
-				responseStream(.header(.init(responseCode: 500, responseHeader: [#HTTPFieldName("Error"): "Stream error: \(error)"])))
+				responseStream(
+					.header(
+						.init(responseCode: 500, responseHeader: [#HTTPFieldName("Error"): "Stream error: \(error)"])))
 				responseStream(.complete)
 			}
 		}
@@ -264,9 +259,9 @@ public class MockingServer {
 		nonisolated(unsafe)
 		private var state = State()
 
-		private let streamBlock: ResponseStreamBlock
+		private let streamBlock: Block
 
-		init(_ streamBlock: @escaping ResponseStreamBlock) {
+		init(_ streamBlock: @escaping Block) {
 			self.streamBlock = streamBlock
 		}
 
@@ -281,7 +276,7 @@ public class MockingServer {
 			}
 		}
 
-		private func _stream(_ chunk: ResponseStreamChunk) {
+		private func _stream(_ chunk: Chunk) {
 			guard state.hasCompleted == false else { return }
 
 			switch chunk {
@@ -290,12 +285,16 @@ public class MockingServer {
 				state.hasResponded = true
 			case .data:
 				if state.hasResponded == false {
-					streamBlock(.header(.init(responseCode: 500, responseHeader: [#HTTPFieldName("Error"): "Did not send response before data"])))
+					streamBlock(
+						.header(
+							.init(responseCode: 500, responseHeader: [#HTTPFieldName("Error"): "Did not send response before data"])))
 				}
 				state.hasSentData = true
 			case .complete:
 				if state.hasResponded == false {
-					streamBlock(.header(.init(responseCode: 500, responseHeader: [#HTTPFieldName("Error"): "Did not send response before completion"])))
+					streamBlock(
+						.header(
+							.init(responseCode: 500, responseHeader: [#HTTPFieldName("Error"): "Did not send response before completion"])))
 				}
 				state.hasCompleted = true
 			}
@@ -303,13 +302,20 @@ public class MockingServer {
 			streamBlock(chunk)
 		}
 
-		func stream(_ chunk: ResponseStreamChunk) {
+		func stream(_ chunk: Chunk) {
 			lock.withLock { _stream(chunk) }
 		}
 
-		func callAsFunction(_ chunk: ResponseStreamChunk) {
+		func callAsFunction(_ chunk: Chunk) {
 			stream(chunk)
 		}
+
+		public enum Chunk: Sendable {
+			case header(OutboundResponseHeader)
+			case data(Data)
+			case complete
+		}
+		public typealias Block = @Sendable (Chunk) -> Void
 	}
 }
 
