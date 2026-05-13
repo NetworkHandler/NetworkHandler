@@ -65,105 +65,110 @@ public class MockingServer {
 		}
 
 		self.server = DefaultHTTPServer(eventLoop: runLoop, port: port) { [weak runLoop, weak self] (env: [String: Any], startResponse: @escaping ((String, [(String, String)]) -> Void), sendBody: @escaping ((Data) -> Void)) in
-			startResponse("200 OK", [])
-
-//			defer { sendBody(Data()) }
-
 			guard let runLoop, let self else {
 				return sendBody(Data())
 			}
 
-			guard
-				let pathStr = env["PATH_INFO"] as? String,
-				case let path = pathStr.split(separator: "/").map(String.init),
-				let reqMethodStr = env["REQUEST_METHOD"] as? String,
-				let requestMethod = Method(rawValue: reqMethodStr),
-				let endpoint = self.endpointsLock.withLock({ self.endpoints[.init(path: path, method: requestMethod)] })
-			else {
-				startResponse("500 Internal Server Error", [])
-				sendBody(Data())
-				return
-			}
-
-			let headers = env.reduce(into: [String: String]()) {
-				guard $1.key.starts(with: "HTTP_") else { return }
-				let name = $1.key.dropFirst(5)
-				$0[String(name)] = $1.value as? String
-			}
-
-			var incomingPayload: Data?
-			if let input = env["swsgi.input"] as? SWSGIInput {
-				input {
-					incomingPayload = $0
-				}
-			}
-
-			let startResponseWrapping = { (response: OutboundResponseHeader) in
-				let phrase = Self.reasonPhrases[response.responseCode] ?? "OK"
-
-				let headersArray = response.responseHeader.map { ($0.name.rawName, $0.value) }
-
-				startResponse("\(response.responseCode) \(phrase)", headersArray)
-			}
-
-			let startResponseSendable = Sendify(startResponseWrapping)
-			let sendDataSendable = Sendify(sendBody)
-
-			let incomingRequest = IncomingRequest(
-				path: path,
-				method: requestMethod,
-				headers: .init(headers),
-				payload: incomingPayload)
-
-			Task {
-				let tracker = Sendify((header: false, body: false, finish: false))
-				do {
-					try await endpoint(incomingRequest) { chunk in
-						switch chunk {
-						case .header(let header):
-							runLoop.call {
-								startResponseSendable.value(header)
-							}
-							tracker.header = true
-						case .data(let data):
-							guard data.isOccupied else { return }
-							runLoop.call {
-								sendDataSendable.value(data)
-							}
-							tracker.body = true
-						case .complete:
-							runLoop.call {
-								sendDataSendable.value(Data())
-							}
-							tracker.finish = true
-						}
-					}
-				} catch {
-					guard tracker.finish == false else { return }
-					if tracker.header == false {
-						runLoop.call {
-							startResponseSendable.value(
-								OutboundResponseHeader(
-									responseCode: 500,
-									responseHeader: [#HTTPFieldName("Error"): "\(error)"]))
-						}
-						tracker.header = true
-					}
-					runLoop.call {
-						sendDataSendable.value(Data())
-					}
-					tracker.finish = true
-				}
-			}
+			self.runServerLogic(env: env, runLoop: runLoop, startResponse: startResponse, sendBody: sendBody)
 		}
 
 		try server.start()
-
 	}
 
 	deinit {
 		server.stop()
 		runLoopTask.cancel()
+	}
+
+	private func runServerLogic(
+		env: [String: Any],
+		runLoop: EventLoop,
+		startResponse: @escaping ((String, [(String, String)]) -> Void),
+		sendBody: @escaping ((Data) -> Void)
+	) {
+		guard
+			let pathStr = env["PATH_INFO"] as? String,
+			case let path = pathStr.split(separator: "/").map(String.init),
+			let reqMethodStr = env["REQUEST_METHOD"] as? String,
+			let requestMethod = Method(rawValue: reqMethodStr),
+			let endpoint = self.endpointsLock.withLock({ self.endpoints[.init(path: path, method: requestMethod)] })
+		else {
+			startResponse("500 Internal Server Error", [])
+			sendBody(Data())
+			return
+		}
+		startResponse("200 OK", [])
+
+		let headers = env.reduce(into: [String: String]()) {
+			guard $1.key.starts(with: "HTTP_") else { return }
+			let name = $1.key.dropFirst(5)
+			$0[String(name)] = $1.value as? String
+		}
+
+		var incomingPayload: Data?
+		if let input = env["swsgi.input"] as? SWSGIInput {
+			input {
+				incomingPayload = $0
+			}
+		}
+
+		let startResponseWrapping = { (response: OutboundResponseHeader) in
+			let phrase = Self.reasonPhrases[response.responseCode] ?? "OK"
+
+			let headersArray = response.responseHeader.map { ($0.name.rawName, $0.value) }
+
+			startResponse("\(response.responseCode) \(phrase)", headersArray)
+		}
+
+		let startResponseSendable = Sendify(startResponseWrapping)
+		let sendDataSendable = Sendify(sendBody)
+
+		let incomingRequest = IncomingRequest(
+			path: path,
+			method: requestMethod,
+			headers: .init(headers),
+			payload: incomingPayload)
+
+		Task {
+			let tracker = Sendify((header: false, body: false, finish: false))
+			do {
+				try await endpoint(incomingRequest) { chunk in
+					switch chunk {
+					case .header(let header):
+						runLoop.call {
+							startResponseSendable.value(header)
+						}
+						tracker.header = true
+					case .data(let data):
+						guard data.isOccupied else { return }
+						runLoop.call {
+							sendDataSendable.value(data)
+						}
+						tracker.body = true
+					case .complete:
+						runLoop.call {
+							sendDataSendable.value(Data())
+						}
+						tracker.finish = true
+					}
+				}
+			} catch {
+				guard tracker.finish == false else { return }
+				if tracker.header == false {
+					runLoop.call {
+						startResponseSendable.value(
+							OutboundResponseHeader(
+								responseCode: 500,
+								responseHeader: [#HTTPFieldName("Error"): "\(error)"]))
+					}
+					tracker.header = true
+				}
+				runLoop.call {
+					sendDataSendable.value(Data())
+				}
+				tracker.finish = true
+			}
+		}
 	}
 
 	public func addMock(
@@ -210,10 +215,11 @@ public class MockingServer {
 
 	/// Creates a server on a random port. You can get the port from the returned server object.
 	///
-	/// This is disctinct from the default initializer in that it retries any time it creates a server on a port that's already in use.
-	/// Viable ports are `10000..<(UInt16.max)`. Ultimately, this means that if you have thousands of simultaneous servers,
-	/// you could end up in a situation where the available space for remaining servers diminishes, eventually potentially
-	/// causing an infinite loop when the entire space is occupied. The solution to this is to not run thousands of simultaneous servers.
+	/// This is disctinct from the default initializer in that it retries any time it creates a server on a port
+	/// that's already in use. Viable ports are `10000..<(UInt16.max)`. Ultimately, this means that if you have
+	/// thousands of simultaneous servers, you could end up in a situation where the available space for remaining
+	/// servers diminishes, eventually potentially causing an infinite loop when the entire space is occupied. The
+	/// solution to this is to not run thousands of simultaneous servers.
 	/// - Returns: a MockingServer listening to localhost:[randomPort]
 	static func createServer() throws -> MockingServer {
 		var creationError: Embassy.OSError?
