@@ -33,6 +33,11 @@ public class MockingServer {
 	public struct OutboundResponseHeader: Sendable {
 		public let responseCode: Int
 		public let responseHeader: HTTPFields
+
+		init(responseCode: Int, responseHeader: HTTPFields? = nil) {
+			self.responseCode = responseCode
+			self.responseHeader = responseHeader ?? .init()
+		}
 	}
 
 	public enum ResponseStreamChunk: Sendable {
@@ -61,15 +66,37 @@ public class MockingServer {
 		self.runLoop = runLoop
 		self.runLoopTask = Task.detached { [runLoop] in
 			runLoop.runForever()
-			print("canary")
 		}
 
 		self.server = DefaultHTTPServer(eventLoop: runLoop, port: port) { [weak runLoop, weak self] (env: [String: Any], startResponse: @escaping ((String, [(String, String)]) -> Void), sendBody: @escaping ((Data) -> Void)) in
 			guard let runLoop, let self else {
+				startResponse("500 Internal Server Error", [])
 				return sendBody(Data())
 			}
 
-			self.runServerLogic(env: env, runLoop: runLoop, startResponse: startResponse, sendBody: sendBody)
+			let startResponseWrapper = Sendify(startResponse)
+			let sendBodyWrapper = Sendify(sendBody)
+
+			self.runServerLogic(
+				env: env,
+				runLoop: runLoop,
+				responseStream: { chunk in
+					switch chunk {
+					case .header(let header):
+						let responseCodePhrase = Self.reasonPhrases[header.responseCode] ?? "OK"
+						let headersArray = header.responseHeader.map { ($0.name.rawName, $0.value) }
+
+						runLoop.call {
+							startResponseWrapper.value("\(header.responseCode) \(responseCodePhrase)", headersArray)
+						}
+					case .data(let data):
+						guard data.isOccupied else { return }
+						runLoop.call { sendBodyWrapper.value(data) }
+					case .complete:
+						runLoop.call { sendBodyWrapper.value(Data()) }
+					}
+
+				})
 		}
 
 		try server.start()
@@ -83,8 +110,7 @@ public class MockingServer {
 	private func runServerLogic(
 		env: [String: Any],
 		runLoop: EventLoop,
-		startResponse: @escaping ((String, [(String, String)]) -> Void),
-		sendBody: @escaping ((Data) -> Void)
+		responseStream: @escaping ResponseStream
 	) {
 		guard
 			let pathStr = env["PATH_INFO"] as? String,
@@ -93,11 +119,10 @@ public class MockingServer {
 			let requestMethod = Method(rawValue: reqMethodStr),
 			let endpoint = self.endpointsLock.withLock({ self.endpoints[.init(path: path, method: requestMethod)] })
 		else {
-			startResponse("500 Internal Server Error", [])
-			sendBody(Data())
+			responseStream(.header(.init(responseCode: 500)))
+			responseStream(.complete)
 			return
 		}
-		startResponse("200 OK", [])
 
 		let headers = env.reduce(into: [String: String]()) {
 			guard $1.key.starts(with: "HTTP_") else { return }
@@ -112,17 +137,6 @@ public class MockingServer {
 			}
 		}
 
-		let startResponseWrapping = { (response: OutboundResponseHeader) in
-			let phrase = Self.reasonPhrases[response.responseCode] ?? "OK"
-
-			let headersArray = response.responseHeader.map { ($0.name.rawName, $0.value) }
-
-			startResponse("\(response.responseCode) \(phrase)", headersArray)
-		}
-
-		let startResponseSendable = Sendify(startResponseWrapping)
-		let sendDataSendable = Sendify(sendBody)
-
 		let incomingRequest = IncomingRequest(
 			path: path,
 			method: requestMethod,
@@ -134,38 +148,26 @@ public class MockingServer {
 			do {
 				try await endpoint(incomingRequest) { chunk in
 					switch chunk {
-					case .header(let header):
-						runLoop.call {
-							startResponseSendable.value(header)
-						}
+					case .header:
 						tracker.header = true
-					case .data(let data):
-						guard data.isOccupied else { return }
-						runLoop.call {
-							sendDataSendable.value(data)
-						}
+					case .data:
 						tracker.body = true
 					case .complete:
-						runLoop.call {
-							sendDataSendable.value(Data())
-						}
 						tracker.finish = true
 					}
+					responseStream(chunk)
 				}
 			} catch {
 				guard tracker.finish == false else { return }
 				if tracker.header == false {
-					runLoop.call {
-						startResponseSendable.value(
+					responseStream(
+						.header(
 							OutboundResponseHeader(
 								responseCode: 500,
-								responseHeader: [#HTTPFieldName("Error"): "\(error)"]))
-					}
+								responseHeader: [#HTTPFieldName("Error"): "\(error)"])))
 					tracker.header = true
 				}
-				runLoop.call {
-					sendDataSendable.value(Data())
-				}
+				responseStream(.complete)
 				tracker.finish = true
 			}
 		}
@@ -178,7 +180,7 @@ public class MockingServer {
 		responseCode: Int,
 		delay: TimeInterval = 0
 	) {
-		addMock(for: path, method: method) { request, stream in
+		addMock(for: path, method: method) { _, stream in
 			let headers: HTTPFields
 			if let responseData {
 				headers = [.contentLength: "\(responseData.count)"]
@@ -228,7 +230,7 @@ public class MockingServer {
 			do {
 				return try MockingServer()
 			} catch let error as Embassy.OSError {
-				guard case .ioError(let number, let message) = error else {
+				guard case .ioError(let number, _) = error else {
 					throw error
 				}
 				guard
