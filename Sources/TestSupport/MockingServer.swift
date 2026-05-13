@@ -5,6 +5,7 @@ import NetworkHandler
 import NHMacros
 import SwiftPizzaSnips
 
+@available(macOS 15.0.0, *)
 public class MockingServer {
 	private let runLoop: SelectorEventLoop
 	private let runLoopTask: Task<Void, Never>
@@ -13,7 +14,14 @@ public class MockingServer {
 	public let port: Int
 
 	public typealias Method = HTTPTypes.HTTPRequest.Method
-	public struct Path: RawRepresentable, Sendable, Hashable, ExpressibleByArrayLiteral, ExpressibleByStringLiteral, ExpressibleByStringInterpolation {
+	public struct Path:
+		RawRepresentable,
+		Sendable,
+		Hashable,
+		ExpressibleByArrayLiteral,
+		ExpressibleByStringLiteral,
+		ExpressibleByStringInterpolation {
+
 		public var rawValue: [String]
 
 		public init(rawValue: [String]) {
@@ -50,7 +58,7 @@ public class MockingServer {
 		public let responseCode: Int
 		public let responseHeader: HTTPFields
 
-		init(responseCode: Int, responseHeader: HTTPFields? = nil) {
+		public init(responseCode: Int, responseHeader: HTTPFields? = nil) {
 			self.responseCode = responseCode
 			self.responseHeader = responseHeader ?? .init()
 		}
@@ -59,7 +67,40 @@ public class MockingServer {
 	public typealias Endpoint = @Sendable (
 		_ request: IncomingRequest,
 		_ stream: ResponseStream.Block
-	) async throws -> Void
+	) async throws(HTTPError) -> Void
+
+	public struct HTTPError: Error {
+		public let code: Int
+		public let errorDescription: String?
+
+		public init(code: Int = 500, errorDescription: String? = nil) {
+			self.code = code
+			self.errorDescription = errorDescription
+		}
+
+		public static func capture<T>(_ throwing: () async throws -> T) async throws(HTTPError) -> T {
+			do {
+				return try await throwing()
+			} catch {
+				return try capture { throw error }
+			}
+		}
+
+		public static func capture<T>(_ throwing: () throws -> T) throws(HTTPError) -> T {
+			do {
+				return try throwing()
+			} catch {
+				if error.isTimeout() {
+					throw HTTPError(errorDescription: "Server timeout")
+				}
+				if error.isCancellation() {
+					throw HTTPError(errorDescription: "Server cancellation")
+				}
+
+				throw HTTPError(errorDescription: "Unexpected error: \(error)")
+			}
+		}
+	}
 
 	private struct EndpointPath: Hashable {
 		let path: Path
@@ -98,6 +139,10 @@ public class MockingServer {
 					runLoop.call {
 						startResponseWrapper.value("\(header.responseCode) \(responseCodePhrase)", headersArray)
 					}
+				case .string(let string):
+					let data = Data(string.utf8)
+					guard data.isOccupied else { return }
+					runLoop.call { sendBodyWrapper.value(data) }
 				case .data(let data):
 					guard data.isOccupied else { return }
 					runLoop.call { sendBodyWrapper.value(data) }
@@ -157,14 +202,15 @@ public class MockingServer {
 			payload: incomingPayload)
 
 		Task {
-			do {
+			do throws(HTTPError) {
 				try await endpoint(incomingRequest) { chunk in
 					responseStream(chunk)
 				}
 			} catch {
+				let errorInfo = error.errorDescription ?? "No error description"
 				responseStream(
 					.header(
-						.init(responseCode: 500, responseHeader: [#HTTPFieldName("Error"): "Stream error: \(error)"])))
+						.init(responseCode: error.code, responseHeader: [#HTTPFieldName("Error"): errorInfo])))
 				responseStream(.complete)
 			}
 		}
@@ -177,7 +223,7 @@ public class MockingServer {
 		responseCode: Int,
 		delay: TimeInterval = 0
 	) {
-		addMock(for: path, method: method) { _, stream in
+		addMock(for: path, method: method) { _, stream throws(HTTPError) in
 			let headers: HTTPFields
 			if let responseData {
 				headers = [.contentLength: "\(responseData.count)"]
@@ -189,7 +235,9 @@ public class MockingServer {
 				responseHeader: headers)
 
 			if delay > 0 {
-				try await Task.sleep(for: .seconds(delay))
+				try await HTTPError.capture {
+					try await Task.sleep(for: .seconds(delay))
+				}
 			}
 			stream(.header(header))
 
@@ -270,6 +318,7 @@ public class MockingServer {
 		public enum Chunk: Sendable {
 			case header(OutboundResponseHeader)
 			case data(Data)
+			case string(String)
 			case complete
 		}
 		public typealias Block = @Sendable (Chunk) -> Void
@@ -313,7 +362,7 @@ public class MockingServer {
 				case .header:
 					guard state.hasResponded == false else { return }
 					state.hasResponded = true
-				case .data:
+				case .data, .string:
 					if state.hasResponded == false {
 						streamBlock(
 							.header(
