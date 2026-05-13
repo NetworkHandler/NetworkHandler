@@ -13,7 +13,23 @@ public class MockingServer {
 	public let port: Int
 
 	public typealias Method = HTTPTypes.HTTPRequest.Method
-	public typealias Path = [String]
+	public struct Path: RawRepresentable, Sendable, Hashable, ExpressibleByArrayLiteral, ExpressibleByStringLiteral, ExpressibleByStringInterpolation {
+		public var rawValue: [String]
+
+		public init(rawValue: [String]) {
+			self.rawValue = rawValue
+		}
+
+		public init(arrayLiteral elements: String...) {
+			self.init(rawValue: elements)
+		}
+
+		public init(stringLiteral value: String) {
+			let path = value.split(separator: "/").map(String.init)
+			self.init(rawValue: path)
+		}
+	}
+
 	public struct IncomingRequest: Sendable {
 		public let path: Path
 		public let method: Method
@@ -111,7 +127,7 @@ public class MockingServer {
 	) {
 		guard
 			let pathStr = env["PATH_INFO"] as? String,
-			case let path = pathStr.split(separator: "/").map(String.init),
+			case let path: Path = "\(pathStr)",
 			let reqMethodStr = env["REQUEST_METHOD"] as? String,
 			let requestMethod = Method(rawValue: reqMethodStr),
 			let endpoint = self.endpointsLock.withLock({ self.endpoints[.init(path: path, method: requestMethod)] })
