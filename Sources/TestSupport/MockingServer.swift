@@ -1,5 +1,5 @@
-import Foundation
 @preconcurrency import Embassy
+import Foundation
 import HTTPTypes
 import NetworkHandler
 import NHMacros
@@ -45,9 +45,9 @@ public class MockingServer {
 		case data(Data)
 		case complete
 	}
-	public typealias ResponseStream = @Sendable (ResponseStreamChunk) -> Void
+	public typealias ResponseStreamBlock = @Sendable (ResponseStreamChunk) -> Void
 
-	public typealias Endpoint = @Sendable (_ request: IncomingRequest, _ stream: ResponseStream) async throws -> Void
+	public typealias Endpoint = @Sendable (_ request: IncomingRequest, _ stream: ResponseStreamBlock) async throws -> Void
 
 	private struct EndpointPath: Hashable {
 		let path: Path
@@ -70,33 +70,34 @@ public class MockingServer {
 
 		self.server = DefaultHTTPServer(eventLoop: runLoop, port: port) { [weak runLoop, weak self] (env: [String: Any], startResponse: @escaping ((String, [(String, String)]) -> Void), sendBody: @escaping ((Data) -> Void)) in
 			guard let runLoop, let self else {
-				startResponse("500 Internal Server Error", [])
+				startResponse("500 Internal Server Error", [("Error", "Invalid server state")])
 				return sendBody(Data())
 			}
 
 			let startResponseWrapper = Sendify(startResponse)
 			let sendBodyWrapper = Sendify(sendBody)
 
+			let tracker = ResponseStreamer { chunk in
+				switch chunk {
+				case .header(let header):
+					let responseCodePhrase = Self.reasonPhrases[header.responseCode] ?? "OK"
+					let headersArray = header.responseHeader.map { ($0.name.rawName, $0.value) }
+
+					runLoop.call {
+						startResponseWrapper.value("\(header.responseCode) \(responseCodePhrase)", headersArray)
+					}
+				case .data(let data):
+					guard data.isOccupied else { return }
+					runLoop.call { sendBodyWrapper.value(data) }
+				case .complete:
+					runLoop.call { sendBodyWrapper.value(Data()) }
+				}
+			}
+
 			self.runServerLogic(
 				env: env,
 				runLoop: runLoop,
-				responseStream: { chunk in
-					switch chunk {
-					case .header(let header):
-						let responseCodePhrase = Self.reasonPhrases[header.responseCode] ?? "OK"
-						let headersArray = header.responseHeader.map { ($0.name.rawName, $0.value) }
-
-						runLoop.call {
-							startResponseWrapper.value("\(header.responseCode) \(responseCodePhrase)", headersArray)
-						}
-					case .data(let data):
-						guard data.isOccupied else { return }
-						runLoop.call { sendBodyWrapper.value(data) }
-					case .complete:
-						runLoop.call { sendBodyWrapper.value(Data()) }
-					}
-
-				})
+				responseStream: tracker)
 		}
 
 		try server.start()
@@ -110,7 +111,7 @@ public class MockingServer {
 	private func runServerLogic(
 		env: [String: Any],
 		runLoop: EventLoop,
-		responseStream: @escaping ResponseStream
+		responseStream: ResponseStreamer
 	) {
 		guard
 			let pathStr = env["PATH_INFO"] as? String,
@@ -144,31 +145,13 @@ public class MockingServer {
 			payload: incomingPayload)
 
 		Task {
-			let tracker = Sendify((header: false, body: false, finish: false))
 			do {
 				try await endpoint(incomingRequest) { chunk in
-					switch chunk {
-					case .header:
-						tracker.header = true
-					case .data:
-						tracker.body = true
-					case .complete:
-						tracker.finish = true
-					}
 					responseStream(chunk)
 				}
 			} catch {
-				guard tracker.finish == false else { return }
-				if tracker.header == false {
-					responseStream(
-						.header(
-							OutboundResponseHeader(
-								responseCode: 500,
-								responseHeader: [#HTTPFieldName("Error"): "\(error)"])))
-					tracker.header = true
-				}
+				responseStream(.header(.init(responseCode: 500, responseHeader: [#HTTPFieldName("Error"): "Stream error: \(error)"])))
 				responseStream(.complete)
-				tracker.finish = true
 			}
 		}
 	}
@@ -268,6 +251,66 @@ public class MockingServer {
 		503: "Service Unavailable",
 		504: "Gateway Timeout",
 	]
+
+	public final class ResponseStreamer: @unchecked Sendable {
+		private let lock = MutexLock()
+
+		private struct State: Hashable, Sendable {
+			var hasResponded = false
+			var hasSentData = false
+			var hasCompleted = false
+		}
+
+		nonisolated(unsafe)
+		private var state = State()
+
+		private let streamBlock: ResponseStreamBlock
+
+		init(_ streamBlock: @escaping ResponseStreamBlock) {
+			self.streamBlock = streamBlock
+		}
+
+		deinit {
+			lock.withLock {
+				if state.hasResponded == false {
+					_stream(.header(.init(responseCode: 500)))
+				}
+				if state.hasCompleted == false {
+					_stream(.complete)
+				}
+			}
+		}
+
+		private func _stream(_ chunk: ResponseStreamChunk) {
+			guard state.hasCompleted == false else { return }
+
+			switch chunk {
+			case .header:
+				guard state.hasResponded == false else { return }
+				state.hasResponded = true
+			case .data:
+				if state.hasResponded == false {
+					streamBlock(.header(.init(responseCode: 500, responseHeader: [#HTTPFieldName("Error"): "Did not send response before data"])))
+				}
+				state.hasSentData = true
+			case .complete:
+				if state.hasResponded == false {
+					streamBlock(.header(.init(responseCode: 500, responseHeader: [#HTTPFieldName("Error"): "Did not send response before completion"])))
+				}
+				state.hasCompleted = true
+			}
+
+			streamBlock(chunk)
+		}
+
+		func stream(_ chunk: ResponseStreamChunk) {
+			lock.withLock { _stream(chunk) }
+		}
+
+		func callAsFunction(_ chunk: ResponseStreamChunk) {
+			stream(chunk)
+		}
+	}
 }
 
 extension SelectorEventLoop: @unchecked @retroactive Sendable {}
