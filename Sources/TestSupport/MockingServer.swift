@@ -6,10 +6,12 @@ import NHMacros
 import SwiftPizzaSnips
 
 @available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
-public class MockingServer {
+public final class MockingServer: Sendable {
 	private let runLoop: SelectorEventLoop
 	private let runLoopTask: Task<Void, Never>
-	public var server: HTTPServer!
+
+	nonisolated(unsafe)
+	public private(set) var server: HTTPServer!
 
 	public let port: UInt16
 
@@ -62,6 +64,12 @@ public class MockingServer {
 			self.responseCode = responseCode
 			self.responseHeader = responseHeader ?? .init()
 		}
+
+		static func serverError(code: Int = 500, errorDescription: String? = nil) -> OutboundResponseHeader {
+			self.init(
+				responseCode: code,
+				responseHeader: [#HTTPFieldName("Error"): errorDescription ?? "Internal error"])
+		}
 	}
 
 	public typealias Endpoint = @Sendable (
@@ -107,6 +115,7 @@ public class MockingServer {
 		let method: Method
 	}
 
+	nonisolated(unsafe)
 	private var endpoints: [EndpointPath: Endpoint] = [:]
 	private let endpointsLock = MutexLock()
 
@@ -121,7 +130,14 @@ public class MockingServer {
 			runLoop.runForever()
 		}
 
-		self.server = DefaultHTTPServer(eventLoop: runLoop, port: Int(port)) { [weak runLoop, weak self] (env: [String: Any], startResponse: @escaping ((String, [(String, String)]) -> Void), sendBody: @escaping ((Data) -> Void)) in
+		self.server = DefaultHTTPServer(eventLoop: runLoop, port: Int(port)) {
+			// this is the header of a closure that's just stupidly long and therefore broken to multiple lines
+			[weak runLoop, weak self] (
+				env: [String: Any],
+				startResponse: @escaping ((String, [(String, String)]) -> Void),
+				sendBody: @escaping ((Data) -> Void)
+			) in
+
 			guard let runLoop, let self else {
 				startResponse("500 Internal Server Error", [("Error", "Invalid server state")])
 				return sendBody(Data())
@@ -163,6 +179,7 @@ public class MockingServer {
 	deinit {
 		server.stop()
 		runLoopTask.cancel()
+		print("Server with port \(port) shutdown")
 	}
 
 	private func runServerLogic(
@@ -174,10 +191,16 @@ public class MockingServer {
 			let pathStr = env["PATH_INFO"] as? String,
 			case let path: Path = "\(pathStr)",
 			let reqMethodStr = env["REQUEST_METHOD"] as? String,
-			let requestMethod = Method(rawValue: reqMethodStr),
+			let requestMethod = Method(rawValue: reqMethodStr)
+		else {
+			responseStream(.header(.serverError(errorDescription: "Assumed env not found")))
+			responseStream(.complete)
+			return
+		}
+		guard
 			let endpoint = self.endpointsLock.withLock({ self.endpoints[.init(path: path, method: requestMethod)] })
 		else {
-			responseStream(.header(.init(responseCode: 500)))
+			responseStream(.header(.init(responseCode: 404)))
 			responseStream(.complete)
 			return
 		}
@@ -188,39 +211,53 @@ public class MockingServer {
 			$0[String(name)] = $1.value as? String
 		}
 
-		var incomingPayload: Data?
-		if let input = env["swsgi.input"] as? SWSGIInput {
-			input {
-				incomingPayload = $0
+		guard let input = env["swsgi.input"] as? SWSGIInput else {
+			responseStream(.header(.serverError(errorDescription: "Base input stream not found")))
+			responseStream(.complete)
+			return
+		}
+
+		func finishRequest(incomingPayload: Data?) {
+			let incomingRequest = IncomingRequest(
+				path: path,
+				method: requestMethod,
+				headers: .init(headers),
+				payload: incomingPayload)
+
+			Task {
+				do throws(HTTPError) {
+					try await endpoint(incomingRequest) { chunk in
+						responseStream(chunk)
+					}
+				} catch {
+					let errorInfo = error.errorDescription ?? "No error description"
+					responseStream(
+						.header(
+							.init(responseCode: error.code, responseHeader: [#HTTPFieldName("Error"): errorInfo])))
+					responseStream(.complete)
+				}
 			}
 		}
 
-		let incomingRequest = IncomingRequest(
-			path: path,
-			method: requestMethod,
-			headers: .init(headers),
-			payload: incomingPayload)
+		let hasBody = headers["CONTENT_LENGTH"] != nil || headers["TRANSFER_ENCODING"] == "chunked"
+		if hasBody {
+			var payload = Data()
+			input {
+				payload.append($0)
+				guard $0.isEmpty else { return }
 
-		Task {
-			do throws(HTTPError) {
-				try await endpoint(incomingRequest) { chunk in
-					responseStream(chunk)
-				}
-			} catch {
-				let errorInfo = error.errorDescription ?? "No error description"
-				responseStream(
-					.header(
-						.init(responseCode: error.code, responseHeader: [#HTTPFieldName("Error"): errorInfo])))
-				responseStream(.complete)
+				finishRequest(incomingPayload: payload)
 			}
+		} else {
+			finishRequest(incomingPayload: nil)
 		}
 	}
 
 	public func addMock(
 		for path: Path,
-		method: Method,
+		method: Method = .get,
 		responseData: Data?,
-		responseCode: Int,
+		responseCode: Int = 200,
 		delay: TimeInterval = 0
 	) {
 		addMock(for: path, method: method) { _, stream throws(HTTPError) in

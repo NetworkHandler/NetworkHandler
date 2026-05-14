@@ -19,13 +19,42 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 	public typealias TestImage = UIImage
 	#endif
 
-	public let imageURL = #URL("https://s3.wasabisys.com/network-handler-tests/images/lighthouse.jpg")
-	public let demoModelURL = #URL("https://s3.wasabisys.com/network-handler-tests/coding/demoModel.json")
-	public let badDemoModelURL = #URL("https://s3.wasabisys.com/network-handler-tests/coding/badDemoModel.json")
-	public let demo404URL = #URL("https://s3.wasabisys.com/network-handler-tests/coding/akjsdhjklahgdjkahsfjkahskldf.json")
-	public let uploadURL = #URL("https://s3.wasabisys.com/network-handler-tests/uploader.bin")
-	public let randomDataURL = #URL("https://s3.wasabisys.com/network-handler-tests/randomData.bin")
-	public let chonkURL = #URL("https://s3.wasabisys.com/network-handler-tests/chonk.bin")
+	private let baseLocalURL = #URL("http://localhost")
+	public func imageURL(port: UInt16) -> URL {
+		baseLocalURL
+			.withPort(port)
+			.appending(path: "network-handler-tests/images/lighthouse.jpg")
+	}
+	public func demoModelURL(port: UInt16) -> URL {
+		baseLocalURL
+			.withPort(port)
+			.appending(path: "network-handler-tests/coding/demoModel.json")
+	}
+	public func badDemoModelURL(port: UInt16) -> URL {
+		baseLocalURL
+			.withPort(port)
+			.appending(path: "network-handler-tests/coding/badDemoModel.json")
+	}
+	public func demo404URL(port: UInt16) -> URL {
+		baseLocalURL
+			.withPort(port)
+			.appending(path: "network-handler-tests/coding/akjsdhjklahgdjkahsfjkahskldf.json")
+	}
+	public func uploadURL(port: UInt16) -> URL {
+		baseLocalURL
+			.withPort(port)
+			.appending(path: "network-handler-tests/uploader.bin")
+	}
+	public func randomDataURL(port: UInt16) -> URL {
+		baseLocalURL
+			.withPort(port)
+			.appending(path: "network-handler-tests/randomData.bin")
+	}
+	public func chonkURL(port: UInt16) -> URL {
+		baseLocalURL
+			.withPort(port)
+			.appending(path: "network-handler-tests/chonk.bin")
+	}
 	public let echoURL = #URL("https://echo.free.beeceptor.com/")
 
 	public let logger: Logger
@@ -38,6 +67,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 	/// performs a `GET` request to `imageURL`
 	public func downloadAndCacheImages(
 		engine: Engine,
+		mockServerPort: UInt16,
 		imageExpectationData: Data,
 		file: String = #fileID,
 		filePath: String = #filePath,
@@ -50,14 +80,14 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 
 		let rawStart = Date()
 		let image1Result = try await nh.downloadMahDatas(
-			for: imageURL.generalRequest,
+			for: imageURL(port: mockServerPort).generalRequest,
 			usingCache: .key("kitten"),
 			requestLogger: logger)
 		let rawFinish = Date()
 
 		let cacheStart = Date()
 		let image2Result = try await nh.downloadMahDatas(
-			for: imageURL.generalRequest,
+			for: imageURL(port: mockServerPort).generalRequest,
 			usingCache: .key("kitten"),
 			requestLogger: logger)
 		let cacheFinish = Date()
@@ -119,60 +149,10 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 	}
 
-	/// performs a `GET` request to `chonkURL`
-	public func downloadFile(
-		engine: Engine,
-		file: String = #fileID,
-		filePath: String = #filePath,
-		line: Int = #line,
-		column: Int = #column,
-		function: String = #function
-	) async throws {
-		let nh = getNetworkHandler(with: engine)
-		defer { nh.resetCache() }
-
-		let url = chonkURL
-		let request = url.generalRequest
-
-		let outputFileURL = URL.temporaryDirectory.appending(component: "downloadfile").appendingPathExtension("test")
-		let tempFileURL = URL.temporaryDirectory.appending(components: UUID().uuidString)
-
-		#expect(outputFileURL.checkResourceIsAccessible() == false)
-		#expect(tempFileURL.checkResourceIsAccessible() == false)
-
-		defer {
-			try? FileManager.default.removeItem(at: outputFileURL)
-			try? FileManager.default.removeItem(at: tempFileURL)
-		}
-
-		try await confirmation { tempFileExisted in
-			Task {
-				var seen = false
-				while seen == false {
-					try await Task.sleep(for: .milliseconds(20))
-					guard tempFileURL.checkResourceIsAccessible() else { continue }
-					seen = true
-					tempFileExisted()
-				}
-			}
-
-			_ = try await nh.downloadMahFile(
-				for: request,
-				savingToLocalFileURL: outputFileURL,
-				withTemporaryFile: tempFileURL,
-				requestLogger: logger)
-		}
-
-		let fileHash = try fileHash(outputFileURL)
-		#expect(fileHash.toHexString() == "92b640d348a4627b4185f5378d8949b542055bd37fe513e6add9a1e010a3a83d")
-		#expect(outputFileURL.checkResourceIsAccessible())
-		#expect(tempFileURL.checkResourceIsAccessible() == false)
-	}
-
 	/// performs a `GET` request to `demo404URL`
-	public func handle404Error<E: Error & Equatable>(
+	public func handle404Error(
 		engine: Engine,
-		expectedError: E,
+		mockingPort: UInt16,
 		file: String = #fileID,
 		filePath: String = #filePath,
 		line: Int = #line,
@@ -182,35 +162,35 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		let nh = getNetworkHandler(with: engine)
 		defer { nh.resetCache() }
 
-		let url = demo404URL
+		let url = demo404URL(port: mockingPort)
 
-		let resultModel: Result<String, Error> = await Task { [logger] in
-			try await nh.downloadMahCodableDatas(
+		let error = await #expect(
+			throws: NetworkError.self,
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column)
+		) {
+			let _: String = try await nh.downloadMahCodableDatas(
 				for: url.generalRequest,
 				delegate: nil,
 				requestLogger: logger).decoded
-		}.result
+		}
 
-		#expect(
-			performing: {
-				_ = try resultModel.get()
-			},
-			throws: {
-				guard
-					let error = $0 as? NetworkError,
-					case .httpUnexpectedStatusCode(code: let code, originalRequest: _, data: _) = error
-				else { return false }
-				guard
-					code == 404
-				else { return false }
+		guard
+			case .httpUnexpectedStatusCode(code: let code, originalRequest: _, data: _) = error
+		else {
+			Issue.record(
+				"Incorrect error",
+				sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column)
+			)
+			return
+		}
 
-				return true
-			})
+		#expect(code == 404, sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 	}
 
 	/// performs a `GET` request to `demoModelURL`
 	public func expect200OnlyGet200(
 		engine: Engine,
+		mockingPort: UInt16,
 		file: String = #fileID,
 		filePath: String = #filePath,
 		line: Int = #line,
@@ -220,32 +200,32 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		let nh = getNetworkHandler(with: engine)
 		defer { nh.resetCache() }
 
-		let url = demoModelURL
+		let url = demoModelURL(port: mockingPort)
 		let request = url.generalRequest.with {
 			$0.expectedResponseCodes = 200
 		}
-		_ = try await nh.transferMahDatas(
-			for: .standard(request),
-			requestLogger: logger,
-			onError: { _, _, _  in .throw })
+
+		await #expect(
+			throws: Never.self,
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column)
+		) {
+			_ = try await nh.transferMahDatas(
+				for: .standard(request),
+				requestLogger: logger,
+				onError: { _, _, _  in .throw })
+		}
 	}
 
 	/// performs a `POST` request to `demoModelURL`
 	public func expect201OnlyGet200(
 		engine: Engine,
+		mockingPort: UInt16,
 		file: String = #fileID,
 		filePath: String = #filePath,
 		line: Int = #line,
 		column: Int = #column,
 		function: String = #function
 	) async throws {
-		guard
-			try TestEnvironment.s3AccessSecret.isEmpty == false,
-			try TestEnvironment.s3AccessKey.isEmpty == false
-		else {
-			throw SimpleTestError(message: "Need s3 credentials")
-		}
-
 		let nh = getNetworkHandler(with: engine)
 		defer { nh.resetCache() }
 
@@ -254,46 +234,38 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 			"https://s3.wasabisys.com/network-handler-tests/images/lighthouse.jpg"\
 			,"subtitle":"BarSub","title":"FooTitle"}
 			""".utf8)
-		let url = demoModelURL
+		let url = demoModelURL(port: mockingPort)
 		let request = url.generalRequest.with {
 			$0.expectedResponseCodes = 201
 			$0.method = .put
 			$0.payload = payloadData
 		}
 
-		let hash = SHA256.hash(data: payloadData)
+		let error = await #expect(
+			throws: NetworkError.self,
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column)
+		) {
+			_ = try await nh.transferMahDatas(
+				for: .standard(request),
+				requestLogger: logger,
+				onError: { _, _, _  in .throw })
+		}
 
-		let awsHeaderInfo = try AWSV4Signature(
-			for: request,
-			awsKey: TestEnvironment.s3AccessKey,
-			awsSecret: TestEnvironment.s3AccessSecret,
-			awsRegion: .usEast1,
-			awsService: .s3,
-			hexContentHash: .fromShaHashDigest(hash))
-
-		let signedRequest = try awsHeaderInfo.processRequest(request)
-
-		await #expect(
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column),
-			performing: {
-				_ = try await nh.transferMahDatas(
-					for: .standard(signedRequest),
-					requestLogger: logger,
-					onError: { _, _, _  in .throw })
-			},
-			throws: { error in
-				guard
-					let networkError = error as? NetworkError,
-					case .httpUnexpectedStatusCode(code: let code, originalRequest: _, data: _) = networkError,
-					code == 200
-				else { return false }
-				return true
-			})
+		guard
+			case .httpUnexpectedStatusCode(code: let code, originalRequest: _, data: _) = error
+		else {
+			Issue.record(
+				"Incorrect error type",
+				sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
+			return
+		}
+		#expect(code == 200, sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 	}
 
 	/// performs a `PUT` request to `randomDataURL`. Provided must be corrupted in some way.
 	public func uploadData(
 		engine: Engine,
+		mockingPort: UInt16,
 		file: String = #fileID,
 		filePath: String = #filePath,
 		line: Int = #line,
@@ -303,9 +275,11 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		let nh = getNetworkHandler(with: engine)
 		defer { nh.resetCache() }
 
-		let url = randomDataURL
+		let url = randomDataURL(port: mockingPort)
 		let request = url.generalRequest.with {
 			$0.method = .put
+			$0.headers.setAuthorization(.bearerToken("foobar"))
+			$0.expectedResponseCodes = 201
 		}
 
 		let sizeOfUploadMB: UInt8 = 5
@@ -317,22 +291,12 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		let dataHash = SHA256.hash(data: randomData)
 		print(dataHash)
 
-		let awsHeaderInfo = try AWSV4Signature(
-			for: request,
-			awsKey: TestEnvironment.s3AccessKey,
-			awsSecret: TestEnvironment.s3AccessSecret,
-			awsRegion: .usEast1,
-			awsService: .s3,
-			hexContentHash: .fromShaHashDigest(dataHash))
-
-		let signedRequest = try awsHeaderInfo.processRequest(request)
-
-		let atomicRequest = AtomicValue(value: CompleteNetworkRequest.upload(signedRequest, payload: .data(randomData)))
+		let atomicRequest = AtomicValue(value: CompleteNetworkRequest.upload(request, payload: .data(randomData)))
 		let delegate = await Delegate(onRequestModified: { _, _, new in
 			atomicRequest.value = new
 		})
 
-		_ = try await nh.uploadMahDatas(for: signedRequest, payload: .data(randomData), delegate: delegate)
+		_ = try await nh.uploadMahDatas(for: request, payload: .data(randomData), delegate: delegate)
 		#expect(
 			atomicRequest.value.expectedContentLength != nil,
 			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
@@ -348,26 +312,21 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 	/// performs a `PUT` request to `uploadURL`
 	public func uploadFileURL(
 		engine: Engine,
+		mockingPort: UInt16,
 		file: String = #fileID,
 		filePath: String = #filePath,
 		line: Int = #line,
 		column: Int = #column,
 		function: String = #function
 	) async throws {
-		guard
-			try TestEnvironment.s3AccessSecret.isEmpty == false,
-			try TestEnvironment.s3AccessKey.isEmpty == false
-		else {
-			throw SimpleTestError(message: "Need s3 credentials")
-		}
-
 		let nh = getNetworkHandler(with: engine)
 		defer { nh.resetCache() }
 
-		let url = uploadURL
+		let url = uploadURL(port: mockingPort)
 		let upRequest = url.generalRequest.with {
 			$0.method = .put
-			$0.expectedResponseCodes = 200
+			$0.expectedResponseCodes = 201
+			$0.headers.setAuthorization(.bearerToken("foobar"))
 		}
 
 		let testFileURL = URL.temporaryDirectory.appending(component: UUID().uuidString).appendingPathExtension("bin")
@@ -376,21 +335,11 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 
 		let hash = try fileHash(actualTestFile)
 
-		let awsHeaderInfo = try AWSV4Signature(
-			for: upRequest,
-			awsKey: TestEnvironment.s3AccessKey,
-			awsSecret: TestEnvironment.s3AccessSecret,
-			awsRegion: .usEast1,
-			awsService: .s3,
-			hexContentHash: .fromShaHashDigest(hash))
-
-		let signedRequest = try awsHeaderInfo.processRequest(upRequest)
-
-		let atomicRequest = AtomicValue(value: CompleteNetworkRequest.upload(signedRequest, payload: .localFile(actualTestFile)))
+		let atomicRequest = AtomicValue(value: CompleteNetworkRequest.upload(upRequest, payload: .localFile(actualTestFile)))
 		let delegate = await Delegate(onRequestModified: { _, _, new in
 			atomicRequest.value = new
 		})
-		_ = try await nh.uploadMahDatas(for: signedRequest, payload: .localFile(actualTestFile), delegate: delegate)
+		_ = try await nh.uploadMahDatas(for: upRequest, payload: .localFile(actualTestFile), delegate: delegate)
 		#expect(
 			atomicRequest.value.expectedContentLength != nil,
 			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
@@ -406,25 +355,22 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 	/// performs a `PUT` request to `uploadURL`
 	public func uploadMultipartFile(
 		engine: Engine,
+		mockingPort: UInt16,
 		file: String = #fileID,
 		filePath: String = #filePath,
 		line: Int = #line,
 		column: Int = #column,
 		function: String = #function
 	) async throws {
-		guard
-			try TestEnvironment.s3AccessSecret.isEmpty == false,
-			try TestEnvironment.s3AccessKey.isEmpty == false
-		else {
-			throw SimpleTestError(message: "Need s3 credentials")
-		}
-
 		let nh = getNetworkHandler(with: engine)
 		defer { nh.resetCache() }
 
+		let uploadURL = uploadURL(port: mockingPort)
+
 		let upRequest = uploadURL.generalRequest.with {
 			$0.method = .put
-			$0.expectedResponseCodes = 200
+			$0.expectedResponseCodes = 201
+			$0.headers.setAuthorization(.bearerToken("foobar"))
 		}
 
 		let testFileURL = URL.temporaryDirectory.appending(component: UUID().uuidString).appendingPathExtension("bin")
@@ -440,21 +386,11 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 
 		let multipartHash = try fileHash(multipartFile)
 
-		let awsHeaderInfo = try AWSV4Signature(
-			for: upRequest,
-			awsKey: TestEnvironment.s3AccessKey,
-			awsSecret: TestEnvironment.s3AccessSecret,
-			awsRegion: .usEast1,
-			awsService: .s3,
-			hexContentHash: .fromShaHashDigest(multipartHash))
-
-		let signedRequest = try awsHeaderInfo.processRequest(upRequest)
-
-		let atomicRequest = AtomicValue(value: CompleteNetworkRequest.upload(signedRequest, payload: .localFile(multipartFile)))
+		let atomicRequest = AtomicValue(value: CompleteNetworkRequest.upload(upRequest, payload: .localFile(multipartFile)))
 		let delegate = await Delegate(onRequestModified: { _, _, new in
 			atomicRequest.value = new
 		})
-		_ = try await nh.uploadMahDatas(for: signedRequest, payload: .localFile(multipartFile), delegate: delegate)
+		_ = try await nh.uploadMahDatas(for: upRequest, payload: .localFile(multipartFile), delegate: delegate)
 		#expect(
 			atomicRequest.value.expectedContentLength != nil,
 			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
@@ -467,97 +403,9 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 	}
 
-	/// performs a `PUT` request to `uploadURL`
-	public func uploadMultipartStream(
-		engine: Engine,
-		file: String = #fileID,
-		filePath: String = #filePath,
-		line: Int = #line,
-		column: Int = #column,
-		function: String = #function
-	) async throws {
-		guard
-			try TestEnvironment.s3AccessSecret.isEmpty == false,
-			try TestEnvironment.s3AccessKey.isEmpty == false
-		else {
-			throw SimpleTestError(message: "Need s3 credentials")
-		}
-
-		let nh = getNetworkHandler(with: engine)
-		defer { nh.resetCache() }
-
-		let upRequest = uploadURL.generalRequest.with {
-			$0.method = .put
-			$0.expectedResponseCodes = 200
-		}
-
-		let testFileURL = URL.temporaryDirectory.appending(component: UUID().uuidString).appendingPathExtension("bin")
-		let (actualTestFile, done) = try createDummyFile(at: testFileURL, megabytes: 5)
-		defer { try? done() }
-
-		let boundary = "akjlsdghkajshdg"
-		let multipart = MultipartFormInputStream(boundary: boundary)
-		try multipart.addPart(named: "file", fileURL: actualTestFile, contentType: "application/octet-stream")
-
-		let multipartHash = try streamHash(multipart.safeCopy())
-
-		let awsHeaderInfo = try AWSV4Signature(
-			for: upRequest,
-			awsKey: TestEnvironment.s3AccessKey,
-			awsSecret: TestEnvironment.s3AccessSecret,
-			awsRegion: .usEast1,
-			awsService: .s3,
-			hexContentHash: .fromShaHashDigest(multipartHash))
-
-		let signedRequest = try awsHeaderInfo.processRequest(upRequest)
-
-		let atomicRequest = AtomicValue(value: CompleteNetworkRequest.upload(signedRequest, payload: .inputStream(multipart)))
-		let delegate = await Delegate(onRequestModified: { _, _, new in
-			atomicRequest.value = new
-		})
-		_ = try await nh.uploadMahDatas(for: signedRequest, payload: .inputStream(multipart), delegate: delegate)
-		#expect(
-			atomicRequest.value.expectedContentLength == nil,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
-
-		let dlRequest = uploadURL.generalRequest
-
-		let dlResult = try await #require(nh.transferMahDatas(for: .standard(dlRequest)).data)
-		#expect(
-			SHA256.hash(data: dlResult) == multipartHash,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
-	}
-
-	/// performs a `GET` request to `badDemoModelURL`. Provided must be corrupted in some way.
-	public func badCodableData(
-		engine: Engine,
-		file: String = #fileID,
-		filePath: String = #filePath,
-		line: Int = #line,
-		column: Int = #column,
-		function: String = #function
-	) async throws {
-		let nh = getNetworkHandler(with: engine)
-		defer { nh.resetCache() }
-
-		await #expect(
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column),
-			performing: {
-				let _: DemoModel = try await nh.downloadMahCodableDatas(
-					for: badDemoModelURL.generalRequest,
-					delegate: nil,
-					requestLogger: logger).decoded
-			},
-			throws: {
-				guard
-					let networkError = $0 as? NetworkError,
-					case .dataCodingError = networkError
-				else { return false }
-				return true
-			})
-	}
 
 	/// performs a `GET` request to `randomDataURL`. Provided must be corrupted in some way.
+	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
 	public func cancellationViaToken(
 		engine: Engine,
 		file: String = #fileID,
@@ -566,10 +414,31 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		column: Int = #column,
 		function: String = #function
 	) async throws {
+		let server = try MockingServer.createServer()
+
+		let accumulatedThreshold = 40_960
+
+		let url = randomDataURL(port: server.port)
+		server.addMock(for: url.mockingPath, method: .get) { _, stream throws(MockingServer.HTTPError) in
+			stream(.header(.init(responseCode: 200)))
+
+			var gen: any RandomNumberGenerator = SeedableRNG(seed: 6_549_879)
+			var count = 0
+			while count < (accumulatedThreshold * 10) {
+				stream(.data(Data.random(count: 256, using: &gen)))
+				try await MockingServer.HTTPError.capture {
+					try await Task.sleep(for: .microseconds(100))
+				}
+				count += 256
+				print(count)
+			}
+			stream(.complete)
+		}
+
 		let nh = getNetworkHandler(with: engine)
 		defer { nh.resetCache() }
 
-		let request = randomDataURL.generalRequest
+		let request = url.generalRequest
 
 		let cancelToken = NetworkCancellationToken()
 		let forCancel = Task {
@@ -577,7 +446,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 			let delegate = await Delegate(onResponseBodyProgress: { [accumulated] _, _, bodyData in
 				accumulated.value += bodyData.count
 
-				guard accumulated.value > 40_960 else { return }
+				guard accumulated.value > accumulatedThreshold else { return }
 				cancelToken.cancel()
 			})
 
@@ -590,6 +459,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 	}
 
 	/// performs a `GET` request to `randomDataURL`. Provided must be corrupted in some way.
+	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
 	public func cancellationViaStream(
 		engine: Engine,
 		file: String = #fileID,
@@ -598,10 +468,31 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		column: Int = #column,
 		function: String = #function
 	) async throws {
+		let server = try MockingServer.createServer()
+
+		let accumulatedThreshold = 40_960
+
+		let url = randomDataURL(port: server.port)
+		server.addMock(for: url.mockingPath, method: .get) { _, stream throws(MockingServer.HTTPError) in
+			stream(.header(.init(responseCode: 200)))
+
+			var gen: any RandomNumberGenerator = SeedableRNG(seed: 6_549_879)
+			var count = 0
+			while count < (accumulatedThreshold * 10) {
+				stream(.data(Data.random(count: 256, using: &gen)))
+				try await MockingServer.HTTPError.capture {
+					try await Task.sleep(for: .microseconds(100))
+				}
+				count += 256
+				print(count)
+			}
+			stream(.complete)
+		}
+
 		let nh = getNetworkHandler(with: engine)
 		defer { nh.resetCache() }
 
-		let request = randomDataURL.generalRequest
+		let request = url.generalRequest
 
 		let stream = try await nh.streamMahDatas(for: .standard(request)).stream
 
@@ -609,7 +500,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 			var accumulated = Data()
 			for try await chunk in stream {
 				accumulated.append(contentsOf: chunk)
-				guard accumulated.count > 40_960 else { continue }
+				guard accumulated.count > accumulatedThreshold else { continue }
 				stream.cancel()
 			}
 		}
@@ -620,6 +511,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 	}
 
 	/// performs a `PUT` request to `badDemoModelURL`. Provided must be corrupted in some way.
+	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
 	public func uploadCancellationViaToken(
 		engine: Engine,
 		file: String = #fileID,
@@ -628,34 +520,21 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		column: Int = #column,
 		function: String = #function
 	) async throws {
-		guard
-			try TestEnvironment.s3AccessSecret.isEmpty == false,
-			try TestEnvironment.s3AccessKey.isEmpty == false
-		else {
-			throw SimpleTestError(message: "Need s3 credentials")
-		}
+		let server = try MockingServer.createServer()
+
+		let url = uploadURL(port: server.port)
+		server.addMock(for: url.mockingPath, method: .put, responseData: nil)
 
 		let nh = getNetworkHandler(with: engine)
 		defer { nh.resetCache() }
 
-		let request = uploadURL.generalRequest.with {
+		let request = url.generalRequest.with {
 			$0.method = .put
 		}
 
 		var rng: RandomNumberGenerator = SeedableRNG(seed: 9_345_867)
 		let randomData = Data.random(count: 1024 * 1024 * 10, using: &rng)
 
-		let hash = SHA256.hash(data: randomData)
-
-		let awsHeaderInfo = try AWSV4Signature(
-			for: request,
-			awsKey: TestEnvironment.s3AccessKey,
-			awsSecret: TestEnvironment.s3AccessSecret,
-			awsRegion: .usEast1,
-			awsService: .s3,
-			hexContentHash: .fromShaHashDigest(hash))
-
-		let signedRequest = try awsHeaderInfo.processRequest(request)
 		let token = NetworkCancellationToken()
 
 		let task = Task {
@@ -665,7 +544,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 			})
 
 			return try await nh.uploadMahDatas(
-				for: signedRequest,
+				for: request,
 				payload: .data(randomData),
 				delegate: delegate,
 				cancellationToken: token)
@@ -677,313 +556,6 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 			performing: {
 				_ = try await task.value
 			})
-	}
-
-	/// performs a `PUT` request to `randomDataURL`. Provided must be corrupted in some way.
-	public func timeoutTriggersRetry(
-		engine: Engine,
-		file: String = #fileID,
-		filePath: String = #filePath,
-		line: Int = #line,
-		column: Int = #column,
-		function: String = #function
-	) async throws {
-		guard
-			try TestEnvironment.s3AccessSecret.isEmpty == false,
-			try TestEnvironment.s3AccessKey.isEmpty == false
-		else {
-			throw SimpleTestError(message: "Need s3 credentials")
-		}
-
-		let nh = getNetworkHandler(with: engine)
-		defer { nh.resetCache() }
-
-		let url = randomDataURL
-		let request = url.generalRequest.with {
-			$0.method = .put
-			$0.timeoutInterval = 0.001
-		}
-
-		let testFileURL = URL.temporaryDirectory.appending(component: UUID().uuidString).appendingPathExtension("bin")
-		let (actualTestFile, done) = try createDummyFile(at: testFileURL, megabytes: 5)
-		defer { try? done() }
-
-		let hash = try fileHash(actualTestFile)
-
-		let awsHeaderInfo = try AWSV4Signature(
-			for: request,
-			awsKey: TestEnvironment.s3AccessKey,
-			awsSecret: TestEnvironment.s3AccessSecret,
-			awsRegion: .usEast1,
-			awsService: .s3,
-			hexContentHash: .fromShaHashDigest(hash))
-
-		let signedRequest = try awsHeaderInfo.processRequest(request)
-
-		let atomicFailCount = AtomicValue(value: 0)
-		let expectedFailCount = 3
-
-		await #expect(
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column),
-			performing: {
-				_ = try await nh.uploadMahDatas(
-					for: signedRequest,
-					payload: .localFile(actualTestFile),
-					onError: { _, failCount, error in
-						#expect(error.isCancellation() == false)
-						print(error)
-						atomicFailCount.value = failCount
-						guard failCount < expectedFailCount else { return .throw }
-						return .retry
-					})
-			},
-			throws: {
-				guard let error = $0 as? NetworkError else { return false }
-
-				switch error {
-				case .httpUnexpectedStatusCode:
-					return false
-				default:
-					return true
-				}
-
-			})
-		#expect(
-			atomicFailCount.value == expectedFailCount,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
-	}
-
-	/// performs a `PUT` request to `randomDataURL` (only really useful to test with `MockingEngine`)
-	public func retryOptions(
-		engine: Engine,
-		retryOption: NetworkHandler<Engine>.RetryOption,
-		anticipatedOutput: Result<(header: EngineResponseHeader, data: Data), NetworkError>,
-		expectedAttemptCount: Int,
-		file: String = #fileID,
-		filePath: String = #filePath,
-		line: Int = #line,
-		column: Int = #column,
-		function: String = #function
-	) async throws {
-		guard
-			try TestEnvironment.s3AccessSecret.isEmpty == false,
-			try TestEnvironment.s3AccessKey.isEmpty == false
-		else {
-			throw SimpleTestError(message: "Need s3 credentials")
-		}
-
-		let nh = getNetworkHandler(with: engine)
-		defer { nh.resetCache() }
-
-		let url = randomDataURL
-		let request = url.generalRequest.with {
-			$0.method = .put
-		}
-
-		var rng: RandomNumberGenerator = SystemRandomNumberGenerator()
-		let data = Data.random(count: 128, using: &rng)
-
-		let hash = SHA256.hash(data: data)
-
-		let awsHeaderInfo = try AWSV4Signature(
-			for: request,
-			awsKey: TestEnvironment.s3AccessKey,
-			awsSecret: TestEnvironment.s3AccessSecret,
-			awsRegion: .usEast1,
-			awsService: .s3,
-			hexContentHash: .fromShaHashDigest(hash))
-
-		let signedRequest = try awsHeaderInfo.processRequest(request)
-
-		let atomicFailCount = AtomicValue(value: 0)
-
-		switch anticipatedOutput {
-		case .success(let success):
-			let (header, data) = try await nh.uploadMahDatas(
-				for: signedRequest,
-				payload: .data(data)) { _, attempt, _ in
-					atomicFailCount.value = attempt
-					if attempt == 1 {
-						return retryOption
-					} else {
-						return .throw
-					}
-				}
-
-			#expect(
-				success.data == data,
-				sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
-			#expect(
-				success.header == header,
-				sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
-		case .failure(let failure):
-			await #expect(throws: failure, performing: {
-				_ = try await nh.uploadMahDatas(
-					for: signedRequest,
-					payload: .data(data),
-					onError: { _, attempt, _ in
-						atomicFailCount.value = attempt
-						if attempt == 1 {
-							return retryOption
-						} else {
-							return .throw
-						}
-					})
-			})
-		}
-
-		#expect(
-			atomicFailCount.value == expectedAttemptCount,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
-	}
-
-	/// performs a `GET` request to `randomDataURL`. Provided must be corrupted in some way.
-	public func downloadProgressTracking(
-		engine: Engine,
-		file: String = #fileID,
-		filePath: String = #filePath,
-		line: Int = #line,
-		column: Int = #column,
-		function: String = #function
-	) async throws {
-		let nh = getNetworkHandler(with: engine)
-		defer { nh.resetCache() }
-
-		let url = randomDataURL
-		let request = url.generalRequest
-
-		let accumulator = AtomicValue(value: [Int]())
-		let expectedTotalAtomic = AtomicValue(value: 0)
-		let delegate = await Delegate(onResponseBodyProgressCount: { _, _, count, expectedTotal in
-			accumulator.value.append(count)
-			if let expectedTotal {
-				expectedTotalAtomic.value = expectedTotal
-			}
-			print("\(count) of \(expectedTotal ?? -1)")
-		})
-
-		let header = try await nh.downloadMahDatas(
-			for: request,
-			delegate: delegate).responseHeader
-
-		#expect(
-			header.expectedContentLength != nil,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
-		#expect(
-			header.expectedContentLength.map(Int.init) == expectedTotalAtomic.value,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
-		#expect(
-			accumulator.value.isOccupied,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
-		#expect(
-			accumulator.value.sorted() == accumulator.value,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
-	}
-
-	/// performs a `PUT` request to `randomDataURL`. Provided must be corrupted in some way.
-	public func uploadProgressTracking(
-		engine: Engine,
-		file: String = #fileID,
-		filePath: String = #filePath,
-		line: Int = #line,
-		column: Int = #column,
-		function: String = #function
-	) async throws {
-		let nh = getNetworkHandler(with: engine)
-		defer { nh.resetCache() }
-
-		let url = randomDataURL
-		let request = url.generalRequest.with {
-			$0.method = .put
-		}
-
-		let testFileURL = URL.temporaryDirectory.appending(component: UUID().uuidString).appendingPathExtension("bin")
-		let (actualTestFile, done) = try createDummyFile(at: testFileURL, megabytes: 5)
-		defer { try? done() }
-
-		let hash = try fileHash(actualTestFile)
-
-		let awsHeaderInfo = try AWSV4Signature(
-			for: request,
-			awsKey: TestEnvironment.s3AccessKey,
-			awsSecret: TestEnvironment.s3AccessSecret,
-			awsRegion: .usEast1,
-			awsService: .s3,
-			hexContentHash: .fromShaHashDigest(hash))
-
-		let signedRequest = try awsHeaderInfo.processRequest(request)
-
-		let accumulator = AtomicValue(value: [Int]())
-		let expectedTotalAtomic = AtomicValue(value: -1)
-		let updatedRequestAtomic = AtomicValue(value: CompleteNetworkRequest.upload(signedRequest, payload: .localFile(testFileURL)))
-		let delegate = await Delegate(
-			onRequestModified: { _, _, modReq in
-				updatedRequestAtomic.value = modReq
-			},
-			onSendData: { _, _, count, expectedTotal in
-				accumulator.value.append(count)
-				if let expectedTotal {
-					expectedTotalAtomic.value = expectedTotal
-				}
-				print("\(count) of \(expectedTotalAtomic.value)")
-			})
-
-		_ = try await nh.uploadMahDatas(for: signedRequest, payload: .localFile(testFileURL), delegate: delegate)
-
-		#expect(
-			updatedRequestAtomic.value.headers[.contentLength] != nil,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
-		#expect(
-			updatedRequestAtomic.value.headers[semantic: .contentLength].flatMap { Int($0.rawValue) } == expectedTotalAtomic.value, // swiftlint:disable:this line_length
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
-		#expect(
-			accumulator.value.isOccupied,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
-		#expect(
-			accumulator.value.sorted() == accumulator.value,
-			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
-	}
-
-	/// performs a `GET` request to `echoURL`. Provided must be corrupted in some way.
-	public func polling(
-		engine: Engine,
-		file: String = #fileID,
-		filePath: String = #filePath,
-		line: Int = #line,
-		column: Int = #column,
-		function: String = #function
-	) async throws {
-		let nh = getNetworkHandler(with: engine)
-		defer { nh.resetCache() }
-
-		let url = echoURL
-		let request = url.generalRequest
-
-		let echo: BeeEchoModel = try await nh.poll(
-			request: .standard(request),
-			requestLogger: logger,
-			until: { pollRequest, pollResult in
-				do {
-					let (header, beeEcho) = try pollResult.get()
-					guard beeEcho.pathValue == 3 else {
-						let nextIteration = (beeEcho.pathValue ?? 0) + 1
-						let newRequest = pollRequest.with {
-							var newURL = $0.url
-							if newURL.path(percentEncoded: false).count > 1 {
-								newURL.deleteLastPathComponent()
-							}
-							newURL.append(component: "\(nextIteration)")
-							$0.url = newURL
-						}
-						return .continue(newRequest, 0.016)
-					}
-					return .finish(.success((header, beeEcho)))
-				} catch {
-					return .finish(.failure(error))
-				}
-			}).result
-
-		#expect(echo.pathValue == 3)
 	}
 
 	public struct BeeEchoModel: Codable, Sendable {

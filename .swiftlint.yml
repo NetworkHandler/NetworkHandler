@@ -29,6 +29,7 @@ attributes:
 disabled_rules:
   - nesting
   - closing_brace
+  - closure_parameter_position
 opt_in_rules:
   - sorted_imports
   - force_unwrapping
