@@ -5,13 +5,13 @@ import NetworkHandler
 import NHMacros
 import SwiftPizzaSnips
 
-@available(macOS 15.0.0, *)
+@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
 public class MockingServer {
 	private let runLoop: SelectorEventLoop
 	private let runLoopTask: Task<Void, Never>
 	public var server: HTTPServer!
 
-	public let port: Int
+	public let port: UInt16
 
 	public typealias Method = HTTPTypes.HTTPRequest.Method
 	public struct Path:
@@ -110,8 +110,8 @@ public class MockingServer {
 	private var endpoints: [EndpointPath: Endpoint] = [:]
 	private let endpointsLock = MutexLock()
 
-	public init(port: Int? = nil) throws {
-		let port = port ?? Int(UInt16.random(in: 10_000..<(.max)))
+	public init(port: UInt16? = nil) throws {
+		let port = port ?? UInt16.random(in: 10_000..<(.max))
 		self.port = port
 		print("Port \(port)")
 		let selector = try KqueueSelector()
@@ -121,7 +121,7 @@ public class MockingServer {
 			runLoop.runForever()
 		}
 
-		self.server = DefaultHTTPServer(eventLoop: runLoop, port: port) { [weak runLoop, weak self] (env: [String: Any], startResponse: @escaping ((String, [(String, String)]) -> Void), sendBody: @escaping ((Data) -> Void)) in
+		self.server = DefaultHTTPServer(eventLoop: runLoop, port: Int(port)) { [weak runLoop, weak self] (env: [String: Any], startResponse: @escaping ((String, [(String, String)]) -> Void), sendBody: @escaping ((Data) -> Void)) in
 			guard let runLoop, let self else {
 				startResponse("500 Internal Server Error", [("Error", "Invalid server state")])
 				return sendBody(Data())
@@ -268,7 +268,7 @@ public class MockingServer {
 	/// servers diminishes, eventually potentially causing an infinite loop when the entire space is occupied. The
 	/// solution to this is to not run thousands of simultaneous servers.
 	/// - Returns: a MockingServer listening to localhost:[randomPort]
-	static func createServer() throws -> MockingServer {
+	public static func createServer() throws -> MockingServer {
 		var creationError: Embassy.OSError?
 
 		repeat {
