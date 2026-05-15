@@ -1,4 +1,5 @@
 import Foundation
+import HTTPTypes
 import Logging
 @_exported import NetworkHalpers
 import SwiftPizzaSnips
@@ -224,8 +225,8 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 			throw NetworkError.unspecifiedError(reason: "Both the temporary url and output url must be local file URLs.")
 		}
 
-		if let cacheKey = cacheOption.cacheKey(url: request.url) {
-			if let cachedData = cache[cacheKey] {
+		if let cacheKey = cacheOption.cacheKey(url: request.url, method: request.method) {
+			if let cachedData = cache.cachedItem(for: cacheKey) {
 				try NetworkError.captureAndConvert {
 					try cachedData.data.write(to: outFileURL)
 				}
@@ -268,13 +269,13 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 		try NetworkError.captureAndConvert { try FileManager.default.moveItem(at: tempFileURL, to: outFileURL) }
 
 		if
-			let cacheKey = cacheOption.cacheKey(url: request.url),
+			let cacheKey = cacheOption.cacheKey(url: request.url, method: request.method),
 			let responseSize = header.expectedContentLength,
 			responseSize < 1024 * 1024 * 100 {
 
 			Task {
 				let newlyCachedData = try Data(contentsOf: outFileURL)
-				self.cache[cacheKey] = NetworkCacheStore(response: header, data: newlyCachedData)
+				self.cache.setCachedItem(NetworkCacheStore(response: header, data: newlyCachedData), for: cacheKey)
 			}
 		}
 
@@ -332,8 +333,8 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 		cancellationToken: NetworkCancellationToken? = nil,
 		onError: @escaping RetryOptionBlock = { _, _, _ in .throw }
 	) async throws(NetworkError) -> (responseHeader: EngineResponseHeader, data: Data?) {
-		if let cacheKey = cacheOption.cacheKey(url: request.url) {
-			if let cachedData = cache[cacheKey] {
+		if let cacheKey = cacheOption.cacheKey(url: request.url, method: request.method) {
+			if let cachedData = cache.cachedItem(for: cacheKey) {
 				return (cachedData.response, cachedData.data)
 			}
 		}
@@ -355,8 +356,8 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 			},
 			errorHandler: onError)
 
-		if let cacheKey = cacheOption.cacheKey(url: request.url), let data {
-			self.cache[cacheKey] = NetworkCacheStore(response: header, data: data)
+		if let cacheKey = cacheOption.cacheKey(url: request.url, method: request.method), let data {
+			self.cache.setCachedItem(NetworkCacheStore(response: header, data: data), for: cacheKey)
 		}
 
 		return (header, data)
@@ -507,7 +508,8 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 	@NHActor
 	private func retryHandler( // swiftlint:disable:this cyclomatic_complexity
 		originalRequest: CompleteNetworkRequest,
-		transferTask: @NHActor (_ request: CompleteNetworkRequest, _ attempt: Int) async throws -> (EngineResponseHeader, Data?),
+		transferTask: @NHActor
+			(_ request: CompleteNetworkRequest, _ attempt: Int) async throws -> (EngineResponseHeader, Data?),
 		errorHandler: RetryOptionBlock
 	) async throws(NetworkError) -> (EngineResponseHeader, Data?) {
 		var retryOption = RetryOption.retry
@@ -608,14 +610,14 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 			self = .key(value)
 		}
 
-		func cacheKey(url: URL?) -> String? {
+		func cacheKey(url: URL, method: HTTPRequest.Method) -> NetworkCacheKey? {
 			switch self {
 			case .dontUseCache:
-				return nil
+				nil
 			case .useURL:
-				return url?.absoluteString
-			case .key(let value):
-				return value
+				.urlMethod(url, method)
+			case .key(let string):
+				.rawString(string)
 			}
 		}
 	}

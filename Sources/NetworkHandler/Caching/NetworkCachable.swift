@@ -4,7 +4,22 @@ import HTTPTypes
 public protocol NetworkCachable: AnyObject {
 	var name: String { get set }
 
+	/// The maximum number of objects the cache should hold.
+	///
+	/// If 0, there is no count limit. The default value is 0.
+	/// This is not a strict limit—if the cache goes over the limit, an object in the cache could be evicted instantly,
+	/// later, or possibly never, depending on the implementation details of the cache.
 	var countLimit: Int { get set }
+
+	/// The maximum total cost that the cache can hold before it starts evicting objects.
+	///
+	/// If `0`, there is no total cost limit. The default value is `0`.
+	/// When you add an object to the cache, you may pass in a specified cost for the object, such as the size
+	/// in bytes of the object. If adding this object to the cache causes the cache’s total cost to rise above
+	/// `totalCostLimit`, the cache may automatically evict objects until its total cost falls below
+	/// `totalCostLimit`. The order in which the cache evicts objects is not guaranteed. This is not a
+	///  strict limit, and if the cache goes over the limit, an object in the cache could be evicted instantly, at
+	///  a later point in time, or possibly never, all depending on the implementation details of the cache.
 	var totalCostLimit: Int { get set }
 
 	func cachedItem(for key: NetworkCacheKey) -> NetworkCacheStore?

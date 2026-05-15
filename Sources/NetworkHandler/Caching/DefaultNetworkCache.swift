@@ -66,12 +66,8 @@ public class DefaultNetworkCache: NetworkCachable {
 	///
 	/// Logs the cache hit/miss or storage activity for debugging purposes.
 	public subscript(key: String) -> NetworkCacheStore? {
-		get {
-			cachedItem(for: .init(rawValue: key))
-		}
-		set {
-			setCachedItem(newValue, for: .init(rawValue: key))
-		}
+		get { cachedItem(for: .init(rawValue: key)) }
+		set { setCachedItem(newValue, for: .init(rawValue: key)) }
 	}
 
 	public func cachedItem(for key: NetworkCacheKey) -> NetworkCacheStore? {
