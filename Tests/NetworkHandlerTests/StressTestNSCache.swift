@@ -1,12 +1,14 @@
 import Foundation
-import Testing
 import NetworkHandler
+import Testing
 
 /// I've had past experience where NSCache stored asynchronously. As in an immediate retrieval of a set value returned
 /// nil, but a delayed retrieval got the value. This stress test is designed to validate if that's still the case.
 /// as of this writing (5/15/26), it appears to be resolved, but if I encounter again, I will update this test to
 /// target the scenario.
 struct StressTestNSCache {
+	typealias Box = DefaultNetworkCache.Box
+
 	@Test func basic() async throws {
 		let cache = NSCache<Box<String>, Box<Data>>()
 
@@ -41,46 +43,6 @@ struct StressTestNSCache {
 			}
 		}
 	}
-}
-
-@dynamicMemberLookup
-private final class Box<Wrapped> {
-	var value: Wrapped
-
-	init(_ value: Wrapped) {
-		self.value = value
-	}
-
-	subscript<T>(dynamicMember member: WritableKeyPath<Wrapped, T>) -> T {
-		get { value[keyPath: member] }
-		set { value[keyPath: member] = newValue }
-	}
-
-	subscript<T>(dynamicMember member: KeyPath<Wrapped, T>) -> T {
-		value[keyPath: member]
-	}
-}
-
-extension Box: Equatable where Wrapped: Equatable {
-	static func == (lhs: Box<Wrapped>, rhs: Box<Wrapped>) -> Bool {
-		lhs.value == rhs.value
-	}
-}
-
-extension Box: Hashable where Wrapped: Hashable {
-	func hash(into hasher: inout Hasher) {
-		hasher.combine(value)
-	}
-}
-
-extension Box: @unchecked Sendable where Wrapped: Sendable {}
-
-extension Box: CustomStringConvertible where Wrapped: CustomStringConvertible {
-	var description: String { value.description }
-}
-
-extension Box: CustomDebugStringConvertible where Wrapped: CustomDebugStringConvertible {
-	var debugDescription: String { value.debugDescription }
 }
 
 extension NSCache: @unchecked @retroactive Sendable {}

@@ -55,8 +55,8 @@ class NetworkCacheTests: NetworkCacheTest {
 				.contentLength: "\(2048)"
 			])
 
-		let cachedItem1 = NetworkCacheItem(response: response1, data: data1)
-		let cachedItem2 = NetworkCacheItem(response: response2, data: data2)
+		let cachedItem1 = NetworkCacheStore(response: response1, data: data1)
+		let cachedItem2 = NetworkCacheStore(response: response2, data: data2)
 
 		let networkHandler = generateNetworkHandlerInstance(engine: mockingEngine)
 		let cache = networkHandler.cache

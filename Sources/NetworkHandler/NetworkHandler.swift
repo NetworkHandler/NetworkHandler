@@ -274,7 +274,7 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 
 			Task {
 				let newlyCachedData = try Data(contentsOf: outFileURL)
-				self.cache[cacheKey] = NetworkCacheItem(response: header, data: newlyCachedData)
+				self.cache[cacheKey] = NetworkCacheStore(response: header, data: newlyCachedData)
 			}
 		}
 
@@ -356,7 +356,7 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 			errorHandler: onError)
 
 		if let cacheKey = cacheOption.cacheKey(url: request.url), let data {
-			self.cache[cacheKey] = NetworkCacheItem(response: header, data: data)
+			self.cache[cacheKey] = NetworkCacheStore(response: header, data: data)
 		}
 
 		return (header, data)

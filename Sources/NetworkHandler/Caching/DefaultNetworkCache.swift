@@ -12,9 +12,9 @@ once it's populated, clear from the cache-cache. in the meantime, the cache-cach
 
 /// Essentially just a wrapper for NSCache, but adds redundancy in a disk cache. Specifically purposed for
 /// use with NetworkHandler
-public class DefaultNetworkCache {
+public class DefaultNetworkCache: NetworkCachable {
 	// MARK: - Properties
-	private let cache = NSCache<NSString, NetworkCacheItem>()
+	private let cache = NSCache<Box<NetworkCacheKey>, Box<NetworkCacheStore>>()
 	let diskCache: DefaultNetworkDiskCache
 	private static let diskEncoder = PropertyListEncoder()
 	private static let diskDecoder = PropertyListDecoder()
@@ -65,25 +65,33 @@ public class DefaultNetworkCache {
 	/// is `nil`, the entry is removed from both caches.
 	///
 	/// Logs the cache hit/miss or storage activity for debugging purposes.
-	public subscript(key: String) -> NetworkCacheItem? {
+	public subscript(key: String) -> NetworkCacheStore? {
 		get {
-			if let cachedItem = cache.object(forKey: key as NSString) {
-				logger.debug("Cache hit", metadata: ["Key": "\(key)"])
-				return cachedItem
-			} else if let codedData = diskCache.getData(for: key) {
-				return try? Self.diskDecoder.decode(NetworkCacheItem.self, from: codedData)
-			}
-			return nil
+			cachedItem(for: .init(rawValue: key))
 		}
 		set {
-			if let newData = newValue {
-				cache.setObject(newData, forKey: key as NSString, cost: newData.data.count)
-				logger.debug("Stored cache data", metadata: ["Key": "\(key)"])
-				diskCache.setData(try? Self.diskEncoder.encode(newData), key: key)
-			} else {
-				cache.removeObject(forKey: key as NSString)
-				diskCache.deleteData(for: key)
-			}
+			setCachedItem(newValue, for: .init(rawValue: key))
+		}
+	}
+
+	public func cachedItem(for key: NetworkCacheKey) -> NetworkCacheStore? {
+		if let cachedItem = cache.object(forKey: .init(key)) {
+			logger.debug("Cache hit", metadata: ["Key": "\(key)"])
+			return cachedItem.value
+		} else if let codedData = diskCache.getData(for: key.rawValue) {
+			return try? Self.diskDecoder.decode(NetworkCacheStore.self, from: codedData)
+		}
+		return nil
+	}
+
+	public func setCachedItem(_ newValue: NetworkCacheStore?, for key: NetworkCacheKey) {
+		if let newData = newValue {
+			cache.setObject(.init(newData), forKey: .init(key), cost: newData.data.count)
+			logger.debug("Stored cache data", metadata: ["Key": "\(key)"])
+			diskCache.setData(try? Self.diskEncoder.encode(newData), key: key.rawValue)
+		} else {
+			cache.removeObject(forKey: .init(key))
+			diskCache.deleteData(for: key.rawValue)
 		}
 	}
 
@@ -136,16 +144,16 @@ public class DefaultNetworkCache {
 	/// This method removes the object from both the in-memory cache and the disk cache. It also logs the
 	/// key removal for auditability. The return value allows you to retrieve the removed object if necessary.
 	@discardableResult
-	public func remove(objectFor key: String) -> NetworkCacheItem? {
-		let cachedItem = cache.object(forKey: key as NSString)
-		cache.removeObject(forKey: key as NSString)
+	public func remove(objectFor key: String) -> NetworkCacheStore? {
+		let cachedItem = cache.object(forKey: .init(.init(rawValue: key)))
+		cache.removeObject(forKey: .init(.init(rawValue: key)))
 		logger.debug("Deleted cached data", metadata: ["Key": "\(key)"])
 		diskCache.deleteData(for: key)
-		return cachedItem
+		return cachedItem?.value
 	}
 }
 
-class NetworkCacheItem: Codable, @unchecked Sendable {
+public class NetworkCacheItem: Codable, @unchecked Sendable {
 	let response: EngineResponseHeader
 	let data: Data
 
@@ -163,14 +171,14 @@ class NetworkCacheItem: Codable, @unchecked Sendable {
 		self.data = data
 	}
 
-	required init(from decoder: Decoder) throws {
+	public required init(from decoder: Decoder) throws {
 		let container = try decoder.container(keyedBy: CodingKeys.self)
 		let response = try container.decode(EngineResponseHeader.self, forKey: .response)
 		self.response = response
 		self.data = try container.decode(Data.self, forKey: .data)
 	}
 
-	func encode(to encoder: Encoder) throws {
+	public func encode(to encoder: Encoder) throws {
 		var container = encoder.container(keyedBy: CodingKeys.self)
 		try container.encode(data, forKey: .data)
 		try container.encode(response, forKey: .response)
@@ -179,4 +187,46 @@ class NetworkCacheItem: Codable, @unchecked Sendable {
 	enum CachedItemError: Error {
 		case responseDataCorrupt
 	}
+}
+
+extension DefaultNetworkCache {
+	@dynamicMemberLookup
+	package final class Box<Wrapped> {
+		package var value: Wrapped
+
+		package init(_ value: Wrapped) {
+			self.value = value
+		}
+
+		package subscript<T>(dynamicMember member: WritableKeyPath<Wrapped, T>) -> T {
+			get { value[keyPath: member] }
+			set { value[keyPath: member] = newValue }
+		}
+
+		package subscript<T>(dynamicMember member: KeyPath<Wrapped, T>) -> T {
+			value[keyPath: member]
+		}
+	}
+}
+
+extension DefaultNetworkCache.Box: Equatable where Wrapped: Equatable {
+	package static func == (lhs: DefaultNetworkCache.Box<Wrapped>, rhs: DefaultNetworkCache.Box<Wrapped>) -> Bool {
+		lhs.value == rhs.value
+	}
+}
+
+extension DefaultNetworkCache.Box: Hashable where Wrapped: Hashable {
+	package func hash(into hasher: inout Hasher) {
+		hasher.combine(value)
+	}
+}
+
+extension DefaultNetworkCache.Box: @unchecked Sendable where Wrapped: Sendable {}
+
+extension DefaultNetworkCache.Box: CustomStringConvertible where Wrapped: CustomStringConvertible {
+	package var description: String { value.description }
+}
+
+extension DefaultNetworkCache.Box: CustomDebugStringConvertible where Wrapped: CustomDebugStringConvertible {
+	package var debugDescription: String { value.debugDescription }
 }
