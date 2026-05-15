@@ -5,11 +5,11 @@ import TestSupport
 import XCTest
 
 class NetworkCacheTest: NetworkHandlerBaseTest<MockingEngine> {
-	func waitForCacheToFinishActivity(_ cache: NetworkDiskCache, timeout: TimeInterval = 10) {
+	func waitForCacheToFinishActivity(_ cache: DefaultNetworkDiskCache, timeout: TimeInterval = 10) {
 		let isActive = expectation(
 			for: .init(
 				block: { anyCache, _ in
-					guard let cache = anyCache as? NetworkDiskCache else { return false }
+					guard let cache = anyCache as? DefaultNetworkDiskCache else { return false }
 					return !cache.isActive
 				}),
 			evaluatedWith: cache,
@@ -18,14 +18,14 @@ class NetworkCacheTest: NetworkHandlerBaseTest<MockingEngine> {
 		wait(for: [isActive], timeout: timeout)
 	}
 
-	func generateDiskCache(named name: String? = nil) -> NetworkDiskCache {
+	func generateDiskCache(named name: String? = nil) -> DefaultNetworkDiskCache {
 		let logger = Logger(label: "Disk Test")
-		let cache = NetworkDiskCache(cacheName: name, logger: logger)
+		let cache = DefaultNetworkDiskCache(cacheName: name, logger: logger)
 
 		let reset = expectation(
 			for: .init(
 				block: { anyCache, _ in
-					guard let cache = anyCache as? NetworkDiskCache else { return false }
+					guard let cache = anyCache as? DefaultNetworkDiskCache else { return false }
 					return !cache.isActive
 				}),
 			evaluatedWith: cache,

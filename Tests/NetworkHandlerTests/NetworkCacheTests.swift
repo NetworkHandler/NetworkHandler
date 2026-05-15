@@ -37,7 +37,7 @@ class NetworkCacheTests: NetworkCacheTest {
 	/// up eventually. This, natually, messes with tests and causes this test to be unreliable. I'm working on
 	/// finding a workaround to test, but in the meantime, this test failing isn't considered a real fail.
 	///
-	/// see idea in NetworkCache class
+	/// see idea in DefaultNetworkCache class
 	func testCacheAddRemove() {
 		let data1 = Data([1, 2, 3, 4, 5])
 		let data2 = Data(data1.reversed())

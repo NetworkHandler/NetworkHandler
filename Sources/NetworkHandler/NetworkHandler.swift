@@ -15,7 +15,7 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 
 	/// An instance of Network Cache to speed up subsequent requests. Usage is
 	/// optional, but automatic when making requests using the `usingCache` flag.
-	let cache: NetworkCache
+	let cache: DefaultNetworkCache
 
 	/// Used to label this instance of `NetworkHandler` for things like logging or debugging. Also useful
 	/// if you desire anthropomorphizing `NetworkHandler` instances as they are created ephemerally in
@@ -35,7 +35,7 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 		diskCacheCapacity: UInt64 = .max
 	) {
 		self.name = name
-		self.cache = NetworkCache(name: "\(name)-Cache", logger: cacheLogger, diskCacheCapacity: diskCacheCapacity)
+		self.cache = DefaultNetworkCache(name: "\(name)-Cache", logger: cacheLogger, diskCacheCapacity: diskCacheCapacity)
 		self.logger = logger
 
 		self.engine = engine

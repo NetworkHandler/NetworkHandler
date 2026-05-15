@@ -35,7 +35,7 @@ class NetworkDiskCacheTests: NetworkCacheTest {
 
 	func testCacheAddRemove() {
 		let logger = Logger(label: #function)
-		let cache = NetworkDiskCache(logger: logger)
+		let cache = DefaultNetworkDiskCache(logger: logger)
 		cache.resetCache()
 
 		let (file1, file2, file3, file4, file5) = Self.fileAssortment()
@@ -48,7 +48,7 @@ class NetworkDiskCacheTests: NetworkCacheTest {
 		let save = expectation(
 			for: .init(
 				block: { anyCache, _ in
-					guard let cache = anyCache as? NetworkDiskCache else { return false }
+					guard let cache = anyCache as? DefaultNetworkDiskCache else { return false }
 					return !cache.isActive
 				}),
 			evaluatedWith: cache,

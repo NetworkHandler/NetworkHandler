@@ -4,7 +4,7 @@ import Logging
 import NetworkHalpers
 import SwiftPizzaSnips
 
-class NetworkDiskCache: CustomDebugStringConvertible, @unchecked Sendable {
+class DefaultNetworkDiskCache: CustomDebugStringConvertible, @unchecked Sendable {
 	let fileManager = FileManager.default
 
 	private(set) var size: UInt64 = 0
@@ -48,7 +48,7 @@ class NetworkDiskCache: CustomDebugStringConvertible, @unchecked Sendable {
 	init(capacity: UInt64 = .max, cacheName: String? = nil, logger: Logger) {
 		self.logger = logger
 		self.capacity = capacity
-		self.cacheName = cacheName ?? "NetworkDiskCache"
+		self.cacheName = cacheName ?? "DefaultNetworkDiskCache"
 
 		refreshSize()
 		enforceCapacity()

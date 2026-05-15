@@ -12,10 +12,10 @@ once it's populated, clear from the cache-cache. in the meantime, the cache-cach
 
 /// Essentially just a wrapper for NSCache, but adds redundancy in a disk cache. Specifically purposed for
 /// use with NetworkHandler
-class NetworkCache {
+public class DefaultNetworkCache {
 	// MARK: - Properties
 	private let cache = NSCache<NSString, NetworkCacheItem>()
-	let diskCache: NetworkDiskCache
+	let diskCache: DefaultNetworkDiskCache
 	private static let diskEncoder = PropertyListEncoder()
 	private static let diskDecoder = PropertyListDecoder()
 
@@ -43,7 +43,7 @@ class NetworkCache {
 		set { cache.totalCostLimit = newValue }
 	}
 
-	/// The name of the cache. The default is "NetworkHandler: NetworkCache"
+	/// The name of the cache. The default is "NetworkHandler: DefaultNetworkCache"
 	public var name: String {
 		get { cache.name }
 		set { cache.name = newValue }
@@ -90,7 +90,7 @@ class NetworkCache {
 	public let logger: Logger
 
 	// MARK: - Init
-	/// Creates a new instance of `NetworkCache` with a given name, logger, and disk cache capacity.
+	/// Creates a new instance of `DefaultNetworkCache` with a given name, logger, and disk cache capacity.
 	///
 	/// - Parameters:
 	///   - name: The name of the cache, used for organization and logging clarity.
