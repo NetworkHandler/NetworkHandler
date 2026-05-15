@@ -1,5 +1,6 @@
 import Foundation
 import HTTPTypes
+import Logging
 
 public protocol NetworkCachable: AnyObject {
 	var name: String { get set }
@@ -10,6 +11,8 @@ public protocol NetworkCachable: AnyObject {
 	/// This is not a strict limit—if the cache goes over the limit, an object in the cache could be evicted instantly,
 	/// later, or possibly never, depending on the implementation details of the cache.
 	var countLimit: Int { get set }
+
+	var logger: Logger { get }
 
 	/// The maximum total cost that the cache can hold before it starts evicting objects.
 	///
@@ -24,6 +27,29 @@ public protocol NetworkCachable: AnyObject {
 
 	func cachedItem(for key: NetworkCacheKey) -> NetworkCacheStore?
 	func setCachedItem(_ newValue: NetworkCacheStore?, for key: NetworkCacheKey)
+}
+
+extension NetworkCachable {
+	subscript(key: NetworkCacheKey) -> NetworkCacheStore? {
+		get { cachedItem(for: key) }
+		set { setCachedItem(newValue, for: key) }
+	}
+
+	/// Removes and optionally returns the cached object associated with the specified key.
+	///
+	/// - Parameter key: The unique key representing the object to remove from the cache.
+	/// - Returns: The `NetworkCacheStore` that was associated with the key, or `nil` if no
+	/// matching item was found.
+	///
+	/// It also logs the key removal for auditability. The return value allows you to retrieve the
+	/// removed object if necessary.
+	@discardableResult
+	func remove(objectFor key: NetworkCacheKey) -> NetworkCacheStore? {
+		let cachedItem = cachedItem(for: key)
+		setCachedItem(nil, for: key)
+		logger.debug("Deleted cached data", metadata: ["Key": "\(key)"])
+		return cachedItem
+	}
 }
 
 public enum NetworkCacheKey: Sendable, Hashable, RawRepresentable {
@@ -66,7 +92,6 @@ public enum NetworkCacheKey: Sendable, Hashable, RawRepresentable {
 			self = .rawString(rawValue)
 		}
 	}
-
 }
 
 public struct NetworkCacheStore: Sendable, Hashable, Codable {

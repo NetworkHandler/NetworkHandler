@@ -62,9 +62,9 @@ class NetworkCacheTests: NetworkCacheTest {
 		let cache = networkHandler.cache
 		let diskCache = cache.diskCache
 
-		let key1 = URL(fileURLWithPath: "/").absoluteString
-		let key2 = URL(fileURLWithPath: "/etc").absoluteString
-		let key3 = URL(fileURLWithPath: "/usr").absoluteString
+		let key1: NetworkCacheKey = .urlMethod(URL(fileURLWithPath: "/"), .get)
+		let key2: NetworkCacheKey = .urlMethod(URL(fileURLWithPath: "/etc"), .get)
+		let key3: NetworkCacheKey = .urlMethod(URL(fileURLWithPath: "/usr"), .get)
 
 		cache[key1] = cachedItem1
 		XCTAssertEqual(cachedItem1.data, cache[key1]?.data)

@@ -49,27 +49,16 @@ public class DefaultNetworkCache: NetworkCachable {
 		set { cache.name = newValue }
 	}
 
-	/// Access or modify the object associated with a specific `key` in the cache.
+	/// Retrieves the cached object associated with a specific `key`.
 	///
-	/// - Parameter key: The unique string representing the object to retrieve or store.
-	/// - Returns: The `NetworkCacheItem` associated with the provided key, or `nil` if no item exists in
+	/// - Parameter key: The unique `NetworkCacheKey` representing the object to retrieve.
+	/// - Returns: The `NetworkCacheStore` associated with the provided key, or `nil` if no item exists in
 	/// either the memory cache or disk cache.
 	///
-	/// When accessing a key:
-	/// - Attempts to retrieve the corresponding object from the in-memory cache first (faster).
-	/// - If not found in memory, checks the disk-based backing store (slower),
-	/// then decodes it into a `NetworkCacheItem`.
+	/// This method checks the in-memory cache first for faster access. If the item is not found in memory,
+	/// it falls back to the disk-based backing store, where the data is decoded into a `NetworkCacheStore`.
 	///
-	/// When storing a key:
-	/// - Adds the item to both the memory cache and the disk cache. If the value
-	/// is `nil`, the entry is removed from both caches.
-	///
-	/// Logs the cache hit/miss or storage activity for debugging purposes.
-	public subscript(key: String) -> NetworkCacheStore? {
-		get { cachedItem(for: .init(rawValue: key)) }
-		set { setCachedItem(newValue, for: .init(rawValue: key)) }
-	}
-
+	/// A cache hit log is emitted when the item is found in memory; a cache miss is logged otherwise.
 	public func cachedItem(for key: NetworkCacheKey) -> NetworkCacheStore? {
 		if let cachedItem = cache.object(forKey: .init(key)) {
 			logger.debug("Cache hit", metadata: ["Key": "\(key)"])
@@ -77,12 +66,26 @@ public class DefaultNetworkCache: NetworkCachable {
 		} else if let codedData = diskCache.getData(for: key.rawValue) {
 			return try? Self.diskDecoder.decode(NetworkCacheStore.self, from: codedData)
 		}
+		logger.debug("Cache miss", metadata: ["Key": "\(key)"])
 		return nil
 	}
 
+	/// Stores or removes a cached object associated with a specific `key`.
+	///
+	/// - Parameters:
+	///   - newValue: The `NetworkCacheStore` to cache, or `nil` to remove an existing entry.
+	///   - key: The unique `NetworkCacheKey` identifying the object.
+	///
+	/// When a non-`nil` value is provided:
+	/// - Adds the item to the in-memory cache with a cost based on the data's byte count.
+	/// - Persists the item to the disk cache.
+	/// - Logs the storage activity for debugging.
+	///
+	/// When `nil` is provided:
+	/// - Removes the entry from both the in-memory cache and the disk cache.
 	public func setCachedItem(_ newValue: NetworkCacheStore?, for key: NetworkCacheKey) {
 		if let newData = newValue {
-			cache.setObject(.init(newData), forKey: .init(key), cost: newData.data.count)
+			cache.setObject(.init(newData), forKey: .init(key), cost: newData.cost)
 			logger.debug("Stored cache data", metadata: ["Key": "\(key)"])
 			diskCache.setData(try? Self.diskEncoder.encode(newData), key: key.rawValue)
 		} else {
@@ -130,58 +133,6 @@ public class DefaultNetworkCache: NetworkCachable {
 		if disk {
 			diskCache.resetCache()
 		}
-	}
-
-	/// Removes and optionally returns the cached object associated with the specified key.
-	///
-	/// - Parameter key: The unique string representing the object to remove from the cache.
-	/// - Returns: The `NetworkCacheItem` that was associated with the key, or `nil` if no matching item was found.
-	///
-	/// This method removes the object from both the in-memory cache and the disk cache. It also logs the
-	/// key removal for auditability. The return value allows you to retrieve the removed object if necessary.
-	@discardableResult
-	public func remove(objectFor key: String) -> NetworkCacheStore? {
-		let cachedItem = cache.object(forKey: .init(.init(rawValue: key)))
-		cache.removeObject(forKey: .init(.init(rawValue: key)))
-		logger.debug("Deleted cached data", metadata: ["Key": "\(key)"])
-		diskCache.deleteData(for: key)
-		return cachedItem?.value
-	}
-}
-
-public class NetworkCacheItem: Codable, @unchecked Sendable {
-	let response: EngineResponseHeader
-	let data: Data
-
-	var cacheTuple: (Data, EngineResponseHeader) {
-		(data, response)
-	}
-
-	enum CodingKeys: String, CodingKey {
-		case response
-		case data
-	}
-
-	init(response: EngineResponseHeader, data: Data) {
-		self.response = response
-		self.data = data
-	}
-
-	public required init(from decoder: Decoder) throws {
-		let container = try decoder.container(keyedBy: CodingKeys.self)
-		let response = try container.decode(EngineResponseHeader.self, forKey: .response)
-		self.response = response
-		self.data = try container.decode(Data.self, forKey: .data)
-	}
-
-	public func encode(to encoder: Encoder) throws {
-		var container = encoder.container(keyedBy: CodingKeys.self)
-		try container.encode(data, forKey: .data)
-		try container.encode(response, forKey: .response)
-	}
-
-	enum CachedItemError: Error {
-		case responseDataCorrupt
 	}
 }
 
