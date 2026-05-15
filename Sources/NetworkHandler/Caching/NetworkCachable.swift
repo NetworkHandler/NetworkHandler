@@ -2,8 +2,8 @@ import Foundation
 import HTTPTypes
 import Logging
 
-public protocol NetworkCachable: AnyObject {
-	var name: String { get set }
+public protocol NetworkCachable: AnyObject, Sendable {
+	var name: String { get }
 
 	/// The maximum number of objects the cache should hold.
 	///
@@ -27,6 +27,8 @@ public protocol NetworkCachable: AnyObject {
 
 	func cachedItem(for key: NetworkCacheKey) -> NetworkCacheStore?
 	func setCachedItem(_ newValue: NetworkCacheStore?, for key: NetworkCacheKey)
+
+	func reset()
 }
 
 extension NetworkCachable {

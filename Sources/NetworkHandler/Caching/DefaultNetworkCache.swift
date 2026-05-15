@@ -12,8 +12,9 @@ once it's populated, clear from the cache-cache. in the meantime, the cache-cach
 
 /// Essentially just a wrapper for NSCache, but adds redundancy in a disk cache. Specifically purposed for
 /// use with NetworkHandler
-public class DefaultNetworkCache: NetworkCachable {
+public final class DefaultNetworkCache: NetworkCachable {
 	// MARK: - Properties
+	nonisolated(unsafe) // NSCache is documented as being thread safe.
 	private let cache = NSCache<Box<NetworkCacheKey>, Box<NetworkCacheStore>>()
 	let diskCache: DefaultNetworkDiskCache
 	private static let diskEncoder = PropertyListEncoder()
@@ -133,6 +134,10 @@ public class DefaultNetworkCache: NetworkCachable {
 		if disk {
 			diskCache.resetCache()
 		}
+	}
+
+	public func reset() {
+		reset(memory: true, disk: true)
 	}
 }
 
