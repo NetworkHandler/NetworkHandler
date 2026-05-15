@@ -20,7 +20,7 @@ public final class NetworkCacheMock: NetworkCachable {
 	nonisolated(unsafe)
 	private var store: [NetworkCacheKey: NetworkCacheStore] = [:]
 
-	init(
+	public init(
 		name: String,
 		logger: Logger
 	) {

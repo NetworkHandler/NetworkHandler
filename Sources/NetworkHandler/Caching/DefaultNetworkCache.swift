@@ -16,7 +16,7 @@ public final class DefaultNetworkCache: NetworkCachable {
 	// MARK: - Properties
 	nonisolated(unsafe) // NSCache is documented as being thread safe.
 	private let cache = NSCache<Box<NetworkCacheKey>, Box<NetworkCacheStore>>()
-	let diskCache: DefaultNetworkDiskCache
+	let diskCache: NetworkCachable
 	private static let diskEncoder = PropertyListEncoder()
 	private static let diskDecoder = PropertyListDecoder()
 
@@ -64,8 +64,8 @@ public final class DefaultNetworkCache: NetworkCachable {
 		if let cachedItem = cache.object(forKey: .init(key)) {
 			logger.debug("Cache hit", metadata: ["Key": "\(key)"])
 			return cachedItem.value
-		} else if let codedData = diskCache.getData(for: key.rawValue) {
-			return try? Self.diskDecoder.decode(NetworkCacheStore.self, from: codedData)
+		} else if let diskStored = diskCache.cachedItem(for: key) {
+			return diskStored
 		}
 		logger.debug("Cache miss", metadata: ["Key": "\(key)"])
 		return nil
@@ -88,10 +88,10 @@ public final class DefaultNetworkCache: NetworkCachable {
 		if let newData = newValue {
 			cache.setObject(.init(newData), forKey: .init(key), cost: newData.cost)
 			logger.debug("Stored cache data", metadata: ["Key": "\(key)"])
-			diskCache.setData(try? Self.diskEncoder.encode(newData), key: key.rawValue)
+			diskCache.setCachedItem(newValue, for: key)
 		} else {
 			cache.removeObject(forKey: .init(key))
-			diskCache.deleteData(for: key.rawValue)
+			diskCache.setCachedItem(nil, for: key)
 		}
 	}
 
@@ -103,17 +103,20 @@ public final class DefaultNetworkCache: NetworkCachable {
 	/// - Parameters:
 	///   - name: The name of the cache, used for organization and logging clarity.
 	///   - logger: A `Logger` instance to report cache activity.
-	///   - diskCacheCapacity: The maximum size of the disk cache in bytes. Defaults to `.max`, meaning unlimited.
+	///   - diskCache: A concrete implementation of a disk cache
 	///
 	/// This initializer sets up both an in-memory cache and a redundant disk
 	/// cache, providing robust, persistent storage. A secondary logger is configured for the disk cache, based on
 	/// the provided logger's settings.
-	init(name: String, logger: Logger, diskCacheCapacity: UInt64 = .max) {
+	init(name: String, logger: Logger, diskCache: NetworkCachable? = nil) {
 		self.logger = logger
 		var diskLogger = Logger(label: "\(logger.label) - Disk Cache")
 		diskLogger.logLevel = logger.logLevel
 		diskLogger.handler = logger.handler
-		self.diskCache = .init(capacity: diskCacheCapacity, cacheName: name, logger: diskLogger)
+		self.diskCache = diskCache ?? DefaultNetworkDiskCache(
+			capacity: .max,
+			cacheName: name,
+			logger: diskLogger)
 		self.name = name
 	}
 
@@ -132,7 +135,7 @@ public final class DefaultNetworkCache: NetworkCachable {
 			logger.debug("Cleared memory cache.", metadata: ["Name": "\(name)"])
 		}
 		if disk {
-			diskCache.resetCache()
+			diskCache.reset()
 		}
 	}
 

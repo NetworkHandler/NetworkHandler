@@ -4,22 +4,26 @@ import Logging
 import NetworkHalpers
 import SwiftPizzaSnips
 
-class DefaultNetworkDiskCache: CustomDebugStringConvertible, @unchecked Sendable {
+final class DefaultNetworkDiskCache: CustomDebugStringConvertible, Sendable, NetworkCachable {
+	nonisolated(unsafe)
 	let fileManager = FileManager.default
 
+	nonisolated(unsafe)
 	private(set) var size: UInt64 = 0
 
+	nonisolated(unsafe)
 	var capacity: UInt64 {
 		didSet {
 			enforceCapacity()
 		}
 	}
 
-	let cacheName: String
+	let name: String
 
+	nonisolated(unsafe)
 	private(set) var count: Int = 0
 
-	lazy private var cacheLocation = getCacheURL()
+	private let cacheLocation: URL
 
 	static private let cacheLock = MutexLock()
 	static private func lockCache() {
@@ -45,13 +49,37 @@ class DefaultNetworkDiskCache: CustomDebugStringConvertible, @unchecked Sendable
 		Self._isActive
 	}
 
+	private static let diskEncoder = PropertyListEncoder()
+	private static let diskDecoder = PropertyListDecoder()
+
 	init(capacity: UInt64 = .max, cacheName: String? = nil, logger: Logger) {
 		self.logger = logger
 		self.capacity = capacity
-		self.cacheName = cacheName ?? "DefaultNetworkDiskCache"
+		self.name = cacheName ?? "DefaultNetworkDiskCache"
+		self.cacheLocation = Self.getCacheURL(cacheName: name)
 
 		refreshSize()
 		enforceCapacity()
+	}
+
+	func cachedItem(for key: NetworkCacheKey) -> NetworkCacheStore? {
+		guard let data = getData(for: key.rawValue) else { return nil }
+
+		return try? Self.diskDecoder.decode(NetworkCacheStore.self, from: data)
+	}
+
+	func setCachedItem(_ newValue: NetworkCacheStore?, for key: NetworkCacheKey) {
+		if let newValue {
+			guard let data = try? Self.diskEncoder.encode(newValue) else { return }
+
+			setData(data, key: key.rawValue)
+		} else {
+			setData(nil, key: key.rawValue)
+		}
+	}
+
+	func reset() {
+		resetCache()
 	}
 
 	// MARK: - CRUD
@@ -136,7 +164,7 @@ class DefaultNetworkDiskCache: CustomDebugStringConvertible, @unchecked Sendable
 		do {
 			try fileManager.removeItem(at: cacheLocation)
 			refreshSize()
-			logger.info("Reset disk cache", metadata: ["Name": "\(cacheName)"])
+			logger.info("Reset disk cache", metadata: ["Name": "\(name)"])
 		} catch {
 			logger.error(
 				"Error resetting disk cache by clearing folder. Trying individual files.",
@@ -147,7 +175,7 @@ class DefaultNetworkDiskCache: CustomDebugStringConvertible, @unchecked Sendable
 				for file in contents {
 					_deleteFile(at: file)
 				}
-				logger.info("Reset disk cache", metadata: ["Name": "\(cacheName)"])
+				logger.info("Reset disk cache", metadata: ["Name": "\(name)"])
 			} catch {
 				logger.error("Error resetting cache:", metadata: ["Error": "\(error)"])
 			}
@@ -155,15 +183,15 @@ class DefaultNetworkDiskCache: CustomDebugStringConvertible, @unchecked Sendable
 	}
 
 	// MARK: - Utility
-	private func getCacheURL() -> URL {
+	private static func getCacheURL(cacheName: String) -> URL {
 		Self.lockCache()
 		defer { Self.unlockCache() }
 		do {
-			let cacheDir = try fileManager.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+			let cacheDir = try FileManager.default.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
 			let cacheResource = cacheDir.appendingPathComponent(cacheName)
 
 			if cacheResource.checkResourceIsAccessible() == false {
-				try fileManager.createDirectory(at: cacheResource, withIntermediateDirectories: true)
+				try FileManager.default.createDirectory(at: cacheResource, withIntermediateDirectories: true)
 			}
 			return cacheResource
 		} catch {

@@ -1,13 +1,15 @@
+import Logging
 @testable import NetworkHandler
 import NetworkHandlerMockingEngine
 import PizzaMacros
+import TestSupport
 import XCTest
 
-class NetworkCacheTests: NetworkCacheTest {
+class DefaultNetworkCacheTests: NetworkCacheTest {
 	private let mockingEngine = MockingEngine()
 
 	func testCacheCountLimit() {
-		let cache = generateNetworkHandlerInstance(engine: mockingEngine).cache
+		let cache = makeTestableCache()
 
 		let initialLimit = cache.countLimit
 		cache.countLimit = 5
@@ -17,19 +19,13 @@ class NetworkCacheTests: NetworkCacheTest {
 	}
 
 	func testCacheTotalCostLimit() {
-		let cache = generateNetworkHandlerInstance(engine: mockingEngine).cache
+		let cache = makeTestableCache()
 
 		let initialLimit = cache.totalCostLimit
 		cache.totalCostLimit = 5
 		XCTAssertEqual(5, cache.totalCostLimit)
 		cache.totalCostLimit = initialLimit
 		XCTAssertEqual(initialLimit, cache.totalCostLimit)
-	}
-
-	func testCacheName() {
-		let cache = generateNetworkHandlerInstance(engine: mockingEngine).cache
-
-		XCTAssertEqual("Test Network Handler-Cache", cache.name)
 	}
 
 	/// I've determined that NSCache's version of thread safety is that it doesn't block, so there are times that you
@@ -58,9 +54,7 @@ class NetworkCacheTests: NetworkCacheTest {
 		let cachedItem1 = NetworkCacheStore(response: response1, data: data1)
 		let cachedItem2 = NetworkCacheStore(response: response2, data: data2)
 
-		let networkHandler = generateNetworkHandlerInstance(engine: mockingEngine)
-		let cache = networkHandler.cache
-		let diskCache = cache.diskCache
+		let cache = makeTestableCache()
 
 		let key1: NetworkCacheKey = .urlMethod(URL(fileURLWithPath: "/"), .get)
 		let key2: NetworkCacheKey = .urlMethod(URL(fileURLWithPath: "/etc"), .get)
@@ -77,7 +71,6 @@ class NetworkCacheTests: NetworkCacheTest {
 
 		cache[key3] = cachedItem1
 		XCTAssertEqual(cachedItem1.data, cache[key3]?.data)
-		waitForCacheToFinishActivity(diskCache)
 		cache[key3] = nil
 		XCTAssertNil(cache[key3])
 		XCTAssertEqual(cachedItem1.data, cache[key2]?.data)
@@ -85,7 +78,6 @@ class NetworkCacheTests: NetworkCacheTest {
 
 		cache[key3] = cachedItem1
 		XCTAssertEqual(cachedItem1.data, cache[key3]?.data)
-		waitForCacheToFinishActivity(diskCache)
 		let removed = cache.remove(objectFor: key3)
 		XCTAssertNil(cache[key3])
 		XCTAssertEqual(cachedItem1.data, removed?.data)
@@ -94,5 +86,16 @@ class NetworkCacheTests: NetworkCacheTest {
 		XCTAssertNil(cache[key1])
 		XCTAssertNil(cache[key2])
 		XCTAssertNil(cache[key3])
+	}
+
+	// add test(s) where in memory is a miss, but on disk isn't - use mocked disk cache
+
+	private func makeTestableCache() -> DefaultNetworkCache {
+		DefaultNetworkCache(
+			name: "Testable Cache",
+			logger: Logger(label: "Testing cache"),
+			diskCache: NetworkCacheMock(
+				name: "Fake Disk Cache",
+				logger: Logger(label: "Fake Disk Cache")))
 	}
 }

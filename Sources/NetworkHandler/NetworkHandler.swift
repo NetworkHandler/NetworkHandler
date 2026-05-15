@@ -16,7 +16,7 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 
 	/// An instance of Network Cache to speed up subsequent requests. Usage is
 	/// optional, but automatic when making requests using the `usingCache` flag.
-	let cache: DefaultNetworkCache
+	let cache: NetworkCachable
 
 	/// Used to label this instance of `NetworkHandler` for things like logging or debugging. Also useful
 	/// if you desire anthropomorphizing `NetworkHandler` instances as they are created ephemerally in
@@ -32,11 +32,10 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 		name: String,
 		engine: Engine,
 		logger: Logger = Logger(label: "Network Handler"),
-		cacheLogger: Logger = Logger(label: "Network Handler Cache"),
-		diskCacheCapacity: UInt64 = .max
+		cache: NetworkCachable? = nil
 	) {
 		self.name = name
-		self.cache = DefaultNetworkCache(name: "\(name)-Cache", logger: cacheLogger, diskCacheCapacity: diskCacheCapacity)
+		self.cache = cache ?? DefaultNetworkCache(name: "\(name)-Cache", logger: Logger(label: "Network Handler Cache"))
 		self.logger = logger
 
 		self.engine = engine
@@ -58,7 +57,11 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 	/// Use this method to completely wipe the cache, ensuring that no stale or outdated data remains.
 	/// Logs these operations for visibility.
 	public func resetCache(memory: Bool = true, disk: Bool = true) {
-		cache.reset(memory: memory, disk: disk)
+		if let cache = cache as? DefaultNetworkCache {
+			cache.reset(memory: memory, disk: disk)
+		} else {
+			cache.reset()
+		}
 	}
 
 	// MARK: - Network Handling
