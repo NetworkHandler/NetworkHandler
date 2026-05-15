@@ -4,6 +4,7 @@ identifier_name:
    - x
    - y
    - T
+   - i
 type_name:
   allowed_symbols:
     - "_"
