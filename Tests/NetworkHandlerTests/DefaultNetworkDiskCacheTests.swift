@@ -3,7 +3,7 @@ import Logging
 @testable import NetworkHandler
 import Testing
 
-class NetworkDiskCacheTests {
+class DefaultNetworkDiskCacheTests {
 	static let dummy1KFile = Data(repeating: 0, count: 1024)
 	static let dummy2KFile = Data(repeating: 0, count: 1024 * 2)
 	static let dummy5KFile = Data(repeating: 0, count: 1024 * 5)
