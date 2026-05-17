@@ -1,10 +1,13 @@
 @preconcurrency import Embassy
 import Foundation
 import HTTPTypes
+@preconcurrency import Logging
 import NetworkHandler
 import NHMacros
 import SwiftPizzaSnips
 
+/// Running a mocking server completely occupies an entire thread on the host machine. How ever many
+/// threads you have, make sure you make no more than threadCount - 1 instances.
 @available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
 public final class MockingServer: Sendable {
 	private let runLoop: SelectorEventLoop
@@ -16,118 +19,34 @@ public final class MockingServer: Sendable {
 	public let port: UInt16
 
 	public typealias Method = HTTPTypes.HTTPRequest.Method
-	public struct Path:
-		RawRepresentable,
-		Sendable,
-		Hashable,
-		ExpressibleByArrayLiteral,
-		ExpressibleByStringLiteral,
-		ExpressibleByStringInterpolation {
-
-		public var rawValue: [String]
-
-		public init(rawValue: [String]) {
-			self.rawValue = rawValue
-		}
-
-		public init(arrayLiteral elements: String...) {
-			self.init(rawValue: elements)
-		}
-
-		public init(stringLiteral value: String) {
-			let path = value.split(separator: "/").map(String.init)
-			self.init(rawValue: path)
-		}
-	}
-
-	public struct IncomingRequest: Sendable {
-		public let path: Path
-		public let method: Method
-
-		public let headers: HTTPFields
-
-		public let payload: Data?
-
-		public init(path: Path, method: Method, headers: HTTPFields, payload: Data?) {
-			self.path = path
-			self.method = method
-			self.headers = headers
-			self.payload = payload
-		}
-	}
-
-	public struct OutboundResponseHeader: Sendable {
-		public let responseCode: Int
-		public let responseHeader: HTTPFields
-
-		public init(responseCode: Int, responseHeader: HTTPFields? = nil) {
-			self.responseCode = responseCode
-			self.responseHeader = responseHeader ?? .init()
-		}
-
-		static func serverError(code: Int = 500, errorDescription: String? = nil) -> OutboundResponseHeader {
-			self.init(
-				responseCode: code,
-				responseHeader: [#HTTPFieldName("Error"): errorDescription ?? "Internal error"])
-		}
-	}
-
-	public typealias Endpoint = @Sendable (
-		_ request: IncomingRequest,
-		_ stream: ResponseStream.Block
-	) async throws(HTTPError) -> Void
-
-	public struct HTTPError: Error {
-		public let code: Int
-		public let errorDescription: String?
-
-		public init(code: Int = 500, errorDescription: String? = nil) {
-			self.code = code
-			self.errorDescription = errorDescription
-		}
-
-		public static func capture<T>(_ throwing: () async throws -> T) async throws(HTTPError) -> T {
-			do {
-				return try await throwing()
-			} catch {
-				return try capture { throw error }
-			}
-		}
-
-		public static func capture<T>(_ throwing: () throws -> T) throws(HTTPError) -> T {
-			do {
-				return try throwing()
-			} catch {
-				if error.isTimeout() {
-					throw HTTPError(errorDescription: "Server timeout")
-				}
-				if error.isCancellation() {
-					throw HTTPError(errorDescription: "Server cancellation")
-				}
-
-				throw HTTPError(errorDescription: "Unexpected error: \(error)")
-			}
-		}
-	}
-
-	private struct EndpointPath: Hashable {
-		let path: Path
-		let method: Method
-	}
 
 	nonisolated(unsafe)
 	private var endpoints: [EndpointPath: Endpoint] = [:]
 	private let endpointsLock = MutexLock()
 
-	public init(port: UInt16? = nil) throws {
+	private let logger: Logging.Logger
+	private let name: String
+
+	public init(serverName: String, port: UInt16? = nil, logger: Logging.Logger? = nil) throws {
+		self.name = serverName
 		let port = port ?? UInt16.random(in: 10_000..<(.max))
 		self.port = port
-		print("Port \(port)")
+		let logger = logger ?? Logger(label: "\(serverName):(port \(port))")
+		logger.debug("Port \(port)")
+		self.logger = logger
 		let selector = try KqueueSelector()
 		let runLoop = try SelectorEventLoop(selector: selector)
 		self.runLoop = runLoop
 		self.runLoopTask = Task.detached { [runLoop] in
-			runLoop.runForever()
+			logger.info("Server starting runloop")
+			await withTaskCancellationHandler(
+				operation: {
+					runLoop.runForever()
+				},
+				onCancel: {
+					runLoop.stop()
+				})
+			logger.info("runloop finished")
 		}
 
 		self.server = DefaultHTTPServer(eventLoop: runLoop, port: Int(port)) {
@@ -174,12 +93,13 @@ public final class MockingServer: Sendable {
 		}
 
 		try server.start()
+		logger.info("Server started")
 	}
 
 	deinit {
 		server.stop()
 		runLoopTask.cancel()
-		print("Server with port \(port) shutdown")
+		logger.info("Server with port \(port) shutdown")
 	}
 
 	private func runServerLogic(
@@ -197,11 +117,14 @@ public final class MockingServer: Sendable {
 			responseStream(.complete)
 			return
 		}
+		let loggingPath = String(path.rawValue.joined(by: "/"))
+		logger.info("Received request", metadata: ["Path": "\(loggingPath)", "Method": "\(requestMethod.rawValue)"])
 		guard
 			let endpoint = self.endpointsLock.withLock({ self.endpoints[.init(path: path, method: requestMethod)] })
 		else {
 			responseStream(.header(.init(responseCode: 404)))
 			responseStream(.complete)
+			logger.info("Path/method not handled", metadata: ["Path": "\(loggingPath)", "Method": "\(requestMethod.rawValue)"])
 			return
 		}
 
@@ -224,7 +147,19 @@ public final class MockingServer: Sendable {
 				headers: .init(headers),
 				payload: incomingPayload)
 
+			logger.info("Responding")
+
 			Task {
+				logger.info("Test log")
+			}
+
+			Task { [logger] in
+				defer {
+					logger.info(
+						"Finished processing request",
+						metadata: ["Path": "\(loggingPath)", "Method": "\(requestMethod.rawValue)"])
+				}
+				logger.info("Responding Task started")
 				do throws(HTTPError) {
 					try await endpoint(incomingRequest) { chunk in
 						responseStream(chunk)
@@ -241,14 +176,23 @@ public final class MockingServer: Sendable {
 
 		let hasBody = headers["CONTENT_LENGTH"] != nil || headers["TRANSFER_ENCODING"] == "chunked"
 		if hasBody {
+			logger.info("Processing request data", metadata: ["Path": "\(loggingPath)", "Method": "\(requestMethod.rawValue)"])
+			let expectedLength = headers["CONTENT_LENGTH"]
 			var payload = Data()
-			input {
+			input { [logger] in
 				payload.append($0)
+				logger.info(
+					"Got bytes",
+					metadata: ["ExpectedTotal": "\(expectedLength, default: "unknown")", "TotalReceived": "\(payload.count)"])
 				guard $0.isEmpty else { return }
+				logger.info(
+					"Finished request upload",
+					metadata: ["TotalReceived": "\(payload.count)"])
 
 				finishRequest(incomingPayload: payload)
 			}
 		} else {
+			logger.info("No request data", metadata: ["Path": "\(loggingPath)", "Method": "\(requestMethod.rawValue)"])
 			finishRequest(incomingPayload: nil)
 		}
 	}
@@ -305,12 +249,12 @@ public final class MockingServer: Sendable {
 	/// servers diminishes, eventually potentially causing an infinite loop when the entire space is occupied. The
 	/// solution to this is to not run thousands of simultaneous servers.
 	/// - Returns: a MockingServer listening to localhost:[randomPort]
-	public static func createServer() throws -> MockingServer {
+	public static func createServer(name: String?) throws -> MockingServer {
 		var creationError: Embassy.OSError?
 
 		repeat {
 			do {
-				return try MockingServer()
+				return try MockingServer(serverName: name ?? "Mocking Server")
 			} catch let error as Embassy.OSError {
 				guard case .ioError(let number, _) = error else {
 					throw error
@@ -350,83 +294,6 @@ public final class MockingServer: Sendable {
 		503: "Service Unavailable",
 		504: "Gateway Timeout",
 	]
-
-	public enum ResponseStream {
-		public enum Chunk: Sendable {
-			case header(OutboundResponseHeader)
-			case data(Data)
-			case string(String)
-			case complete
-		}
-		public typealias Block = @Sendable (Chunk) -> Void
-
-		/// Created on the server on each request. The server passes the base server's chunk block to it, then
-		/// executes the request from the endpoint. The tracker, as implied, tracks and enforces that the response
-		/// is sent first, followed by data, if any, followed by completion.
-		final class LifecycleTracker: @unchecked Sendable {
-			private let lock = MutexLock()
-
-			private struct State: Hashable, Sendable {
-				var hasResponded = false
-				var hasSentData = false
-				var hasCompleted = false
-			}
-
-			nonisolated(unsafe)
-			private var state = State()
-
-			private let streamBlock: Block
-
-			init(_ streamBlock: @escaping Block) {
-				self.streamBlock = streamBlock
-			}
-
-			deinit {
-				lock.withLock {
-					if state.hasResponded == false {
-						_stream(.header(.init(responseCode: 500)))
-					}
-					if state.hasCompleted == false {
-						_stream(.complete)
-					}
-				}
-			}
-
-			private func _stream(_ chunk: Chunk) {
-				guard state.hasCompleted == false else { return }
-
-				switch chunk {
-				case .header:
-					guard state.hasResponded == false else { return }
-					state.hasResponded = true
-				case .data, .string:
-					if state.hasResponded == false {
-						streamBlock(
-							.header(
-								.init(responseCode: 500, responseHeader: [#HTTPFieldName("Error"): "Did not send response before data"])))
-					}
-					state.hasSentData = true
-				case .complete:
-					if state.hasResponded == false {
-						streamBlock(
-							.header(
-								.init(responseCode: 500, responseHeader: [#HTTPFieldName("Error"): "Did not send response before completion"])))
-					}
-					state.hasCompleted = true
-				}
-
-				streamBlock(chunk)
-			}
-
-			func stream(_ chunk: Chunk) {
-				lock.withLock { _stream(chunk) }
-			}
-
-			func callAsFunction(_ chunk: Chunk) {
-				stream(chunk)
-			}
-		}
-	}
 }
 
 extension SelectorEventLoop: @unchecked @retroactive Sendable {}
