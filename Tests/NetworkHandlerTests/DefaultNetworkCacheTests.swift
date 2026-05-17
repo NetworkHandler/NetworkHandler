@@ -5,7 +5,7 @@ import PizzaMacros
 import TestSupport
 import XCTest
 
-class DefaultNetworkCacheTests: NetworkCacheTest {
+class DefaultNetworkCacheTests: XCTestSuite {
 	private let mockingEngine = MockingEngine()
 
 	func testCacheCountLimit() {
