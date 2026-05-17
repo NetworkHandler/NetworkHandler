@@ -55,7 +55,11 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 			.withPort(port)
 			.appending(path: "network-handler-tests/chonk.bin")
 	}
-	public let echoURL = #URL("https://echo.free.beeceptor.com/")
+	public func simulatedEchoURL(port: UInt16) -> URL {
+		baseLocalURL
+			.withPort(port)
+			.appending(path: "network-handler-tests/echo")
+	}
 
 	public let logger: Logger
 
@@ -419,14 +423,14 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		let accumulatedThreshold = 40_960
 
 		let url = randomDataURL(port: server.port)
-		server.addMock(for: url.mockingPath, method: .get) { _, stream throws(MockingServer.HTTPError) in
+		server.addMock(for: url.mockingPath, method: .get) { _, stream throws(HTTPError) in
 			stream(.header(.init(responseCode: 200)))
 
 			var gen: any RandomNumberGenerator = SeedableRNG(seed: 6_549_879)
 			var count = 0
 			while count < (accumulatedThreshold * 10) {
 				stream(.data(Data.random(count: 256, using: &gen)))
-				try await MockingServer.HTTPError.capture {
+				try await HTTPError.capture {
 					try await Task.sleep(for: .microseconds(100))
 				}
 				count += 256
@@ -473,14 +477,14 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		let accumulatedThreshold = 40_960
 
 		let url = randomDataURL(port: server.port)
-		server.addMock(for: url.mockingPath, method: .get) { _, stream throws(MockingServer.HTTPError) in
+		server.addMock(for: url.mockingPath, method: .get) { _, stream throws(HTTPError) in
 			stream(.header(.init(responseCode: 200)))
 
 			var gen: any RandomNumberGenerator = SeedableRNG(seed: 6_549_879)
 			var count = 0
 			while count < (accumulatedThreshold * 10) {
 				stream(.data(Data.random(count: 256, using: &gen)))
-				try await MockingServer.HTTPError.capture {
+				try await HTTPError.capture {
 					try await Task.sleep(for: .microseconds(100))
 				}
 				count += 256
@@ -558,17 +562,304 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 			})
 	}
 
-	public struct BeeEchoModel: Codable, Sendable {
-		public let path: String
+	/// performs a `PUT` request to `randomDataURL`. Provided must be corrupted in some way.
+	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
+	public func timeoutTriggersRetry(
+		engine: Engine,
+		file: String = #fileID,
+		filePath: String = #filePath,
+		line: Int = #line,
+		column: Int = #column,
+		function: String = #function
+	) async throws {
+		let server = try await MockingServer.createServer(name: #function)
 
-		public var pathValue: Int? {
-			let num = path.drop(while: { $0.isNumber == false })
-			return Int(num)
+		let nh = getNetworkHandler(with: engine)
+		defer { nh.resetCache() }
+
+		let url = randomDataURL(port: server.port)
+		let request = url.generalRequest.with {
+			$0.method = .put
+			$0.timeoutInterval = 0.001
+		}
+		server.addMock(for: url.mockingPath, method: .put) { _, stream throws(HTTPError) in
+			try await HTTPError.capture {
+				try await Task.sleep(for: .seconds(5))
+			}
+
+			stream(.header(.init(responseCode: 201)))
 		}
 
-		public init(path: String) {
-			self.path = path
+		let testFileURL = URL.temporaryDirectory.appending(component: UUID().uuidString).appendingPathExtension("bin")
+		let (actualTestFile, done) = try createDummyFile(at: testFileURL, megabytes: 5)
+		defer { try? done() }
+
+		let atomicFailCount = AtomicValue(value: 0)
+		let expectedFailCount = 3
+
+		await #expect(
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column),
+			performing: {
+				_ = try await nh.uploadMahDatas(
+					for: request,
+					payload: .localFile(actualTestFile),
+					onError: { _, failCount, error in
+						#expect(error.isCancellation() == false)
+						print(error)
+						atomicFailCount.value = failCount
+						guard failCount < expectedFailCount else { return .throw }
+						return .retry
+					})
+			},
+			throws: {
+				guard let error = $0 as? NetworkError else { return false }
+
+				switch error {
+				case .httpUnexpectedStatusCode:
+					return false
+				default:
+					return true
+				}
+
+			})
+		#expect(
+			atomicFailCount.value == expectedFailCount,
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
+	}
+
+	/// performs a `GET` request to `randomDataURL`. Provided must be corrupted in some way.
+	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
+	public func downloadProgressTracking(
+		engine: Engine,
+		file: String = #fileID,
+		filePath: String = #filePath,
+		line: Int = #line,
+		column: Int = #column,
+		function: String = #function
+	) async throws {
+		let server = try await MockingServer.createServer(name: #function)
+
+		let nh = getNetworkHandler(with: engine)
+		defer { nh.resetCache() }
+
+		let url = randomDataURL(port: server.port)
+		let request = url.generalRequest
+
+		var seedableRNG: RandomNumberGenerator = SeedableRNG(seed: 23_785)
+		server.addMock(
+			for: url.mockingPath,
+			responseData: Data.random(count: 1024 * 1024 * 5, using: &seedableRNG))
+
+		let accumulator = AtomicValue(value: [Int]())
+		let expectedTotalAtomic = AtomicValue(value: 0)
+		let delegate = await Delegate(onResponseBodyProgressCount: { _, _, count, expectedTotal in
+			accumulator.value.append(count)
+			if let expectedTotal {
+				expectedTotalAtomic.value = expectedTotal
+			}
+			print("\(count) of \(expectedTotal ?? -1)")
+		})
+
+		let header = try await nh.downloadMahDatas(
+			for: request,
+			delegate: delegate).responseHeader
+
+		#expect(
+			header.expectedContentLength != nil,
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
+		#expect(
+			header.expectedContentLength.map(Int.init) == expectedTotalAtomic.value,
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
+		#expect(
+			accumulator.value.isOccupied,
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
+		#expect(
+			accumulator.value.sorted() == accumulator.value,
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
+	}
+
+	/// performs a `PUT` request to `randomDataURL`. Provided must be corrupted in some way.
+	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
+	public func uploadProgressTracking(
+		engine: Engine,
+		file: String = #fileID,
+		filePath: String = #filePath,
+		line: Int = #line,
+		column: Int = #column,
+		function: String = #function
+	) async throws {
+		let server = try await MockingServer.createServer(name: #function)
+
+		let nh = getNetworkHandler(with: engine)
+		defer { nh.resetCache() }
+
+		let url = randomDataURL(port: server.port)
+		let request = url.generalRequest.with {
+			$0.method = .put
+			$0.headers.setAuthorization(.bearerToken("foobar"))
+			$0.expectedResponseCodes = 201
 		}
+
+		server.addMock(for: url.mockingPath, method: .put) { request, stream throws(HTTPError) in
+			try commonPutToGet(
+				mockingPath: url.mockingPath,
+				server: server,
+				inRequest: request,
+				responseStream: stream)
+		}
+
+		let testFileURL = URL.temporaryDirectory.appending(component: UUID().uuidString).appendingPathExtension("bin")
+		let (actualTestFile, done) = try createDummyFile(at: testFileURL, megabytes: 5)
+		defer { try? done() }
+
+		let accumulator = AtomicValue(value: [Int]())
+		let expectedTotalAtomic = AtomicValue(value: -1)
+		let updatedRequestAtomic = AtomicValue(
+			value: CompleteNetworkRequest.upload(
+				request,
+				payload: .localFile(actualTestFile)))
+		let delegate = await Delegate(
+			onRequestModified: { _, _, modReq in
+				updatedRequestAtomic.value = modReq
+			},
+			onSendData: { _, _, count, expectedTotal in
+				accumulator.value.append(count)
+				if let expectedTotal {
+					expectedTotalAtomic.value = expectedTotal
+				}
+				print("\(count) of \(expectedTotalAtomic.value)")
+			})
+
+		_ = try await nh.uploadMahDatas(for: request, payload: .localFile(actualTestFile), delegate: delegate)
+
+		#expect(
+			updatedRequestAtomic.value.headers[.contentLength] != nil,
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
+		#expect(
+			updatedRequestAtomic.value.headers[semantic: .contentLength].flatMap { Int($0.rawValue) } == expectedTotalAtomic.value, // swiftlint:disable:this line_length
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
+		#expect(
+			accumulator.value.isOccupied,
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
+		#expect(
+			accumulator.value.sorted() == accumulator.value,
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
+	}
+
+	/// performs a `GET` request to `echoURL`. Provided must be corrupted in some way.
+	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
+	public func polling(
+		engine: Engine,
+		file: String = #fileID,
+		filePath: String = #filePath,
+		line: Int = #line,
+		column: Int = #column,
+		function: String = #function
+	) async throws {
+		let server = try await MockingServer.createServer(name: #function)
+
+		let nh = getNetworkHandler(with: engine)
+		defer { nh.resetCache() }
+
+		let url = simulatedEchoURL(port: server.port)
+		let request = url.generalRequest
+
+		server.addMock(for: url.mockingPath, method: .get) { _, dbMock, stream throws(HTTPError) in
+			let value: Int? = await dbMock.get(for: "pollCount")
+			let newValue = (value ?? 0) + 1
+			await dbMock.set(newValue, for: "pollCount")
+
+			stream(.header(.init(responseCode: 200)))
+
+			let data = try HTTPError.capture {
+				try JSONEncoder().encode(EchoModel(counter: newValue))
+			}
+
+			stream(.data(data))
+		}
+
+		let echo: EchoModel = try await nh.poll(
+			request: .standard(request),
+			requestLogger: logger,
+			until: { pollRequest, pollResult in
+				do {
+					let (header, echoModel) = try pollResult.get()
+					guard echoModel.counter == 3 else {
+						let newRequest = pollRequest
+						return .continue(newRequest, 0.016)
+					}
+					return .finish(.success((header, echoModel)))
+				} catch {
+					return .finish(.failure(error))
+				}
+			}).result
+
+		#expect(echo.counter == 3)
+	}
+
+	/// performs a `GET` request to `chonkURL`
+	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
+	public func downloadFile(
+		engine: Engine,
+		file: String = #fileID,
+		filePath: String = #filePath,
+		line: Int = #line,
+		column: Int = #column,
+		function: String = #function
+	) async throws {
+		let server = try await MockingServer.createServer(name: #function)
+
+		let nh = getNetworkHandler(with: engine)
+		defer { nh.resetCache() }
+
+		let url = chonkURL(port: server.port)
+		let request = url.generalRequest
+
+		let sizeOfUploadMB: UInt8 = 5
+		let fileSize = Int(sizeOfUploadMB) * 1024 * 1024
+
+		var rng: any RandomNumberGenerator = SeedableRNG(seed: 349_687)
+
+		server.addMock(for: url.mockingPath, responseData: Data.random(count: fileSize, using: &rng))
+
+		let outputFileURL = URL.temporaryDirectory.appending(component: "downloadfile").appendingPathExtension("test")
+		let tempFileURL = URL.temporaryDirectory.appending(components: UUID().uuidString)
+
+		#expect(outputFileURL.checkResourceIsAccessible() == false)
+		#expect(tempFileURL.checkResourceIsAccessible() == false)
+
+		defer {
+			try? FileManager.default.removeItem(at: outputFileURL)
+			try? FileManager.default.removeItem(at: tempFileURL)
+		}
+
+		try await confirmation { tempFileExisted in
+			Task {
+				var seen = false
+				while seen == false {
+					try await Task.sleep(for: .milliseconds(20))
+					guard tempFileURL.checkResourceIsAccessible() else { continue }
+					seen = true
+					tempFileExisted()
+				}
+			}
+
+			_ = try await nh.downloadMahFile(
+				for: request,
+				savingToLocalFileURL: outputFileURL,
+				withTemporaryFile: tempFileURL,
+				requestLogger: logger)
+		}
+
+		let fileHash = try fileHash(outputFileURL)
+		#expect(fileHash.toHexString() == "92b640d348a4627b4185f5378d8949b542055bd37fe513e6add9a1e010a3a83d")
+		#expect(outputFileURL.checkResourceIsAccessible())
+		#expect(tempFileURL.checkResourceIsAccessible() == false)
+	}
+
+
+	public struct EchoModel: Codable, Sendable {
+		public let counter: Int
 	}
 
 	// MARK: - Utilities
@@ -643,9 +934,35 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 
 		return hasher.finalize()
 	}
+
+	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
+	private func commonPutToGet(
+		mockingPath: MockingServer.Path,
+		server: MockingServer,
+		inRequest: MockingServer.IncomingRequest,
+		responseStream: MockingServer.ResponseStream.Block
+	) throws(MockingServer.HTTPError) {
+		guard inRequest.headers[.authorization] == "Bearer foobar" else {
+			throw .init(code: 401)
+		}
+
+		guard
+			let uploadedData = inRequest.payload
+		else {
+			throw .init(code: 400, errorDescription: "No payload")
+		}
+
+		server.addMock(for: mockingPath, responseData: uploadedData)
+
+		responseStream(.header(.init(responseCode: 201)))
+		responseStream(.complete)
+	}
 }
 
 extension NetworkHandlerCommonTests {
+	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
+	typealias HTTPError = MockingServer.HTTPError
+
 	class Delegate: NetworkHandlerTaskDelegate {
 		let onRequestModified: @Sendable (
 			_ delegate: Delegate,

@@ -4,4 +4,10 @@ extension MockingServer {
 		_ request: IncomingRequest,
 		_ stream: ResponseStream.Block
 	) async throws(HTTPError) -> Void
+
+	public typealias DBEndpoint = @Sendable (
+		_ request: IncomingRequest,
+		_ dbMock: DatabaseMock,
+		_ stream: ResponseStream.Block
+	) async throws(HTTPError) -> Void
 }

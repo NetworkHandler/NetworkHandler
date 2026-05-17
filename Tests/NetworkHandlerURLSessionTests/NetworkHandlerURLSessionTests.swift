@@ -197,6 +197,39 @@ struct NetworkHandlerURLSessionTests: Sendable {
 		try await commonTests.uploadCancellationViaToken(engine: mockingEngine)
 	}
 
+	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
+	@Test func timeoutTriggersRetry() async throws {
+		let mockingEngine = generateEngine()
+		try await commonTests.timeoutTriggersRetry(engine: mockingEngine)
+	}
+
+	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
+	@Test func downloadProgressTracking() async throws {
+		let mockingEngine = generateEngine()
+		try await commonTests.downloadProgressTracking(engine: mockingEngine)
+	}
+
+	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
+	@Test func uploadProgressTracking() async throws {
+		let mockingEngine = generateEngine()
+
+		try await commonTests.uploadProgressTracking(engine: mockingEngine)
+	}
+
+	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
+	@Test func polling() async throws {
+		let mockingEngine = generateEngine()
+
+		try await commonTests.polling(engine: mockingEngine)
+	}
+
+	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
+	@Test func downloadFile() async throws {
+		let mockingEngine = generateEngine()
+
+		try await commonTests.downloadFile(engine: mockingEngine)
+	}
+
 	private func generateEngine() -> URLSession {
 		URLSession.asEngine(withConfiguration: .networkHandlerDefault)
 	}

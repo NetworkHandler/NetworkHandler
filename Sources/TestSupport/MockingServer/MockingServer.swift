@@ -25,11 +25,13 @@ public final class MockingServer: Sendable {
 	public typealias Method = HTTPTypes.HTTPRequest.Method
 
 	nonisolated(unsafe)
-	private var endpoints: [EndpointPath: Endpoint] = [:]
+	private var endpoints: [EndpointPath: DBEndpoint] = [:]
 	private let endpointsLock = MutexLock()
 
 	private let logger: Logging.Logger
 	private let name: String
+
+	public let dbMock = DatabaseMock()
 
 	public init(serverName: String, port: UInt16? = nil, logger: Logging.Logger? = nil) async throws {
 		self.name = serverName
@@ -159,7 +161,7 @@ public final class MockingServer: Sendable {
 				logger.info("Test log")
 			}
 
-			Task { [logger] in
+			Task { [logger, dbMock] in
 				defer {
 					logger.info(
 						"Finished processing request",
@@ -167,7 +169,7 @@ public final class MockingServer: Sendable {
 				}
 				logger.info("Responding Task started")
 				do throws(HTTPError) {
-					try await endpoint(incomingRequest) { chunk in
+					try await endpoint(incomingRequest, dbMock) { chunk in
 						responseStream(chunk)
 					}
 				} catch {
@@ -240,6 +242,16 @@ public final class MockingServer: Sendable {
 		for path: Path,
 		method: Method,
 		smartBlock: @escaping Endpoint
+	) {
+		addMock(for: path, method: method) { request, _, stream throws(HTTPError) in
+			try await smartBlock(request, stream)
+		}
+	}
+
+	public func addMock(
+		for path: Path,
+		method: Method,
+		smartBlock: @escaping DBEndpoint
 	) {
 		let key = EndpointPath(path: path, method: method)
 		endpointsLock.withLock {
