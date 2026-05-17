@@ -140,6 +140,19 @@ class DefaultNetworkDiskCacheTests {
 		#expect(file5.data == cache.getData(for: file5.key))
 	}
 
+	// MARK: - Race Condition Regression
+	///
+	/// NOTE: This test was created to reproduce a data race on `size` and `count`
+	/// where concurrent `setData` calls across different keys triggered lost updates.
+	///
+	/// The test failed on the original implementation and now passes after the fix
+	/// (locking size/count mutations under `globalLock`).
+	///
+	/// **However: passing does NOT prove the race is fully eliminated.** Race conditions
+	/// are probabilistic — depending on task scheduling, the critical window may or may
+	/// not be exposed in any given run. The locking fix is what guarantees correctness,
+	/// not the test result. This test exists as a sanity check and early warning, not
+	/// as a proof of correctness.
 	@Test func sizeCountRaceOnConcurrentWrites() async {
 		let (cache, done) = generateDiskCache()
 		defer { done() }

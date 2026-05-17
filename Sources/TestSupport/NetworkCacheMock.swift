@@ -7,11 +7,11 @@ public final class NetworkCacheMock: NetworkCachable {
 
 	public var countLimit: Int {
 		get { 0 }
-		set { }
+		set { } // swiftlint:disable:this unused_setter_value
 	}
 	public var totalCostLimit: Int {
 		get { 0 }
-		set { }
+		set { } // swiftlint:disable:this unused_setter_value
 	}
 
 	public let logger: Logger

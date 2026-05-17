@@ -4,9 +4,9 @@ import Logging
 import NetworkHalpers
 import SwiftPizzaSnips
 
-final class DefaultNetworkDiskCache: CustomDebugStringConvertible, Sendable, NetworkCachable {
+public final class DefaultNetworkDiskCache: CustomDebugStringConvertible, Sendable, NetworkCachable {
 	nonisolated(unsafe)
-	let fileManager = FileManager.default
+	private let fileManager = FileManager.default
 
 	// should only operate within Self.globalLock
 	nonisolated(unsafe)
@@ -25,7 +25,7 @@ final class DefaultNetworkDiskCache: CustomDebugStringConvertible, Sendable, Net
 		set { Self.globalLock.withLock { _capacity = newValue } }
 	}
 
-	let name: String
+	public let name: String
 
 	// should only operate within Self.globalLock
 	nonisolated(unsafe)
@@ -42,12 +42,12 @@ final class DefaultNetworkDiskCache: CustomDebugStringConvertible, Sendable, Net
 	nonisolated(unsafe)
 	private var fileLocks: [URL: MutexLock] = [:]
 
-	let logger: Logger
+	public let logger: Logger
 
 	private static let diskEncoder = PropertyListEncoder()
 	private static let diskDecoder = PropertyListDecoder()
 
-	init(capacity: UInt64 = .max, cacheName: String? = nil, logger: Logger) {
+	public init(capacity: UInt64 = .max, cacheName: String? = nil, logger: Logger) {
 		Self.globalLock.lock()
 		defer { Self.globalLock.unlock() }
 		self.logger = logger
@@ -59,13 +59,13 @@ final class DefaultNetworkDiskCache: CustomDebugStringConvertible, Sendable, Net
 		enforceCapacity()
 	}
 
-	func cachedItem(for key: NetworkCacheKey) -> NetworkCacheStore? {
+	public func cachedItem(for key: NetworkCacheKey) -> NetworkCacheStore? {
 		guard let data = getData(for: key) else { return nil }
 
 		return try? Self.diskDecoder.decode(NetworkCacheStore.self, from: data)
 	}
 
-	func setCachedItem(_ newValue: NetworkCacheStore?, for key: NetworkCacheKey) {
+	public func setCachedItem(_ newValue: NetworkCacheStore?, for key: NetworkCacheKey) {
 		if let newValue {
 			guard let data = try? Self.diskEncoder.encode(newValue) else { return }
 
@@ -142,7 +142,7 @@ final class DefaultNetworkDiskCache: CustomDebugStringConvertible, Sendable, Net
 		}
 	}
 
-	func reset() {
+	public func reset() {
 		Self.globalLock.withLock {
 			_resetCache()
 			fileLocks = [:]
@@ -196,7 +196,11 @@ final class DefaultNetworkDiskCache: CustomDebugStringConvertible, Sendable, Net
 		Self.globalLock.lock()
 		defer { Self.globalLock.unlock() }
 		do {
-			let cacheDir = try FileManager.default.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+			let cacheDir = try FileManager.default.url(
+				for: .cachesDirectory,
+				in: .userDomainMask,
+				appropriateFor: nil,
+				create: true)
 			let cacheResource = cacheDir.appendingPathComponent(cacheName)
 
 			if cacheResource.checkResourceIsAccessible() == false {
@@ -327,7 +331,7 @@ final class DefaultNetworkDiskCache: CustomDebugStringConvertible, Sendable, Net
 		}
 	}
 
-	var debugDescription: String {
+	public var debugDescription: String {
 		"Network Disk Cache: \(cacheLocation)"
 	}
 }
