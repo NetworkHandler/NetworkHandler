@@ -91,7 +91,6 @@ var targets: [Target] = [
 			"TestSupport",
 			"PizzaMacros",
 			.product(name: "Logging", package: "swift-log"),
-			"NetworkHandlerMockingEngine",
 		],
 		plugins: [
 			.plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")
