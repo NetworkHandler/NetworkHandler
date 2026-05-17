@@ -18,7 +18,7 @@ public final class DefaultNetworkDiskCache: CustomDebugStringConvertible, Sendab
 	// should only operate within Self.globalLock
 	nonisolated(unsafe)
 	private var _capacity: UInt64 {
-		didSet { enforceCapacity() }
+		didSet { _enforceCapacity() }
 	}
 	public var capacity: UInt64 {
 		get { Self.globalLock.withLock { _capacity } }
@@ -56,7 +56,7 @@ public final class DefaultNetworkDiskCache: CustomDebugStringConvertible, Sendab
 		self.cacheLocation = Self.getCacheURL(cacheName: name)
 
 		_refreshSize()
-		enforceCapacity()
+		_enforceCapacity()
 	}
 
 	public func cachedItem(for key: NetworkCacheKey) -> NetworkCacheStore? {
@@ -264,15 +264,9 @@ public final class DefaultNetworkDiskCache: CustomDebugStringConvertible, Sendab
 		_size -= value
 	}
 
-	private func enforceCapacity() {
-		Self.globalLock.lock()
-		defer { Self.globalLock.unlock() }
-		_enforceCapacity()
-	}
-
 	// should only operate within Self.globalLock
 	private func _enforceCapacity() {
-		guard size > capacity else { return }
+		guard _size > _capacity else { return }
 
 		do {
 			let contents = try fileManager
@@ -295,7 +289,7 @@ public final class DefaultNetworkDiskCache: CustomDebugStringConvertible, Sendab
 			logger.trace("Enforcing disk capacity...")
 			var oldestFirst = sorted.makeIterator()
 			while let oldestOnDisk = oldestFirst.next() {
-				guard size > capacity else { return }
+				guard _size > _capacity else { return }
 
 				_deleteFile(at: oldestOnDisk)
 			}
