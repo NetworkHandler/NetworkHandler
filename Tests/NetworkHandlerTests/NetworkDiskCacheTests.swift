@@ -1,15 +1,12 @@
+import Foundation
 import Logging
 @testable import NetworkHandler
-import NetworkHandlerMockingEngine
-import XCTest
+import Testing
 
-class NetworkDiskCacheTests: XCTestCase {
-	nonisolated(unsafe)
-	static var dummy1KFile = Data(repeating: 0, count: 1024)
-	nonisolated(unsafe)
-	static var dummy2KFile = Data(repeating: 0, count: 1024 * 2)
-	nonisolated(unsafe)
-	static var dummy5KFile = Data(repeating: 0, count: 1024 * 5)
+class NetworkDiskCacheTests {
+	static let dummy1KFile = Data(repeating: 0, count: 1024)
+	static let dummy2KFile = Data(repeating: 0, count: 1024 * 2)
+	static let dummy5KFile = Data(repeating: 0, count: 1024 * 5)
 
 	// swiftlint:disable:next large_tuple
 	static func fileAssortment() -> (
@@ -27,15 +24,9 @@ class NetworkDiskCacheTests: XCTestCase {
 		return (file1, file2, file3, file4, file5)
 	}
 
-	override func tearDown() {
-		let cache = generateDiskCache()
-		cache.resetCache()
-	}
-
-	func testCacheAddRemove() async {
-		let logger = Logger(label: #function)
-		let cache = DefaultNetworkDiskCache(logger: logger)
-		cache.resetCache()
+	@Test func cacheAddRemove() async {
+		let (cache, done) = generateDiskCache()
+		defer { done() }
 
 		let (file1, file2, file3, file4, file5) = Self.fileAssortment()
 
@@ -49,29 +40,30 @@ class NetworkDiskCacheTests: XCTestCase {
 		await file3Load
 		await file4Load
 
-		XCTAssertEqual(cache.getData(for: file1.key), file1.data)
-		XCTAssertEqual(cache.getData(for: file2.key), file2.data)
-		XCTAssertEqual(cache.getData(for: file3.key), file3.data)
-		XCTAssertEqual(cache.getData(for: file4.key), file4.data)
-		XCTAssertNil(cache.getData(for: file5.key))
+		#expect(cache.getData(for: file1.key) == file1.data)
+		#expect(cache.getData(for: file2.key) == file2.data)
+		#expect(cache.getData(for: file3.key) == file3.data)
+		#expect(cache.getData(for: file4.key) == file4.data)
+		#expect(cache.getData(for: file5.key) == nil)
 
 		cache.remove(objectFor: file1.key)
-		XCTAssertNil(cache.getData(for: file1.key))
-		XCTAssertEqual(cache.getData(for: file2.key), file2.data)
-		XCTAssertEqual(cache.getData(for: file3.key), file3.data)
-		XCTAssertEqual(cache.getData(for: file4.key), file4.data)
-		XCTAssertNil(cache.getData(for: file5.key))
+		#expect(cache.getData(for: file1.key) == nil)
+		#expect(cache.getData(for: file2.key) == file2.data)
+		#expect(cache.getData(for: file3.key) == file3.data)
+		#expect(cache.getData(for: file4.key) == file4.data)
+		#expect(cache.getData(for: file5.key) == nil)
 
 		cache.remove(objectFor: file3.key)
-		XCTAssertNil(cache.getData(for: file1.key))
-		XCTAssertEqual(cache.getData(for: file2.key), file2.data)
-		XCTAssertNil(cache.getData(for: file3.key))
-		XCTAssertEqual(cache.getData(for: file4.key), file4.data)
-		XCTAssertNil(cache.getData(for: file5.key))
+		#expect(cache.getData(for: file1.key) == nil)
+		#expect(cache.getData(for: file2.key) == file2.data)
+		#expect(cache.getData(for: file3.key) == nil)
+		#expect(cache.getData(for: file4.key) == file4.data)
+		#expect(cache.getData(for: file5.key) == nil)
 	}
 
-	func testReset() async {
-		let cache = generateDiskCache()
+	@Test func reset() async {
+		let (cache, done) = generateDiskCache()
+		defer { done() }
 
 		let file1 = Self.fileAssortment().file1
 
@@ -79,52 +71,55 @@ class NetworkDiskCacheTests: XCTestCase {
 
 		await file1Load
 
-		XCTAssertEqual(1024, cache.size)
-		XCTAssertEqual(1, cache.count)
+		#expect(1024 == cache.size)
+		#expect(1 == cache.count)
 
 		cache.resetCache()
 
-		XCTAssertEqual(0, cache.size)
-		XCTAssertEqual(0, cache.count)
+		#expect(0 == cache.size)
+		#expect(0 == cache.count) // swiftlint:disable:this empty_count
 	}
 
-	func testCacheCapacity() {
-		let cache = generateDiskCache()
+	@Test func cacheCapacity() {
+		let (cache, done) = generateDiskCache()
+		defer { done() }
 		cache.capacity = 1024 * 2
 
 		let (file1, file2, file3, file4, file5) = Self.fileAssortment()
 
 		cache.setData(file1.data, key: file1.key)
-		XCTAssertEqual(file1.data, cache.getData(for: file1.key))
+		#expect(file1.data == cache.getData(for: file1.key))
 
 		cache.setData(file2.data, key: file2.key)
-		XCTAssertNil(cache.getData(for: file1.key))
-		XCTAssertEqual(file2.data, cache.getData(for: file2.key))
+		#expect(cache.getData(for: file1.key) == nil)
+		#expect(file2.data == cache.getData(for: file2.key))
 
 		cache.setData(file3.data, key: file3.key)
-		XCTAssertNil(cache.getData(for: file1.key))
-		XCTAssertNil(cache.getData(for: file2.key))
-		XCTAssertNil(cache.getData(for: file3.key))
+		#expect(cache.getData(for: file1.key) == nil)
+		#expect(cache.getData(for: file2.key) == nil)
+		#expect(cache.getData(for: file3.key) == nil)
 
 		cache.setData(file4.data, key: file4.key)
-		XCTAssertNil(cache.getData(for: file1.key))
-		XCTAssertNil(cache.getData(for: file2.key))
-		XCTAssertNil(cache.getData(for: file3.key))
-		XCTAssertEqual(file4.data, cache.getData(for: file4.key))
+		#expect(cache.getData(for: file1.key) == nil)
+		#expect(cache.getData(for: file2.key) == nil)
+		#expect(cache.getData(for: file3.key) == nil)
+		#expect(file4.data == cache.getData(for: file4.key))
 
 		cache.setData(file5.data, key: file5.key)
-		XCTAssertNil(cache.getData(for: file1.key))
-		XCTAssertNil(cache.getData(for: file2.key))
-		XCTAssertNil(cache.getData(for: file3.key))
-		XCTAssertEqual(file4.data, cache.getData(for: file4.key))
-		XCTAssertEqual(file5.data, cache.getData(for: file5.key))
+		#expect(cache.getData(for: file1.key) == nil)
+		#expect(cache.getData(for: file2.key) == nil)
+		#expect(cache.getData(for: file3.key) == nil)
+		#expect(file4.data == cache.getData(for: file4.key))
+		#expect(file5.data == cache.getData(for: file5.key))
 	}
 
-	private func generateDiskCache(named name: String? = nil) -> DefaultNetworkDiskCache {
-		let logger = Logger(label: "Disk Test")
-		let cache = DefaultNetworkDiskCache(cacheName: name, logger: logger)
+	private func generateDiskCache(
+		forTest testName: String = #function
+	) -> (cache: DefaultNetworkDiskCache, done: () -> Void) {
+		let logger = Logger(label: "\(testName) - Disk Test")
+		let cache = DefaultNetworkDiskCache(cacheName: "\(testName)-DiskCache", logger: logger)
 
 		cache.resetCache()
-		return cache
+		return (cache, cache.resetCache)
 	}
 }

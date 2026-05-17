@@ -1,31 +1,29 @@
+import Foundation
 import Logging
 @testable import NetworkHandler
-import NetworkHandlerMockingEngine
 import PizzaMacros
+import Testing
 import TestSupport
-import XCTest
 
-class DefaultNetworkCacheTests: XCTestSuite {
-	private let mockingEngine = MockingEngine()
-
-	func testCacheCountLimit() {
+struct DefaultNetworkCacheTests {
+	@Test func cacheCountLimit() {
 		let cache = makeTestableCache()
 
 		let initialLimit = cache.countLimit
 		cache.countLimit = 5
-		XCTAssertEqual(5, cache.countLimit)
+		#expect(5 == cache.countLimit)
 		cache.countLimit = initialLimit
-		XCTAssertEqual(initialLimit, cache.countLimit)
+		#expect(initialLimit == cache.countLimit)
 	}
 
-	func testCacheTotalCostLimit() {
+	@Test func cacheTotalCostLimit() {
 		let cache = makeTestableCache()
 
 		let initialLimit = cache.totalCostLimit
 		cache.totalCostLimit = 5
-		XCTAssertEqual(5, cache.totalCostLimit)
+		#expect(5 == cache.totalCostLimit)
 		cache.totalCostLimit = initialLimit
-		XCTAssertEqual(initialLimit, cache.totalCostLimit)
+		#expect(initialLimit == cache.totalCostLimit)
 	}
 
 	/// I've determined that NSCache's version of thread safety is that it doesn't block, so there are times that you
@@ -34,7 +32,7 @@ class DefaultNetworkCacheTests: XCTestSuite {
 	/// finding a workaround to test, but in the meantime, this test failing isn't considered a real fail.
 	///
 	/// see idea in DefaultNetworkCache class
-	func testCacheAddRemove() {
+	@Test func cacheAddRemove() {
 		let data1 = Data([1, 2, 3, 4, 5])
 		let data2 = Data(data1.reversed())
 
@@ -61,31 +59,31 @@ class DefaultNetworkCacheTests: XCTestSuite {
 		let key3: NetworkCacheKey = .urlMethod(URL(fileURLWithPath: "/usr"), .get)
 
 		cache[key1] = cachedItem1
-		XCTAssertEqual(cachedItem1.data, cache[key1]?.data)
+		#expect(cachedItem1.data == cache[key1]?.data)
 		cache[key1] = cachedItem2
-		XCTAssertEqual(cachedItem2.data, cache[key1]?.data)
+		#expect(cachedItem2.data == cache[key1]?.data)
 
 		cache[key2] = cachedItem1
-		XCTAssertEqual(cachedItem1.data, cache[key2]?.data)
-		XCTAssertEqual(cachedItem2.data, cache[key1]?.data)
+		#expect(cachedItem1.data == cache[key2]?.data)
+		#expect(cachedItem2.data == cache[key1]?.data)
 
 		cache[key3] = cachedItem1
-		XCTAssertEqual(cachedItem1.data, cache[key3]?.data)
+		#expect(cachedItem1.data == cache[key3]?.data)
 		cache[key3] = nil
-		XCTAssertNil(cache[key3])
-		XCTAssertEqual(cachedItem1.data, cache[key2]?.data)
-		XCTAssertEqual(cachedItem2.data, cache[key1]?.data)
+		#expect(cache[key3] == nil)
+		#expect(cachedItem1.data == cache[key2]?.data)
+		#expect(cachedItem2.data == cache[key1]?.data)
 
 		cache[key3] = cachedItem1
-		XCTAssertEqual(cachedItem1.data, cache[key3]?.data)
+		#expect(cachedItem1.data == cache[key3]?.data)
 		let removed = cache.remove(objectFor: key3)
-		XCTAssertNil(cache[key3])
-		XCTAssertEqual(cachedItem1.data, removed?.data)
+		#expect(cache[key3] == nil)
+		#expect(cachedItem1.data == removed?.data)
 
 		cache.reset()
-		XCTAssertNil(cache[key1])
-		XCTAssertNil(cache[key2])
-		XCTAssertNil(cache[key3])
+		#expect(cache[key1] == nil)
+		#expect(cache[key2] == nil)
+		#expect(cache[key3] == nil)
 	}
 
 	// add test(s) where in memory is a miss, but on disk isn't - use mocked disk cache

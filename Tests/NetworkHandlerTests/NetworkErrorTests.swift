@@ -1,15 +1,15 @@
+import Foundation
 import NetworkHandler
 import PizzaMacros
+import Testing
 @testable import TestSupport
-import XCTest
 
-/// Obviously dependent on network conditions
-class NetworkErrorTests: XCTestCase {
+struct NetworkErrorTests {
 	static let simpleURL = #URL("http://he@ho.hum")
 
 	// MARK: - Template/Prototype Objects
 	/// Tests Equatability on NetworkError cases
-	func testErrorEquatable() {
+	@Test func errorEquatable() {
 		let allErrors = NetworkError.allErrorCases()
 		let dupErrors = NetworkError.allErrorCases()
 		var rotErrors = NetworkError.allErrorCases()
@@ -17,34 +17,34 @@ class NetworkErrorTests: XCTestCase {
 		rotErrors.append(rot1)
 
 		for (index, error) in allErrors.enumerated() {
-			XCTAssertEqual(error, dupErrors[index])
-			XCTAssertNotEqual(error, rotErrors[index])
+			#expect(error == dupErrors[index])
+			#expect(error != rotErrors[index])
 		}
 	}
 
 	@available(iOS 11.0, macOS 13.0, *)
-	func testErrorOutput() throws {
+	@Test func errorOutput() throws {
 		let testDummy = DummyType(id: 23, value: "Woop woop woop!", other: 25.3)
 		let encoder = JSONEncoder()
 		encoder.outputFormatting = [.sortedKeys]
-		let testData = try? encoder.encode(testDummy)
+		let testData = try encoder.encode(testDummy)
 
 		var error = NetworkError.unspecifiedError(reason: "Foo bar")
-		let testString = try XCTUnwrap(String(data: XCTUnwrap(testData), encoding: .utf8))
+		let testString = try #require(String(data: testData, encoding: .utf8))
 		let error1Str = "NetworkError: Unspecified Error: Foo bar"
 
-		XCTAssertEqual(error1Str, error.debugDescription)
+		#expect(error1Str == error.debugDescription)
 
 		error = .httpUnexpectedStatusCode(
 			code: 401,
 			originalRequest: .standard(Self.simpleURL.generalRequest).with { $0.requestID = nil },
 			data: testData)
 		let error2Str = "NetworkError: Bad Response Code (401) for request: (GET): http://he@ho.hum with data: \(testString)"
-		XCTAssertEqual(error2Str, error.debugDescription)
+		#expect(error2Str == error.debugDescription)
 
 		error = NetworkError.unspecifiedError(reason: nil)
 		let error3Str = "NetworkError: Unspecified Error: nil value"
-		XCTAssertEqual(error3Str, error.debugDescription)
+		#expect(error3Str == error.debugDescription)
 	}
 }
 
