@@ -414,7 +414,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		column: Int = #column,
 		function: String = #function
 	) async throws {
-		let server = try MockingServer.createServer()
+		let server = try await MockingServer.createServer(name: #function)
 
 		let accumulatedThreshold = 40_960
 
@@ -468,7 +468,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		column: Int = #column,
 		function: String = #function
 	) async throws {
-		let server = try MockingServer.createServer()
+		let server = try await MockingServer.createServer(name: #function)
 
 		let accumulatedThreshold = 40_960
 
@@ -520,7 +520,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		column: Int = #column,
 		function: String = #function
 	) async throws {
-		let server = try MockingServer.createServer()
+		let server = try await MockingServer.createServer(name: #function)
 
 		let url = uploadURL(port: server.port)
 		server.addMock(for: url.mockingPath, method: .put, responseData: nil)
@@ -573,7 +573,8 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 
 	// MARK: - Utilities
 	private func getNetworkHandler(with engine: Engine, function: String = #function) -> NetworkHandler<Engine> {
-		let nh = NetworkHandler(name: "\(#fileID) - \(Engine.self) (\(function))", engine: engine)
+		let mockCache = NetworkCacheMock(name: "\(function)-Cache", logger: Logger(label: "\(function)-CacheLog"))
+		let nh = NetworkHandler(name: "\(#fileID) - \(Engine.self) (\(function))", engine: engine, cache: mockCache)
 		nh.resetCache()
 		return nh
 	}

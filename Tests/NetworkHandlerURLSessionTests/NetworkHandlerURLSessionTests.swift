@@ -6,13 +6,12 @@ import SwiftPizzaSnips
 import Testing
 import TestSupport
 
-@Suite(.serialized)
 struct NetworkHandlerURLSessionTests: Sendable {
 	let commonTests = NetworkHandlerCommonTests<URLSession>(logger: Logger(label: #fileID))
 
 	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
 	@Test func downloadAndCacheImages() async throws {
-		let server = try MockingServer.createServer(name: #function)
+		let server = try await MockingServer.createServer(name: #function)
 
 		let lighthouseURL = try #require(Bundle.testBundle.url(forResource: "lighthouse", withExtension: "jpg"))
 		let lighthouseData = try Data(contentsOf: lighthouseURL)
@@ -34,7 +33,7 @@ struct NetworkHandlerURLSessionTests: Sendable {
 
 	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
 	@Test func downloadAndDecodeData() async throws {
-		let server = try MockingServer.createServer(name: #function)
+		let server = try await MockingServer.createServer(name: #function)
 		let modelURL = commonTests.demoModelURL(port: server.port)
 
 		let modelStr = """
@@ -61,7 +60,7 @@ struct NetworkHandlerURLSessionTests: Sendable {
 
 	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
 	@Test func handle404() async throws {
-		let server = try MockingServer.createServer(name: #function)
+		let server = try await MockingServer.createServer(name: #function)
 		let mockingEngine = generateEngine()
 
 		try await commonTests.handle404Error(
@@ -71,7 +70,7 @@ struct NetworkHandlerURLSessionTests: Sendable {
 
 	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
 	@Test func expect200OnlyGet200() async throws {
-		let server = try MockingServer.createServer(name: #function)
+		let server = try await MockingServer.createServer(name: #function)
 		let demoModelURL = commonTests.demoModelURL(port: server.port)
 
 		server.addMock(for: demoModelURL.mockingPath, responseData: nil, responseCode: 200)
@@ -83,7 +82,7 @@ struct NetworkHandlerURLSessionTests: Sendable {
 
 	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
 	@Test func expect201OnlyGet200() async throws {
-		let server = try MockingServer.createServer(name: #function)
+		let server = try await MockingServer.createServer(name: #function)
 		let demoModelURL = commonTests.demoModelURL(port: server.port)
 
 		server.addMock(for: demoModelURL.mockingPath, method: .put, responseData: nil, responseCode: 200)
@@ -95,7 +94,7 @@ struct NetworkHandlerURLSessionTests: Sendable {
 
 	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
 	@Test func uploadData() async throws {
-		let server = try MockingServer.createServer(name: #function)
+		let server = try await MockingServer.createServer(name: #function)
 		let url = commonTests.randomDataURL(port: server.port)
 
 		server.addMock(for: url.mockingPath, method: .put) {
@@ -114,7 +113,7 @@ struct NetworkHandlerURLSessionTests: Sendable {
 
 	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
 	@Test func backgroundSessionUpload() async throws {
-		let server = try MockingServer.createServer(name: #function)
+		let server = try await MockingServer.createServer(name: #function)
 		let url = commonTests.uploadURL(port: server.port)
 
 		server.addMock(for: url.mockingPath, method: .put) {
@@ -139,7 +138,7 @@ struct NetworkHandlerURLSessionTests: Sendable {
 
 	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
 	@Test func uploadFileURL() async throws {
-		let server = try MockingServer.createServer(name: #function)
+		let server = try await MockingServer.createServer(name: #function)
 		let url = commonTests.uploadURL(port: server.port)
 
 		server.addMock(for: url.mockingPath, method: .put) {
@@ -159,7 +158,7 @@ struct NetworkHandlerURLSessionTests: Sendable {
 
 	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
 	@Test func uploadMultipartFile() async throws {
-		let server = try MockingServer.createServer(name: #function)
+		let server = try await MockingServer.createServer(name: #function)
 		let uploadURL = commonTests.uploadURL(port: server.port)
 
 		server.addMock(for: uploadURL.mockingPath, method: .put) {

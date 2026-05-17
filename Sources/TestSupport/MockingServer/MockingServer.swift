@@ -6,12 +6,16 @@ import NetworkHandler
 import NHMacros
 import SwiftPizzaSnips
 
-/// Running a mocking server completely occupies an entire thread on the host machine. How ever many
-/// threads you have, make sure you make no more than threadCount - 1 instances.
+/// Running a mocking server completely occupies an entire thread on the host machine. That means it's limited
+/// to threadcount - 1 instances at most on a machine (at least one thread is needed for async await coop in addition
+/// to each instance). The `MockingServer` type prevents more than `ProcessInfo.processInfo.processorCount - 1`
+/// instances at a time, through its async init. While this is automatic, be aware that this could cause bottlenecks.
 @available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
 public final class MockingServer: Sendable {
 	private let runLoop: SelectorEventLoop
 	private let runLoopTask: Task<Void, Never>
+
+	private static let instanceTracker = MockingServerInstanceTracker()
 
 	nonisolated(unsafe)
 	public private(set) var server: HTTPServer!
@@ -27,13 +31,14 @@ public final class MockingServer: Sendable {
 	private let logger: Logging.Logger
 	private let name: String
 
-	public init(serverName: String, port: UInt16? = nil, logger: Logging.Logger? = nil) throws {
+	public init(serverName: String, port: UInt16? = nil, logger: Logging.Logger? = nil) async throws {
 		self.name = serverName
 		let port = port ?? UInt16.random(in: 10_000..<(.max))
 		self.port = port
 		let logger = logger ?? Logger(label: "\(serverName):(port \(port))")
 		logger.debug("Port \(port)")
 		self.logger = logger
+		await Self.instanceTracker.registerAdditionalInstance()
 		let selector = try KqueueSelector()
 		let runLoop = try SelectorEventLoop(selector: selector)
 		self.runLoop = runLoop
@@ -100,6 +105,7 @@ public final class MockingServer: Sendable {
 		server.stop()
 		runLoopTask.cancel()
 		logger.info("Server with port \(port) shutdown")
+		Task { await Self.instanceTracker.deregisterInstance() }
 	}
 
 	private func runServerLogic(
@@ -247,14 +253,15 @@ public final class MockingServer: Sendable {
 	/// that's already in use. Viable ports are `10000..<(UInt16.max)`. Ultimately, this means that if you have
 	/// thousands of simultaneous servers, you could end up in a situation where the available space for remaining
 	/// servers diminishes, eventually potentially causing an infinite loop when the entire space is occupied. The
-	/// solution to this is to not run thousands of simultaneous servers.
+	/// solution to this is to not run thousands of simultaneous servers. Edit: Turns out you cannot run more servers
+	/// than you have threads. See ``MockingServer``
 	/// - Returns: a MockingServer listening to localhost:[randomPort]
-	public static func createServer(name: String?) throws -> MockingServer {
+	public static func createServer(name: String?) async throws -> MockingServer {
 		var creationError: Embassy.OSError?
 
 		repeat {
 			do {
-				return try MockingServer(serverName: name ?? "Mocking Server")
+				return try await MockingServer(serverName: name ?? "Mocking Server")
 			} catch let error as Embassy.OSError {
 				guard case .ioError(let number, _) = error else {
 					throw error
@@ -297,3 +304,35 @@ public final class MockingServer: Sendable {
 }
 
 extension SelectorEventLoop: @unchecked @retroactive Sendable {}
+
+@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
+extension MockingServer {
+	private actor MockingServerInstanceTracker {
+		let maxCount: Int
+
+		private(set) var instanceCounter = 0
+
+		private var continuations: [CheckedContinuation<Void, Never>] = []
+
+		init() {
+			self.maxCount = ProcessInfo.processInfo.processorCount - 1
+		}
+
+		func registerAdditionalInstance() async {
+			let _: Void = await withCheckedContinuation { continuation in
+				if instanceCounter >= maxCount {
+					continuations.append(continuation)
+				} else {
+					continuation.resume()
+				}
+			}
+			instanceCounter += 1
+		}
+
+		func deregisterInstance() {
+			instanceCounter -= 1
+			continuations.popFirst()?.resume()
+		}
+
+	}
+}

@@ -7,7 +7,7 @@ import TestSupport
 struct Sandbox {
 	@available(macOS 15.0.0, *)
 	@Test func server() async throws {
-		let server = try MockingServer(serverName: "sandbox", port: 15_151)
+		let server = try await MockingServer(serverName: "sandbox", port: 15_151)
 
 		server.addMock(
 			for: "asdf/foo/bar",
