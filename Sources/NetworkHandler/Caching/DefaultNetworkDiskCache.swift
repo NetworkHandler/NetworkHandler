@@ -8,18 +8,33 @@ final class DefaultNetworkDiskCache: CustomDebugStringConvertible, Sendable, Net
 	nonisolated(unsafe)
 	let fileManager = FileManager.default
 
+	// should only operate within Self.globalLock
 	nonisolated(unsafe)
-	private(set) var size: UInt64 = 0
+	private var _size: UInt64 = 0
+	public var size: UInt64 {
+		Self.globalLock.withLock { _size }
+	}
 
+	// should only operate within Self.globalLock
 	nonisolated(unsafe)
-	var capacity: UInt64 {
+	private var _capacity: UInt64 {
 		didSet { enforceCapacity() }
+	}
+	public var capacity: UInt64 {
+		get { Self.globalLock.withLock { _capacity } }
+		set { Self.globalLock.withLock { _capacity = newValue } }
 	}
 
 	let name: String
 
+	// should only operate within Self.globalLock
 	nonisolated(unsafe)
-	private(set) var count: Int = 0
+	private var _count: Int = 0
+	public var count: Int {
+		Self.globalLock.withLock { _count }
+	}
+
+	public var isEmpty: Bool { count == 0 } // swiftlint:disable:this empty_count
 
 	private let cacheLocation: URL
 
@@ -33,13 +48,13 @@ final class DefaultNetworkDiskCache: CustomDebugStringConvertible, Sendable, Net
 	private static let diskDecoder = PropertyListDecoder()
 
 	init(capacity: UInt64 = .max, cacheName: String? = nil, logger: Logger) {
+		Self.globalLock.lock()
+		defer { Self.globalLock.unlock() }
 		self.logger = logger
-		self.capacity = capacity
+		self._capacity = capacity
 		self.name = cacheName ?? "DefaultNetworkDiskCache"
 		self.cacheLocation = Self.getCacheURL(cacheName: name)
 
-		Self.globalLock.lock()
-		defer { Self.globalLock.unlock() }
 		_refreshSize()
 		enforceCapacity()
 	}
@@ -60,10 +75,6 @@ final class DefaultNetworkDiskCache: CustomDebugStringConvertible, Sendable, Net
 		}
 	}
 
-	func reset() {
-		resetCache()
-	}
-
 	// MARK: - CRUD
 
 	func setData(_ getData: @autoclosure @escaping () -> Data?, key: NetworkCacheKey) {
@@ -74,6 +85,7 @@ final class DefaultNetworkDiskCache: CustomDebugStringConvertible, Sendable, Net
 		}
 	}
 
+	// should only operate within its file lock
 	private func _setData(_ getData: @autoclosure @escaping () -> Data?, fileLocation: URL) {
 		guard let data = getData() else {
 			_deleteFile(at: fileLocation)
@@ -84,8 +96,10 @@ final class DefaultNetworkDiskCache: CustomDebugStringConvertible, Sendable, Net
 
 		do {
 			try data.write(to: fileLocation)
-			_subtractSize(oldFileSize ?? 0, removingFile: false)
-			_addSize(for: data)
+			Self.globalLock.withLock {
+				_subtractSize(oldFileSize ?? 0, removingFile: false)
+				_addSize(for: data)
+			}
 			_updateAccessDate(fileLocation)
 			logger.debug("Saved cached file", metadata: ["URL": "\(fileLocation.absoluteString)"])
 		} catch {
@@ -101,6 +115,7 @@ final class DefaultNetworkDiskCache: CustomDebugStringConvertible, Sendable, Net
 		}
 	}
 
+	// should only operate within its file lock
 	private func _getData(for filePath: URL) -> Data? {
 		guard let loadedData = try? Data(contentsOf: filePath) else { return nil }
 		_updateAccessDate(filePath)
@@ -109,6 +124,7 @@ final class DefaultNetworkDiskCache: CustomDebugStringConvertible, Sendable, Net
 		return loadedData
 	}
 
+	// should only operate within its file lock
 	private func _deleteFile(at path: URL) {
 		guard let oldSize = _fileSize(at: path) else {
 			return // no size implies no file
@@ -116,7 +132,9 @@ final class DefaultNetworkDiskCache: CustomDebugStringConvertible, Sendable, Net
 
 		do {
 			try fileManager.removeItem(at: path)
-			_subtractSize(oldSize, removingFile: true)
+			Self.globalLock.withLock {
+				_subtractSize(oldSize, removingFile: true)
+			}
 			logger.debug("Deleted cached file", metadata: ["File": "\(path.path(percentEncoded: false))"])
 			releaseLock(for: path)
 		} catch {
@@ -124,13 +142,14 @@ final class DefaultNetworkDiskCache: CustomDebugStringConvertible, Sendable, Net
 		}
 	}
 
-	func resetCache() {
+	func reset() {
 		Self.globalLock.withLock {
 			_resetCache()
 			fileLocks = [:]
 		}
 	}
 
+	// should only operate within Self.globalLock
 	private func _resetCache() {
 		guard cacheLocation.checkResourceIsAccessible() else { return }
 		do {
@@ -197,6 +216,7 @@ final class DefaultNetworkDiskCache: CustomDebugStringConvertible, Sendable, Net
 		return cacheLocation.appendingPathComponent(sha1)
 	}
 
+	// should only operate within its file lock
 	private func _updateAccessDate(_ url: URL) {
 		let now = Date()
 		do {
@@ -207,6 +227,7 @@ final class DefaultNetworkDiskCache: CustomDebugStringConvertible, Sendable, Net
 		}
 	}
 
+	// should only operate within its file lock
 	private func _fileSize(at url: URL) -> UInt64? {
 		guard
 			let sizeValue = try? url.resourceValues(forKeys: [.fileSizeKey]),
@@ -216,24 +237,27 @@ final class DefaultNetworkDiskCache: CustomDebugStringConvertible, Sendable, Net
 		return .init(size)
 	}
 
+	// should only operate within Self.globalLock
 	private func _addSize(for data: Data) {
 		let size = UInt64(data.count)
 		_addSize(size)
 	}
 
+	// should only operate within Self.globalLock
 	private func _addSize(_ value: UInt64) {
-		size += value
-		count += 1
+		_size += value
+		_count += 1
 		_enforceCapacity()
 	}
 
+	// should only operate within Self.globalLock
 	private func _subtractSize(_ value: UInt64, removingFile: Bool) {
-		if removingFile { count -= 1 }
-		guard value < size else {
-			size = 0
+		if removingFile { _count -= 1 }
+		guard value < _size else {
+			_size = 0
 			return
 		}
-		size -= value
+		_size -= value
 	}
 
 	private func enforceCapacity() {
@@ -242,6 +266,7 @@ final class DefaultNetworkDiskCache: CustomDebugStringConvertible, Sendable, Net
 		_enforceCapacity()
 	}
 
+	// should only operate within Self.globalLock
 	private func _enforceCapacity() {
 		guard size > capacity else { return }
 
@@ -276,10 +301,11 @@ final class DefaultNetworkDiskCache: CustomDebugStringConvertible, Sendable, Net
 		}
 	}
 
+	// should only operate within Self.globalLock
 	private func _refreshSize() {
 		guard cacheLocation.checkResourceIsAccessible() else {
-			size = 0
-			count = 0
+			_size = 0
+			_count = 0
 			return
 		}
 		do {
@@ -288,13 +314,13 @@ final class DefaultNetworkDiskCache: CustomDebugStringConvertible, Sendable, Net
 					at: cacheLocation,
 					includingPropertiesForKeys: [.fileSizeKey],
 					options: [])
-			size = try contents.reduce(0, {
+			_size = try contents.reduce(0, {
 				let fileSizeValues = try $1.resourceValues(forKeys: [.fileSizeKey])
 				guard let fileSize = fileSizeValues.fileSize else { return $0 }
 
 				return $0 + UInt64(fileSize)
 			})
-			count = contents.count
+			_count = contents.count
 			logger.trace("Refreshed disk cache size", metadata: ["Size": "\(size)", "Count": "\(count)"])
 		} catch {
 			logger.error("Error calculating disk cache size:", metadata: ["Error": "\(error)"])

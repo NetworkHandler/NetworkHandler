@@ -87,7 +87,7 @@ class DefaultNetworkDiskCacheTests {
 		#expect(1 == cache.count)
 
 		// When the cache is reset.
-		cache.resetCache()
+		cache.reset()
 
 		// Then size and count both drop to zero.
 		#expect(0 == cache.size)
@@ -140,13 +140,49 @@ class DefaultNetworkDiskCacheTests {
 		#expect(file5.data == cache.getData(for: file5.key))
 	}
 
+	@Test func sizeCountRaceOnConcurrentWrites() async {
+		let (cache, done) = generateDiskCache()
+		defer { done() }
+
+		let items = 128
+		let itemSize: UInt64 = 1024 * 100 // 100KB each = longer I/O = bigger race window
+
+		for iteration in 0..<50 {
+			// 1. Clear
+			cache.reset()
+			#expect(cache.isEmpty == true)
+			#expect(cache.size == 0)
+
+			// 2. Write all keys concurrently
+			await withTaskGroup { group in
+				for i in 0..<items {
+					group.addTask {
+						let data = Data(repeating: UInt8(i), count: Int(itemSize))
+						cache.setData(data, key: .rawString("s_\(iteration)_\(i)"))
+					}
+				}
+
+				await group.waitForAll()
+			}
+
+			// 3. Verify
+			let expectedSize = UInt64(items) * itemSize
+			#expect(
+				cache.count == items,
+				"Iter \(iteration): count wanted \(items) got \(cache.count)")
+			#expect(
+				cache.size == expectedSize,
+				"Iter \(iteration): size wanted \(expectedSize) got \(cache.size)")
+		}
+	}
+
 	private func generateDiskCache(
 		forTest testName: String = #function
 	) -> (cache: DefaultNetworkDiskCache, done: () -> Void) {
 		let logger = Logger(label: "\(testName) - Disk Test")
 		let cache = DefaultNetworkDiskCache(cacheName: "\(testName)-DiskCache", logger: logger)
 
-		cache.resetCache()
-		return (cache, cache.resetCache)
+		cache.reset()
+		return (cache, cache.reset)
 	}
 }
