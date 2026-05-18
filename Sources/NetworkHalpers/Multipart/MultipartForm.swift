@@ -125,7 +125,10 @@ public struct MultipartForm: Sendable, Hashable {
 		globalOffset - chunkStart
 	}
 
-	private static func normalizeGlobalRange(_ globalRange: Range<Int>, toGlobalChunkRange chunkRange: Range<Int>) -> Range<Int> {
+	private static func normalizeGlobalRange(
+		_ globalRange: Range<Int>,
+		toGlobalChunkRange chunkRange: Range<Int>
+	) -> Range<Int> {
 		let clamped = chunkRange.clamped(to: globalRange)
 		return (clamped.lowerBound - chunkRange.lowerBound)..<(clamped.upperBound - chunkRange.lowerBound)
 	}

@@ -1,3 +1,4 @@
+import Crypto
 import Foundation
 import NetworkHalpers
 import SwiftPizzaSnips
@@ -42,6 +43,77 @@ struct MultipartFormTests {
 		try FileManager.default.moveItem(at: baseOut, to: oldFileURL)
 		try newFormat.render().write(to: newFileURL)
 		try newFormat.data(at: 0, count: newFormat.count).write(to: newChunkFileURL)
+	}
+
+	@Test func dataPartModularOffsetCount() async throws {
+		// given a part with known composition
+		let boundary = "alsdkfajklsghdkjashdf"
+
+		var form = MultipartForm(boundary: boundary)
+		var rng: any RandomNumberGenerator = SeedableRNG(seed: 498_567)
+		let loremIpsum = String.randomLoremIpsum(wordCount: 42, using: &rng)
+
+		form.append(loremIpsum, named: "lorem")
+
+		let part = form.parts[0]
+
+		let totalPartOutput = try part.data(at: 0, count: part.totalCount)
+		let hash = totalPartOutput.persistentHashValue().toHexString()
+		#expect(hash == "3477f63728edfcbf24ead901a33b07ff")
+
+		// when it's read from any offset with any count
+		try exhaustivePartIterations(totalPartOutput: totalPartOutput, part: part)
+	}
+
+	@Test func filePartModularOffsetCount() async throws {
+		// given a part with known composition
+		let boundary = "alsdkfajklsghdkjashdf"
+
+		var form = MultipartForm(boundary: boundary)
+		var rng: any RandomNumberGenerator = SeedableRNG(seed: 498_567)
+		let loremIpsum = Data(String.randomLoremIpsum(wordCount: 24, using: &rng).utf8)
+
+		let file = URL.temporaryDirectory.appending(component: "lorem-\(Int.random(in: 1000..<9999)).txt")
+		defer { try? FileManager.default.removeItem(at: file) }
+		try loremIpsum.write(to: file)
+
+		form.append(file, named: "lorem", filename: "lorem.txt")
+
+		let part = form.parts[0]
+
+		let totalPartOutput = try part.data(at: 0, count: part.totalCount)
+		let hash = totalPartOutput.persistentHashValue().toHexString()
+		#expect(hash == "1667026d5fac46ee103c7e62924bd34a")
+
+		// when it's read from any offset with any count
+		try exhaustivePartIterations(totalPartOutput: totalPartOutput, part: part)
+	}
+
+	private func exhaustivePartIterations(
+		totalPartOutput: Data,
+		part: MultipartForm.Part,
+		line: Int = #line,
+		column: Int = #column
+	) throws {
+		for startOffset in 0..<(totalPartOutput.count + 10) {
+			for count in 0..<(totalPartOutput.count + 10) {
+				let chunk = try part.data(at: startOffset, count: count)
+
+				let expectedChunk = {
+					let range = (startOffset..<(startOffset + count)).clamped(to: totalPartOutput.indices)
+					return totalPartOutput[range]
+				}()
+
+				// then it correctly maintains data integrity, including across internal component barriers
+				#expect(
+					chunk == expectedChunk,
+					sourceLocation: SourceLocation(
+						fileID: #fileID,
+						filePath: #filePath,
+						line: line,
+						column: column))
+			}
+		}
 	}
 
 	struct Sample: Codable, Sendable {
