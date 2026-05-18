@@ -5,44 +5,50 @@ import SwiftPizzaSnips
 import Testing
 
 struct MultipartFormTests {
-	@Test func sameOutput() async throws {
+	@Test func multipartFormModularOffsetCount() async throws {
+		// given a form with known composition
 		let boundary = "alsdkfajklsghdkjashdf"
 
-		let baseForm = MultipartFormInputTempFile(boundary: boundary)
-		var newFormat = MultipartForm(boundary: boundary)
+		var form = MultipartForm(boundary: boundary)
 
-		let jsonSample = Sample(value: 5, label: "asdf", sub: .init(foo: "bar"))
-		let jsonData = try JSONEncoder()
-			.with { $0.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes] }
-			.encode(jsonSample)
-		baseForm.addPart(named: "metadata", data: jsonData)
-		newFormat.append(jsonData, named: "metadata")
-
-		let randomString = "bloo bar bazination\n\ntrue fuzz"
-		baseForm.addPart(named: "randomized", string: randomString)
-		newFormat.append(randomString, named: "randomized")
-
+		// a file part
 		var rng: any RandomNumberGenerator = SeedableRNG(seed: 498_567)
-		let randomTextForFile = String.randomLoremIpsum(wordCount: 42, using: &rng)
-		let randomFile = URL.temporaryDirectory.appending(component: "afile.txt")
-		try Data(randomTextForFile.utf8).write(to: randomFile)
-		defer { try? FileManager.default.removeItem(at: randomFile) }
-		baseForm.addPart(named: "thefile", fileURL: randomFile, filename: "lorem.txt", contentType: "text/plain")
-		newFormat.append(randomFile, named: "thefile", filename: "lorem.txt")
+		let loremIpsum = Data(String.randomLoremIpsum(wordCount: 6, using: &rng).utf8)
 
-		let baseOut = try await baseForm.renderToFile()
+		let file = URL.temporaryDirectory.appending(component: "lorem-\(Int.random(in: 1000..<9999)).txt")
+		defer { try? FileManager.default.removeItem(at: file) }
+		try loremIpsum.write(to: file)
+		form.append(file, named: "lorem", filename: "lorem.txt")
 
-		let oldFileURL = URL.homeDirectory.appending(path: "Swap/multi-old.bin")
-		let newFileURL = URL.homeDirectory.appending(path: "Swap/multi-new.bin")
-		let newChunkFileURL = URL.homeDirectory.appending(path: "Swap/multi-new-datachunked.bin")
+		// a data part
+		let jsonSample = Sample(value: 5, label: "asdf", sub: nil)
+		let jsonData = try JSONEncoder()
+			.with { $0.outputFormatting = [.sortedKeys, .withoutEscapingSlashes] }
+			.encode(jsonSample)
+		form.append(jsonData, named: "metadata")
 
-		for file in [oldFileURL, newFileURL, newChunkFileURL] {
-			try? FileManager.default.removeItem(at: file)
+		// a string part
+		let randomString = "bloo bar baz\n\ntrue fuzz"
+		form.append(randomString, named: "randomized")
+
+		let totalFormOutput = try form.render()
+		let hash = totalFormOutput.persistentHashValue().toHexString()
+		#expect(hash == "5c37579f467b73a33a99ba13b596a10f")
+
+		// when it's read from any offset with any count
+		for startOffset in 0..<(totalFormOutput.count + 10) {
+			for count in 0..<(totalFormOutput.count + 10) {
+				let chunk = try form.data(at: startOffset, count: count)
+
+				let expectedChunk = {
+					let range = (startOffset..<(startOffset + count)).clamped(to: totalFormOutput.indices)
+					return totalFormOutput[range]
+				}()
+
+				// then it correctly maintains data integrity, including across internal component barriers
+				#expect(chunk == expectedChunk)
+			}
 		}
-
-		try FileManager.default.moveItem(at: baseOut, to: oldFileURL)
-		try newFormat.render().write(to: newFileURL)
-		try newFormat.data(at: 0, count: newFormat.count).write(to: newChunkFileURL)
 	}
 
 	@Test func dataPartModularOffsetCount() async throws {
@@ -119,7 +125,7 @@ struct MultipartFormTests {
 	struct Sample: Codable, Sendable {
 		let value: Int
 		let label: String
-		let sub: SubSample
+		let sub: SubSample?
 
 		struct SubSample: Codable, Sendable {
 			let foo: String

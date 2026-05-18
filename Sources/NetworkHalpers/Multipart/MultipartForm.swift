@@ -104,6 +104,9 @@ public struct MultipartForm: Sendable, Hashable {
 		let normalRange = Self.normalizeGlobalRange(
 			offset..<(offset + count),
 			toGlobalChunkRange: lastPartEnd..<(lastPartEnd + footer.count))
+		guard normalRange.clamped(to: footer.indices).isOccupied else {
+			return Data()
+		}
 		return footer[normalRange]
 	}
 
