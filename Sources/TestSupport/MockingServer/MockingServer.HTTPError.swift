@@ -20,6 +20,8 @@ extension MockingServer {
 		public static func capture<T>(_ throwing: () throws -> T) throws(HTTPError) -> T {
 			do {
 				return try throwing()
+			} catch let error as HTTPError {
+				throw error
 			} catch {
 				if error.isTimeout() {
 					throw HTTPError(errorDescription: "Server timeout")

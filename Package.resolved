@@ -1,5 +1,5 @@
 {
-  "originHash" : "fdbefda4e7362253537a40957297ce1d62ec40e0cc3a89694ac0674a157703d5",
+  "originHash" : "90045cd09aaa003a5a479a1cec1d152d9a19b0e27bf5316b7fc3a266e5b027a3",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -8,6 +8,15 @@
       "state" : {
         "revision" : "3a5b74a58782c3b4c1f0bc75e9b67b10c2494e8f",
         "version" : "1.33.1"
+      }
+    },
+    {
+      "identity" : "datascanner",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/mredig/DataScanner.git",
+      "state" : {
+        "revision" : "0d6c1904316070a2a48a73b5da0a9bfcaa2f5ad5",
+        "version" : "0.4.3"
       }
     },
     {

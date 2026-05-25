@@ -176,6 +176,24 @@ struct NetworkHandlerURLSessionTests: Sendable {
 		try await commonTests.uploadMultipartFile(engine: mockingEngine, mockingPort: server.port)
 	}
 
+	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
+	@Test func uploadMultipartStream() async throws {
+		let server = try await MockingServer.createServer(name: #function)
+		let uploadURL = commonTests.uploadURL(port: server.port)
+
+		server.addMock(for: uploadURL.mockingPath, method: .put) {
+			[unowned server] inReq, respStream throws(MockingServer.HTTPError) in
+
+			try commonPutToGet(
+				mockingPath: uploadURL.mockingPath,
+				server: server,
+				inRequest: inReq,
+				responseStream: respStream)
+		}
+
+		let mockingEngine = generateEngine()
+		try await commonTests.uploadMultipartStream(engine: mockingEngine, mockingPort: server.port)
+	}
 
 	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
 	@Test func cancellationViaToken() async throws {

@@ -79,6 +79,7 @@ var targets: [Target] = [
 			"NetworkHandlerMockingEngine",
 			"NHMacros",
 			"Embassy",
+			"DataScanner",
 		],
 		resources: [
 			.process("Resources")
@@ -182,6 +183,7 @@ let package = Package(
 		.package(url: "https://github.com/mredig/SwiftPizzaSnips.git", .upToNextMajor(from: "0.4.35")),
 		//		.package(url: "https://github.com/mredig/SwiftPizzaSnips.git", branch: "0.4.34h"),
 		.package(url: "https://github.com/mredig/SwiftlyDotEnv.git", .upToNextMinor(from: "0.2.3")),
+		.package(url: "https://github.com/mredig/DataScanner.git", .upToNextMinor(from: "0.4.3")),
 		.package(url: "https://github.com/swift-server/async-http-client", .upToNextMajor(from: "1.25.2")),
 		.package(url: "https://github.com/apple/swift-log.git", .upToNextMajor(from: "1.6.2")),
 		.package(url: "https://github.com/apple/swift-algorithms.git", .upToNextMajor(from: "1.2.1")),

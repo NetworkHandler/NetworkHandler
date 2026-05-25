@@ -382,11 +382,13 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		defer { try? done() }
 
 		let boundary = "akjlsdghkajshdg"
-		let multipart = MultipartFormInputTempFile(boundary: boundary)
-		multipart.addPart(named: "file", fileURL: actualTestFile, contentType: "application/octet-stream")
+		var multipart = MultipartForm(boundary: boundary)
+		multipart.append(actualTestFile, named: "file", contentType: "application/octet-stream")
 
-		let multipartFile = try await multipart.renderToFile()
-		defer { try? FileManager.default.removeItem(at: multipartFile )}
+		let renderedData = try multipart.render()
+		let multipartFile = URL.temporaryDirectory.appending(component: "\(#function).mpf")
+		try renderedData.write(to: multipartFile)
+		defer { try? FileManager.default.removeItem(at: multipartFile) }
 
 		let multipartHash = try fileHash(multipartFile)
 
@@ -407,6 +409,57 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 	}
 
+	/// performs a `PUT` request to `uploadURL`
+	public func uploadMultipartStream(
+		engine: Engine,
+		mockingPort: UInt16,
+		file: String = #fileID,
+		filePath: String = #filePath,
+		line: Int = #line,
+		column: Int = #column,
+		function: String = #function
+	) async throws {
+		let nh = getNetworkHandler(with: engine)
+		defer { nh.resetCache() }
+
+		let uploadURL = uploadURL(port: mockingPort)
+		let upRequest = uploadURL.generalRequest.with {
+			$0.method = .put
+			$0.expectedResponseCodes = 201
+			$0.headers.setAuthorization(.bearerToken("foobar"))
+		}
+
+		let rng: any RandomNumberGenerator = SeedableRNG(seed: 12_345)
+		let testFileURL = URL.temporaryDirectory.appending(component: "multipartStreamUpload").appendingPathExtension("bin")
+		let (actualTestFile, done) = try createDummyFile(at: testFileURL, megabytes: 10, using: rng)
+		defer { try? done() }
+
+		let boundary = "akjlsdghkajshdg"
+		var multipart = MultipartForm(boundary: boundary)
+		multipart.append("Foo", named: "file", contentType: "text/plain")
+		multipart.append(actualTestFile, named: "file", contentType: "application/octet-stream")
+
+		let multipartHash = try SHA256.hash(data: multipart.render())
+		print(multipartHash)
+		try multipart.render().write(to: .homeDirectory.appending(path: "Swap/foo.mpf"))
+
+		let uploadStream = multipart.stream
+		let atomicRequest = AtomicValue(value: CompleteNetworkRequest.upload(upRequest, payload: .inputStream(uploadStream)))
+		let delegate = await Delegate(onRequestModified: { _, _, new in
+			atomicRequest.value = new
+		})
+		_ = try await nh.uploadMahDatas(for: upRequest, payload: .inputStream(uploadStream), delegate: delegate)
+		#expect(
+			atomicRequest.value.expectedContentLength == nil,
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
+
+		let dlRequest = uploadURL.generalRequest
+
+		let dlResult = try await #require(nh.transferMahDatas(for: .standard(dlRequest)).data)
+		#expect(
+			SHA256.hash(data: dlResult) == multipartHash,
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
+	}
 
 	/// performs a `GET` request to `randomDataURL`. Provided must be corrupted in some way.
 	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)

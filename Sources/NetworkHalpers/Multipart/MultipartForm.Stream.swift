@@ -9,6 +9,12 @@ extension MultipartForm {
 	public class Stream: InputStream {
 		public let form: MultipartForm
 
+		private weak var _delegate: StreamDelegate?
+		public override var delegate: StreamDelegate? {
+			get { _delegate }
+			set { _delegate = newValue }
+		}
+
 		private var _currentOffset = 0
 		public var currentOffset: Int {
 			lock.withLock { _currentOffset }

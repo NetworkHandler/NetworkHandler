@@ -1,3 +1,4 @@
+import DataScanner
 @preconcurrency import Embassy
 import Foundation
 import HTTPTypes
@@ -148,20 +149,92 @@ public final class MockingServer: Sendable {
 			return
 		}
 
+		func processChunkedData(_ data: Data?) throws(HTTPError) -> Data? {
+			guard let data else { return nil }
+
+			struct HeaderBuilder {
+				static let chunkEnd = Data("\r\n".utf8)
+
+				private(set) var count: Int?
+				private(set) var header = Data()
+
+				mutating func addByte(_ byte: UInt8) throws {
+					header.append(byte)
+					if header.count > 2, header.suffix(2) == HeaderBuilder.chunkEnd {
+						let newHeader = header.dropLast(2)
+
+						guard
+							let string = String(data: newHeader, encoding: .utf8),
+							let count = Int(string, radix: 16)
+						else {
+							throw HTTPError(code: 400, errorDescription: "Invalid payload count")
+						}
+
+						self.count = count
+						self.header = newHeader
+					}
+				}
+			}
+
+			var scanner = DataScanner(data)
+
+			var headerBuilder = HeaderBuilder()
+			var outputAccumulator = Data()
+
+			while scanner.isAtEnd == false {
+				if let count = headerBuilder.count {
+					guard count > 0 else { break }
+
+					try HTTPError.capture {
+						let chunkData = try scanner.scanBytes(count)
+
+						outputAccumulator.append(chunkData)
+						let sectionEnd = try scanner.scanBytes(2)
+						guard sectionEnd == HeaderBuilder.chunkEnd else {
+							throw HTTPError(code: 400, errorDescription: "Invalid chunk end")
+						}
+						headerBuilder = .init()
+					}
+				} else {
+					try HTTPError.capture {
+						let byte = try scanner.scanByte()
+						try headerBuilder.addByte(byte)
+					}
+				}
+			}
+
+			return outputAccumulator
+		}
+
 		func finishRequest(incomingPayload: Data?) {
-			let incomingRequest = IncomingRequest(
-				path: path,
-				method: requestMethod,
-				headers: .init(headers),
-				payload: incomingPayload)
+			func finishWithError(_ error: HTTPError) {
+				let errorInfo = error.errorDescription ?? "No error description"
+				responseStream(
+					.header(
+						.init(responseCode: error.code, responseHeader: [#HTTPFieldName("Error"): errorInfo])))
+				responseStream(.complete)
+			}
 
 			logger.info("Responding")
 
-			Task {
-				logger.info("Test log")
-			}
-
 			Task { [logger, dbMock] in
+				let payload: Data?
+				do throws(HTTPError) {
+					if headers["TRANSFER_ENCODING"] == "chunked" {
+						payload = try processChunkedData(incomingPayload)
+					} else {
+						payload = incomingPayload
+					}
+				} catch {
+					finishWithError(error)
+					return
+				}
+
+				let incomingRequest = IncomingRequest(
+					path: path,
+					method: requestMethod,
+					headers: .init(headers),
+					payload: payload)
 				defer {
 					logger.info(
 						"Finished processing request",
@@ -173,17 +246,14 @@ public final class MockingServer: Sendable {
 						responseStream(chunk)
 					}
 				} catch {
-					let errorInfo = error.errorDescription ?? "No error description"
-					responseStream(
-						.header(
-							.init(responseCode: error.code, responseHeader: [#HTTPFieldName("Error"): errorInfo])))
-					responseStream(.complete)
+					finishWithError(error)
 				}
 			}
 		}
 
 		let hasBody = headers["CONTENT_LENGTH"] != nil || headers["TRANSFER_ENCODING"] == "chunked"
 		if hasBody {
+			let endMarker = Data("0\r\n\r\n".utf8)
 			logger.info("Processing request data", metadata: ["Path": "\(loggingPath)", "Method": "\(requestMethod.rawValue)"])
 			let expectedLength = headers["CONTENT_LENGTH"]
 			var payload = Data()
@@ -192,7 +262,8 @@ public final class MockingServer: Sendable {
 				logger.info(
 					"Got bytes",
 					metadata: ["ExpectedTotal": "\(expectedLength, default: "unknown")", "TotalReceived": "\(payload.count)"])
-				guard $0.isEmpty else { return }
+				let chunkEnd = payload.suffix(5)
+				guard $0.isEmpty || chunkEnd == endMarker else { return }
 				logger.info(
 					"Finished request upload",
 					metadata: ["TotalReceived": "\(payload.count)"])
