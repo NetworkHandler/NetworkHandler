@@ -886,23 +886,11 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 			try? FileManager.default.removeItem(at: tempFileURL)
 		}
 
-		try await confirmation { tempFileExisted in
-			Task {
-				var seen = false
-				while seen == false {
-					try await Task.sleep(for: .milliseconds(20))
-					guard tempFileURL.checkResourceIsAccessible() else { continue }
-					seen = true
-					tempFileExisted()
-				}
-			}
-
-			_ = try await nh.downloadMahFile(
-				for: request,
-				savingToLocalFileURL: outputFileURL,
-				withTemporaryFile: tempFileURL,
-				requestLogger: logger)
-		}
+		_ = try await nh.downloadMahFile(
+			for: request,
+			savingToLocalFileURL: outputFileURL,
+			withTemporaryFile: tempFileURL,
+			requestLogger: logger)
 
 		let fileHash = try fileHash(outputFileURL)
 		#expect(fileHash.toHexString() == "92b640d348a4627b4185f5378d8949b542055bd37fe513e6add9a1e010a3a83d")

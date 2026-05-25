@@ -190,6 +190,6 @@ let package = Package(
 		.package(url: "https://github.com/SimplyDanny/SwiftLintPlugins", from: "0.58.2"),
 		.package(url: "https://github.com/apple/swift-http-types.git", from: "1.5.1"),
 		.package(url: "https://github.com/NetworkHandler/NHMacros.git", .upToNextMajor(from: "0.0.1")),
-		.package(url: "https://github.com/envoy/Embassy.git", .upToNextMajor(from: "4.1.6"))
+		.package(url: "https://github.com/envoy/Embassy.git", .upToNextMajor(from: "4.1.6")),
 	],
 	targets: targets)
