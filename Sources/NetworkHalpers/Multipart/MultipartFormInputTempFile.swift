@@ -8,6 +8,7 @@ blob prior to uploading a file, so be aware of this behavior. Be sure to use a `
 to get proper progress reporting (for some reason? This is just from some minimal personal testing, but has been
 semi consistent in my experience).
 */
+@available(*, deprecated, message: "Replaced with MultipartForm")
 public class MultipartFormInputTempFile: @unchecked Sendable {
 
 	public let boundary: String

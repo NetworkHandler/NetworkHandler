@@ -8,6 +8,7 @@ elsewhere. However, it does NOT allow for accurate progress when uploading and u
 inaccurate progress reports. Because of this, I'm not sure if it's worth holding onto this class and am considering
 deprecating it.
 */
+@available(*, deprecated, message: "Replaced with MultipartForm.Stream")
 public class MultipartFormInputStream: ConcatenatedInputStream {
 	public let boundary: String
 	private let originalBoundary: String
