@@ -1,15 +1,24 @@
+import Foundation
 import NetworkHalpers
+import Testing
 import TestSupport
-import XCTest
 
-class MultipartInputStreamTests: XCTestCase {
-	func testMultipartGeneration() throws {
+class MultipartInputStreamTests {
+	private var teardownBlocks: [() -> Void] = []
+
+	deinit {
+		for block in teardownBlocks {
+			block()
+		}
+	}
+
+	@Test func testMultipartGeneration() throws {
 		let boundary = "alskdglkasdjfglkajsdf"
 		var multipart = MultipartForm(boundary: boundary)
 
 		// given known multipart form input
 		let arbText = "Odd input stream"
-		let arbitraryData = try XCTUnwrap(arbText.data(using: .utf8))
+		let arbitraryData = try #require(arbText.data(using: .utf8))
 		let testedText = "tested"
 		let (fileURL, _) = try createTestFile()
 
@@ -30,10 +39,10 @@ class MultipartInputStreamTests: XCTestCase {
 		"""
 
 		let finalString = String(data: finalData, encoding: .utf8)
-		XCTAssertEqual(expected, finalString)
+		#expect(expected == finalString)
 	}
 
-	func testStreamCopy() throws {
+	@Test func testStreamCopy() throws {
 		let expected = """
 		--Boundary-alskdglkasdjfglkajsdf\r\nContent-Disposition: form-data; name=\"Text\"\r\n\r\ntested\r\n--Boundary-\
 		alskdglkasdjfglkajsdf\r\nContent-Disposition: form-data; name=\"File1\"; filename=\"text.txt\"\r\nContent-Type: \
@@ -47,7 +56,7 @@ class MultipartInputStreamTests: XCTestCase {
 		var multipart = MultipartForm(boundary: boundary)
 
 		let arbText = "Odd input stream"
-		let arbitraryData = try XCTUnwrap(arbText.data(using: .utf8))
+		let arbitraryData = try #require(arbText.data(using: .utf8))
 
 		let testedText = "tested"
 		multipart.append(testedText, named: "Text")
@@ -62,15 +71,15 @@ class MultipartInputStreamTests: XCTestCase {
 		// then each output is consistent and identical
 		let stream1Data = streamToData(stream1)
 		let copyString = String(data: stream1Data, encoding: .utf8)
-		XCTAssertEqual(expected, copyString)
+		#expect(expected == copyString)
 
 		let stream2Data = streamToData(stream2)
 		let copyString2 = String(data: stream2Data, encoding: .utf8)
-		XCTAssertEqual(expected, copyString2)
+		#expect(expected == copyString2)
 
 		let renderFromMultipart = try multipart.render()
 		let copyString3 = String(data: renderFromMultipart, encoding: .utf8)
-		XCTAssertEqual(expected, copyString3)
+		#expect(expected == copyString3)
 	}
 
 	private func streamToData(_ stream: InputStream) -> Data {
@@ -101,12 +110,16 @@ class MultipartInputStreamTests: XCTestCase {
 
 	// MARK: - common utilities
 	private func createTestFile() throws -> (URL, Data) {
-		let testFileURL = FileManager.default.temporaryDirectory.appendingPathComponent("tempfile")
+		let testDirectory = URL.temporaryDirectory.appending(component: UUID().uuidString)
+		try FileManager.default.createDirectory(at: testDirectory, withIntermediateDirectories: true)
+		let testFileURL = testDirectory.appendingPathComponent("tempfile")
 		let testFileContents = Data("<html><body>this is a body</body></html>".utf8)
 		try testFileContents.write(to: testFileURL)
-		addTeardownBlock {
-			try? FileManager.default.removeItem(at: testFileURL)
+
+		let teardownBlock: () -> Void = {
+			try? FileManager.default.removeItem(at: testDirectory)
 		}
+		teardownBlocks.append(teardownBlock)
 		return (testFileURL, testFileContents)
 	}
 }
