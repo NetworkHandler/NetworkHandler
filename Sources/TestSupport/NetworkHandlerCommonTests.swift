@@ -11,6 +11,10 @@ import AppKit
 import UIKit
 #endif
 
+/// Tests to validate different engine compatibilities with NetworkHandler.
+/// It might appear that this is testing the underlying engine (URLSession/AsyncHTTPClient/etc)
+/// but the purpose of these tests are to confirm that the *conformance* of the engine behaves consistently
+/// as expected between engines.
 // swiftlint:disable:next type_body_length
 public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 	#if canImport(AppKit)
@@ -69,29 +73,40 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 
 	/// Tests downloading, caching the download, and subsequently loading the file from cache.
 	/// performs a `GET` request to `imageURL`
+	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
 	public func downloadAndCacheImages(
 		engine: Engine,
-		mockServerPort: UInt16,
-		imageExpectationData: Data,
 		file: String = #fileID,
 		filePath: String = #filePath,
 		line: Int = #line,
 		column: Int = #column,
 		function: String = #function
 	) async throws {
+		let server = try await MockingServer.createServer(name: #function)
+
+		let lighthouseURL = try #require(Bundle.testBundle.url(forResource: "lighthouse", withExtension: "jpg"))
+		let imageExpectationData = try Data(contentsOf: lighthouseURL)
+
+		server.addMock(
+			for: imageURL(port: server.port).mockingPath,
+			method: .get,
+			responseData: imageExpectationData,
+			responseCode: 200,
+			delay: 0.5)
+
 		let nh = getNetworkHandler(with: engine)
 		defer { nh.resetCache() }
 
 		let rawStart = Date()
 		let image1Result = try await nh.downloadMahDatas(
-			for: imageURL(port: mockServerPort).generalRequest,
+			for: imageURL(port: server.port).generalRequest,
 			usingCache: .key("kitten"),
 			requestLogger: logger)
 		let rawFinish = Date()
 
 		let cacheStart = Date()
 		let image2Result = try await nh.downloadMahDatas(
-			for: imageURL(port: mockServerPort).generalRequest,
+			for: imageURL(port: server.port).generalRequest,
 			usingCache: .key("kitten"),
 			requestLogger: logger)
 		let cacheFinish = Date()
@@ -130,20 +145,40 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		#endif
 	}
 
-	public func downloadAndDecodeData<D: Decodable & Sendable & Equatable>(
+	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
+	public func downloadAndDecodeData(
 		engine: Engine,
-		modelURL: URL,
-		expectedModel: D,
 		file: String = #fileID,
 		filePath: String = #filePath,
 		line: Int = #line,
 		column: Int = #column,
 		function: String = #function
 	) async throws {
+		let server = try await MockingServer.createServer(name: #function)
+		let modelURL = demoModelURL(port: server.port)
+
+		let modelStr = """
+			{"id":"59747267-D47D-47CD-9E54-F79FA3C1F99B","imageURL":\
+			"\(imageURL(port: server.port).absoluteString)",\
+			"subtitle":"BarSub","title":"FooTitle"}
+			"""
+		let modelData = Data(modelStr.utf8)
+
+		server.addMock(
+			for: modelURL.mockingPath,
+			responseData: modelData,
+			responseCode: 200)
+
+		let expectedModel = try DemoModel(
+			id: #require(UUID(uuidString: "59747267-D47D-47CD-9E54-F79FA3C1F99B")),
+			title: "FooTitle",
+			subtitle: "BarSub",
+			imageURL: imageURL(port: server.port))
+
 		let nh = getNetworkHandler(with: engine)
 		defer { nh.resetCache() }
 
-		let resultModel: D = try await nh.downloadMahCodableDatas(
+		let resultModel: DemoModel = try await nh.downloadMahCodableDatas(
 			for: modelURL.generalRequest,
 			delegate: nil,
 			requestLogger: logger).decoded
@@ -154,19 +189,21 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 	}
 
 	/// performs a `GET` request to `demo404URL`
+	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
 	public func handle404Error(
 		engine: Engine,
-		mockingPort: UInt16,
 		file: String = #fileID,
 		filePath: String = #filePath,
 		line: Int = #line,
 		column: Int = #column,
 		function: String = #function
 	) async throws {
+		let server = try await MockingServer.createServer(name: #function)
+
 		let nh = getNetworkHandler(with: engine)
 		defer { nh.resetCache() }
 
-		let url = demo404URL(port: mockingPort)
+		let url = demo404URL(port: server.port)
 
 		let error = await #expect(
 			throws: NetworkError.self,
@@ -192,20 +229,24 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 	}
 
 	/// performs a `GET` request to `demoModelURL`
+	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
 	public func expect200OnlyGet200(
 		engine: Engine,
-		mockingPort: UInt16,
 		file: String = #fileID,
 		filePath: String = #filePath,
 		line: Int = #line,
 		column: Int = #column,
 		function: String = #function
 	) async throws {
+		let server = try await MockingServer.createServer(name: #function)
+		let demoModelURL = demoModelURL(port: server.port)
+
+		server.addMock(for: demoModelURL.mockingPath, responseData: nil, responseCode: 200)
+
 		let nh = getNetworkHandler(with: engine)
 		defer { nh.resetCache() }
 
-		let url = demoModelURL(port: mockingPort)
-		let request = url.generalRequest.with {
+		let request = demoModelURL.generalRequest.with {
 			$0.expectedResponseCodes = 200
 		}
 
@@ -221,15 +262,20 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 	}
 
 	/// performs a `POST` request to `demoModelURL`
+	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
 	public func expect201OnlyGet200(
 		engine: Engine,
-		mockingPort: UInt16,
 		file: String = #fileID,
 		filePath: String = #filePath,
 		line: Int = #line,
 		column: Int = #column,
 		function: String = #function
 	) async throws {
+		let server = try await MockingServer.createServer(name: #function)
+		let demoModelURL = demoModelURL(port: server.port)
+
+		server.addMock(for: demoModelURL.mockingPath, method: .put, responseData: nil, responseCode: 200)
+
 		let nh = getNetworkHandler(with: engine)
 		defer { nh.resetCache() }
 
@@ -238,8 +284,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 			"https://s3.wasabisys.com/network-handler-tests/images/lighthouse.jpg"\
 			,"subtitle":"BarSub","title":"FooTitle"}
 			""".utf8)
-		let url = demoModelURL(port: mockingPort)
-		let request = url.generalRequest.with {
+		let request = demoModelURL.generalRequest.with {
 			$0.expectedResponseCodes = 201
 			$0.method = .put
 			$0.payload = payloadData
@@ -267,19 +312,31 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 	}
 
 	/// performs a `PUT` request to `randomDataURL`. Provided must be corrupted in some way.
+	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
 	public func uploadData(
 		engine: Engine,
-		mockingPort: UInt16,
 		file: String = #fileID,
 		filePath: String = #filePath,
 		line: Int = #line,
 		column: Int = #column,
 		function: String = #function
 	) async throws {
+		let server = try await MockingServer.createServer(name: #function)
+		let url = randomDataURL(port: server.port)
+
+		server.addMock(for: url.mockingPath, method: .put) {
+			[unowned server] inReq, respStream throws(MockingServer.HTTPError) in
+
+			try commonPutToGet(
+				mockingPath: url.mockingPath,
+				server: server,
+				inRequest: inReq,
+				responseStream: respStream)
+		}
+
 		let nh = getNetworkHandler(with: engine)
 		defer { nh.resetCache() }
 
-		let url = randomDataURL(port: mockingPort)
 		let request = url.generalRequest.with {
 			$0.method = .put
 			$0.headers.setAuthorization(.bearerToken("foobar"))
@@ -314,19 +371,31 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 	}
 
 	/// performs a `PUT` request to `uploadURL`
+	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
 	public func uploadFileURL(
 		engine: Engine,
-		mockingPort: UInt16,
 		file: String = #fileID,
 		filePath: String = #filePath,
 		line: Int = #line,
 		column: Int = #column,
 		function: String = #function
 	) async throws {
+		let server = try await MockingServer.createServer(name: #function)
+		let url = uploadURL(port: server.port)
+
+		server.addMock(for: url.mockingPath, method: .put) {
+			[unowned server] inReq, respStream throws(MockingServer.HTTPError) in
+
+			try commonPutToGet(
+				mockingPath: url.mockingPath,
+				server: server,
+				inRequest: inReq,
+				responseStream: respStream)
+		}
+
 		let nh = getNetworkHandler(with: engine)
 		defer { nh.resetCache() }
 
-		let url = uploadURL(port: mockingPort)
 		let upRequest = url.generalRequest.with {
 			$0.method = .put
 			$0.expectedResponseCodes = 201
@@ -357,19 +426,30 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 	}
 
 	/// performs a `PUT` request to `uploadURL`
+	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
 	public func uploadMultipartFile(
 		engine: Engine,
-		mockingPort: UInt16,
 		file: String = #fileID,
 		filePath: String = #filePath,
 		line: Int = #line,
 		column: Int = #column,
 		function: String = #function
 	) async throws {
+		let server = try await MockingServer.createServer(name: #function)
+		let uploadURL = uploadURL(port: server.port)
+
+		server.addMock(for: uploadURL.mockingPath, method: .put) {
+			[unowned server] inReq, respStream throws(MockingServer.HTTPError) in
+
+			try commonPutToGet(
+				mockingPath: uploadURL.mockingPath,
+				server: server,
+				inRequest: inReq,
+				responseStream: respStream)
+		}
+
 		let nh = getNetworkHandler(with: engine)
 		defer { nh.resetCache() }
-
-		let uploadURL = uploadURL(port: mockingPort)
 
 		let upRequest = uploadURL.generalRequest.with {
 			$0.method = .put
@@ -410,19 +490,31 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 	}
 
 	/// performs a `PUT` request to `uploadURL`
+	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
 	public func uploadMultipartStream(
 		engine: Engine,
-		mockingPort: UInt16,
 		file: String = #fileID,
 		filePath: String = #filePath,
 		line: Int = #line,
 		column: Int = #column,
 		function: String = #function
 	) async throws {
+		let server = try await MockingServer.createServer(name: #function)
+		let uploadURL = uploadURL(port: server.port)
+
+		server.addMock(for: uploadURL.mockingPath, method: .put) {
+			[unowned server] inReq, respStream throws(MockingServer.HTTPError) in
+
+			try commonPutToGet(
+				mockingPath: uploadURL.mockingPath,
+				server: server,
+				inRequest: inReq,
+				responseStream: respStream)
+		}
+
 		let nh = getNetworkHandler(with: engine)
 		defer { nh.resetCache() }
 
-		let uploadURL = uploadURL(port: mockingPort)
 		let upRequest = uploadURL.generalRequest.with {
 			$0.method = .put
 			$0.expectedResponseCodes = 201
@@ -897,7 +989,6 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
 		#expect(outputFileURL.checkResourceIsAccessible())
 		#expect(tempFileURL.checkResourceIsAccessible() == false)
 	}
-
 
 	public struct EchoModel: Codable, Sendable {
 		public let counter: Int
