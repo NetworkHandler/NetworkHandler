@@ -6,25 +6,29 @@ extension MultipartForm {
 		Stream(form: self)
 	}
 
-	public class Stream: InputStream {
+	final public class Stream: InputStream {
 		public let form: MultipartForm
 
+		nonisolated(unsafe)
 		private weak var _delegate: StreamDelegate?
 		public override var delegate: StreamDelegate? {
-			get { _delegate }
-			set { _delegate = newValue }
+			get { lock.withLock { _delegate } }
+			set { lock.withLock { _delegate = newValue } }
 		}
 
+		nonisolated(unsafe)
 		private var _currentOffset = 0
 		public var currentOffset: Int {
 			lock.withLock { _currentOffset }
 		}
 
+		nonisolated(unsafe)
 		private var _streamStatus: Stream.Status = .notOpen
-		public override var streamStatus: Stream.Status { _streamStatus }
+		public override var streamStatus: Stream.Status { lock.withLock { _streamStatus } }
 
+		nonisolated(unsafe)
 		private var _streamError: Error?
-		public override var streamError: (any Error)? { _streamError }
+		public override var streamError: (any Error)? { lock.withLock { _streamError } }
 
 		private let lock = MutexLock()
 

@@ -1,5 +1,8 @@
 import SwiftPizzaSnips
 
+/// It's important to distinguish what this can do and what it can't do: It CAN make (pure) value types safely
+/// accessible across threads. It CANNOT make reference types fully thread safe. For a reference type, it
+/// will only make the POINTER safely accessible across threads.
 @dynamicMemberLookup
 final package class Sendify<NonSendable>: @unchecked Sendable {
 	public var value: NonSendable {

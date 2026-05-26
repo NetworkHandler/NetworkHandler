@@ -9,9 +9,9 @@ import Foundation
 /// 
 /// - Important: Ensure conforming types properly implement `copyWithRestart()` to return a stream starting
 /// fresh from its initial position of data.
-public protocol RetryableStream: InputStream {
+public protocol RetryableStream: InputStream & Sendable {
 	/// Creates a duplicate of the current stream that can start from the beginning.
-	func copyWithRestart() throws(NetworkError) -> Self
+	func copyWithRestart() throws(NetworkError) -> RetryableStream
 }
 
 /// A protocol that defines a stream with a known total length of bytes, important in scenarios where the content
