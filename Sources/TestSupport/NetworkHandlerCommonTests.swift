@@ -15,8 +15,7 @@ import UIKit
 /// It might appear that this is testing the underlying engine (URLSession/AsyncHTTPClient/etc)
 /// but the purpose of these tests are to confirm that the *conformance* of the engine behaves consistently
 /// as expected between engines.
-// swiftlint:disable:next type_body_length
-public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable {
+public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // swiftlint:disable:this type_body_length
 	#if canImport(AppKit)
 	public typealias TestImage = NSImage
 	#elseif canImport(UIKit)
