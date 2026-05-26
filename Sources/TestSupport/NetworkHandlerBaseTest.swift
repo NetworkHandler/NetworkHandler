@@ -1,7 +1,6 @@
 import Crypto
 import Foundation
 @testable import NetworkHandler
-import NetworkHandlerMockingEngine
 import XCTest
 
 #if os(macOS)
