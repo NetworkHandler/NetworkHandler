@@ -13,9 +13,6 @@ var products: [Product] = [
 	.library(
 		name: "NetworkHandlerAHCEngine",
 		targets: ["NetworkHandlerAHCEngine"]),
-	.library(
-		name: "NetworkHandlerMockingEngine",
-		targets: ["NetworkHandlerMockingEngine"]),
 ]
 
 var targets: [Target] = [
@@ -46,18 +43,6 @@ var targets: [Target] = [
 			.plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")
 		]),
 	.target(
-		name: "NetworkHandlerMockingEngine",
-		dependencies: [
-			"NetworkHandler",
-			"NetworkHalpers",
-			"SwiftPizzaSnips",
-			.product(name: "Logging", package: "swift-log"),
-			.product(name: "Algorithms", package: "swift-algorithms"),
-		],
-		plugins: [
-			.plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")
-		]),
-	.target(
 		name: "NetworkHalpers",
 		dependencies: [
 			.product(name: "Crypto", package: "swift-crypto"),
@@ -76,7 +61,6 @@ var targets: [Target] = [
 			"NetworkHandler",
 			"SwiftlyDotEnv",
 			"NetworkHandlerAHCEngine",
-			"NetworkHandlerMockingEngine",
 			"NHMacros",
 			"Embassy",
 			"DataScanner",
@@ -94,18 +78,6 @@ var targets: [Target] = [
 			"TestSupport",
 			"PizzaMacros",
 			.product(name: "Logging", package: "swift-log"),
-		],
-		plugins: [
-			.plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")
-		]),
-	.testTarget(
-		name: "NetworkHandlerMockingTests",
-		dependencies: [
-			"NetworkHandler",
-			"TestSupport",
-			"PizzaMacros",
-			.product(name: "Logging", package: "swift-log"),
-			"NetworkHandlerMockingEngine",
 		],
 		plugins: [
 			.plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")
@@ -186,7 +158,6 @@ let package = Package(
 		.package(url: "https://github.com/mredig/DataScanner.git", .upToNextMinor(from: "0.4.3")),
 		.package(url: "https://github.com/swift-server/async-http-client", .upToNextMajor(from: "1.25.2")),
 		.package(url: "https://github.com/apple/swift-log.git", .upToNextMajor(from: "1.6.2")),
-		.package(url: "https://github.com/apple/swift-algorithms.git", .upToNextMajor(from: "1.2.1")),
 		.package(url: "https://github.com/SimplyDanny/SwiftLintPlugins", from: "0.58.2"),
 		.package(url: "https://github.com/apple/swift-http-types.git", from: "1.5.1"),
 		.package(url: "https://github.com/NetworkHandler/NHMacros.git", .upToNextMajor(from: "0.0.1")),
