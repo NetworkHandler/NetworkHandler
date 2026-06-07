@@ -118,9 +118,10 @@ extension HTTPClient: NetworkEngine {
 			})
 		case .data(let data):
 			httpClientRequest.body = .data(data)
-		case .inputStream(let stream):
+		case .inputStream(let streamable):
+			let stream = try NetworkError.captureAndConvert { try streamable.createStream() }
 			httpClientRequest.body = .stream(
-				contentLength: request.expectedContentLength.flatMap(Int64.init), { [stream] writer in
+				contentLength: request.expectedContentLength.flatMap(Int64.init), { writer in
 					streamWriter(inputStream: stream, writer: writer)
 				})
 		}

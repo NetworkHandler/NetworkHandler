@@ -2,10 +2,6 @@ import Foundation
 import SwiftPizzaSnips
 
 extension MultipartForm {
-	public var stream: Stream {
-		Stream(form: self)
-	}
-
 	final public class Stream: InputStream {
 		public let form: MultipartForm
 
@@ -39,7 +35,7 @@ extension MultipartForm {
 			lock.withLock { _hasBytesAvailable }
 		}
 
-		init(form: MultipartForm) {
+		package init(form: MultipartForm) {
 			self.form = form
 
 			super.init(data: Data())

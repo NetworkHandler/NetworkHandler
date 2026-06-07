@@ -44,7 +44,7 @@ class MultipartFormStreamTests {
 		#expect(initialRenderHash == "5c37579f467b73a33a99ba13b596a10f")
 
 		// when providing in a Stream format
-		let stream = form.stream
+		let stream = try form.createStream()
 
 		// then the data retains its integrity
 		var finalData = Data()
@@ -121,8 +121,8 @@ class MultipartFormStreamTests {
 		multipart.append(fileURL, named: "File2", contentType: "text/html")
 
 		// when creating multiple copies as Stream
-		let stream1 = multipart.stream
-		let stream2 = multipart.stream
+		let stream1 = try multipart.createStream()
+		let stream2 = try multipart.createStream()
 
 		// then each output is consistent and identical
 		let stream1Data = streamToData(stream1)

@@ -538,13 +538,12 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 
 				if case .upload(let uploadReq, payload: let payload) = theRequest {
 					switch payload {
-					case .inputStream(let stream):
-						guard let retryStream = stream as? RetryableStream else {
-							logger.error("Streams cannot retry unless they conform to `RetryableStream`")
+					case .inputStream(let streamable):
+						guard streamable.isRetryable else {
+							logger.error("This stream is not retryable")
 							throw theError
 						}
-						let newStream = try retryStream.copyWithRestart()
-						theRequest = .upload(uploadReq, payload: .inputStream(newStream))
+						theRequest = .upload(uploadReq, payload: .inputStream(streamable))
 					default:
 						break
 					}

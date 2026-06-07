@@ -534,12 +534,11 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 		print(multipartHash)
 		try multipart.render().write(to: .homeDirectory.appending(path: "Swap/foo.mpf"))
 
-		let uploadStream = multipart.stream
-		let atomicRequest = AtomicValue(value: CompleteNetworkRequest.upload(upRequest, payload: .inputStream(uploadStream)))
+		let atomicRequest = AtomicValue(value: CompleteNetworkRequest.upload(upRequest, payload: .inputStream(multipart)))
 		let delegate = await Delegate(onRequestModified: { _, _, new in
 			atomicRequest.value = new
 		})
-		_ = try await nh.uploadMahDatas(for: upRequest, payload: .inputStream(uploadStream), delegate: delegate)
+		_ = try await nh.uploadMahDatas(for: upRequest, payload: .inputStream(multipart), delegate: delegate)
 		#expect(
 			atomicRequest.value.expectedContentLength == nil,
 			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))

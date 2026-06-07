@@ -99,7 +99,7 @@ extension URLSession: NetworkEngine {
 				else { throw .unspecifiedError(reason: "Creating a stream from the referenced local file failed. \(localFile)") }
 				payloadStream = stream
 			case .inputStream(let stream):
-				payloadStream = stream
+				payloadStream = try NetworkError.captureAndConvert { try stream.createStream() }
 			}
 			let urlRequest = uploadEngineRequest.urlRequest(forUpload: true)
 
