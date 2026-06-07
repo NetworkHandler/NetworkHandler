@@ -70,8 +70,11 @@ public final class MockingServer: Sendable {
 				return sendBody(Data())
 			}
 
-			let startResponseWrapper = Sendify(startResponse)
-			let sendBodyWrapper = Sendify(sendBody)
+			// these closures have the requirement of running them on their runloop, making them thread safe.
+			// this is unexpressed in logical code and therefore cannot be safely expressed with swift 6, and
+			// therefore needs manual override (but still running in their runloop)
+			let startResponseWrapper = UncheckedLockBox(startResponse)
+			let sendBodyWrapper = UncheckedLockBox(sendBody)
 
 			let tracker = ResponseStream.LifecycleTracker { chunk in
 				switch chunk {
@@ -80,17 +83,25 @@ public final class MockingServer: Sendable {
 					let headersArray = header.responseHeader.map { ($0.name.rawName, $0.value) }
 
 					runLoop.call {
-						startResponseWrapper.value("\(header.responseCode) \(responseCodePhrase)", headersArray)
+						startResponseWrapper.withLock {
+							$0("\(header.responseCode) \(responseCodePhrase)", headersArray)
+						}
 					}
 				case .string(let string):
 					let data = Data(string.utf8)
 					guard data.isOccupied else { return }
-					runLoop.call { sendBodyWrapper.value(data) }
+					runLoop.call {
+						sendBodyWrapper.withLock { $0(data) }
+					}
 				case .data(let data):
 					guard data.isOccupied else { return }
-					runLoop.call { sendBodyWrapper.value(data) }
+					runLoop.call {
+						sendBodyWrapper.withLock { $0(data) }
+					}
 				case .complete:
-					runLoop.call { sendBodyWrapper.value(Data()) }
+					runLoop.call {
+						sendBodyWrapper.withLock { $0(Data()) }
+					}
 				}
 			}
 

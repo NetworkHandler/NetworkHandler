@@ -404,6 +404,7 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 				let (sendProgressStream, sendProgressContinuation) = UploadProgressStream
 					.makeStream(errorOnCancellation: NetworkError.requestCancelled)
 
+				let uploadRequest = uploadRequest
 				async let progressBlock: Void = { @NHActor [delegate] in
 					var signaledStart = false
 					for try await count in sendProgressStream {
@@ -419,7 +420,6 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 					}
 				}()
 
-				let uploadRequest = uploadRequest
 				cancellationToken?.onCancel = { sendProgressStream.cancel() }
 				try cancellationToken?.checkIsCancelled()
 

@@ -55,7 +55,7 @@ extension URLSession: NetworkEngine {
 			try? bodyContinuation.finish(throwing: CancellationError())
 		}
 
-		let isUploadFinished = Sendify(false)
+		let isUploadFinished = LockBox<Bool>(false)
 		uploadProgressContinuation?.onFinish { reason in
 			isUploadFinished.value = true
 			guard reason.finishedOrCancelledError != nil else { return }
