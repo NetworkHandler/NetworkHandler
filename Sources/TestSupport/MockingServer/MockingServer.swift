@@ -38,7 +38,9 @@ public final class MockingServer: Sendable {
 		self.name = serverName
 		let port = port ?? UInt16.random(in: 10_000..<(.max))
 		self.port = port
-		let logger = logger ?? Logger(label: "\(serverName):(port \(port))")
+		let logger = logger ?? Logger(label: "\(serverName):(port \(port))").with {
+			$0.logLevel = .info
+		}
 		logger.debug("Port \(port)")
 		self.logger = logger
 		await Self.instanceTracker.registerAdditionalInstance()
@@ -226,8 +228,6 @@ public final class MockingServer: Sendable {
 				responseStream(.complete)
 			}
 
-			logger.info("Responding")
-
 			Task { [logger, dbMock] in
 				let payload: Data?
 				do throws(HTTPError) {
@@ -270,7 +270,7 @@ public final class MockingServer: Sendable {
 			var payload = Data()
 			input { [logger] in
 				payload.append($0)
-				logger.info(
+				logger.debug(
 					"Got bytes",
 					metadata: ["ExpectedTotal": "\(expectedLength, default: "unknown")", "TotalReceived": "\(payload.count)"])
 				let chunkEnd = payload.suffix(5)
@@ -409,7 +409,7 @@ extension MockingServer {
 		private var continuations: [CheckedContinuation<Void, Never>] = []
 
 		init() {
-			self.maxCount = ProcessInfo.processInfo.processorCount - 1
+			self.maxCount = (ProcessInfo.processInfo.processorCount / 2) + 1
 		}
 
 		func registerAdditionalInstance() async {

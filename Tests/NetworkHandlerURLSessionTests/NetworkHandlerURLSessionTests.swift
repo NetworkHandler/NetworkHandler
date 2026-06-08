@@ -54,7 +54,8 @@ struct NetworkHandlerURLSessionTests: Sendable {
 
 	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
 	@Test func backgroundSessionUpload() async throws {
-		let config = URLSessionConfiguration.background(withIdentifier: "backgroundID").with {
+		// each background session MUST have a unique id or they will conflict
+		let config = URLSessionConfiguration.background(withIdentifier: "backgroundID-\(UUID().uuidString)").with {
 			$0.requestCachePolicy = .reloadIgnoringLocalCacheData
 			$0.urlCache = nil
 		}

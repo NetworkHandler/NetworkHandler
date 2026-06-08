@@ -6,7 +6,6 @@ import SwiftPizzaSnips
 import Testing
 import TestSupport
 
-@Suite(.serialized)
 struct NetworkHandlerAHCTests: Sendable {
 	let commonTests = NetworkHandlerCommonTests<HTTPClient>(logger: Logger(label: #fileID))
 
