@@ -2,29 +2,68 @@ import Foundation
 import HTTPTypes
 import UniformTypeIdentifiers
 
+/// A multipart/form-data builder that assembles parts and renders them as `Data`.
+///
+/// Use this type to construct form data containing binary parts, text fields, and file uploads.
+/// `MultipartForm` manages a configurable boundary string and provides methods to append content,
+/// then either render the entire form into a single `Data` blob or retrieve a slice of
+/// the data at a given offset.
 public struct MultipartForm: Sendable, Hashable {
+	/// The boundary string used to delimit parts in the rendered form-data.
+	///
+	/// The rendered boundary always starts with the prefix `"Boundary-"` followed by the value
+	/// passed to ``init(boundary:)``.
 	public var boundary: String { "Boundary-\(boundaryRoot)" }
 	private let boundaryRoot: String
 
+	/// The HTTP ``HTTPTypes/HTTPField.Value`` for the `Content-Type` header of this form.
+	///
+	/// Returns a value like `"multipart/form-data; boundary=Boundary-MyBoundary"` using
+	/// the receiver's ``boundary``.
 	public var multipartContentTypeHeaderValue: HTTPField.Value {
 		"multipart/form-data; boundary=\(boundary)"
 	}
 
+	/// The collection of parts in this form, in the order they were appended.
+	///
+	/// Each element represents a single section of the multipart data, including file uploads,
+	/// binary blobs, or text fields.
 	public var parts: [Part] = []
 
+	/// The total number of bytes in the rendered form.
+	///
+	/// This is the sum of each part's ``MultipartForm/Part/totalCount``, plus the closing
+	/// footer delimiter.
 	public var count: Int { parts.reduce(0, { $0 + $1.totalCount }) + footer.count }
 
+	/// The closing footer delimeter (`"--\(boundary)--\r\n"`).
+	///
+	/// Appended after the last part when rendering the form.
 	public var footer: Data { Data(footerString.utf8) }
 	private var footerString: String { "--\(boundary)--\r\n" }
 
+	/// Creates a new multipart form with the given boundary.
+	///
+	/// - Parameter boundary: The freeform boundary token to use. The ``boundary`` property
+	///   will prefix this with `"Boundary-"` for the actual delimiter.
 	public init(boundary: String) {
 		self.boundaryRoot = boundary
 	}
 
+	/// Appends a pre-constructed part to the form.
+	///
+	/// - Parameter part: The part to add.
 	public mutating func append(_ part: Part) {
 		parts.append(part)
 	}
 
+	/// Appends a binary data part.
+	///
+	/// - Parameters:
+	///   - data: The binary data to include.
+	///   - name: The form-field name.
+	///   - filename: Optional filename for the part.
+	///   - contentType: The MIME type; defaults to `"application/octet-stream"` when `nil`.
 	public mutating func append(_ data: Data, named name: String, filename: String? = nil, contentType: String? = nil) {
 		let part = Part(
 			boundary: boundary,
@@ -35,6 +74,13 @@ public struct MultipartForm: Sendable, Hashable {
 		append(part)
 	}
 
+	/// Appends a text string part.
+	///
+	/// - Parameters:
+	///   - string: The text to include.
+	///   - name: The form-field name.
+	///   - filename: Optional filename for the part.
+	///   - contentType: Optional MIME type.
 	public mutating func append(
 		_ string: String,
 		named name: String,
@@ -50,6 +96,13 @@ public struct MultipartForm: Sendable, Hashable {
 		append(part)
 	}
 
+	/// Appends a file-based part whose content is read from a URL on disk.
+	///
+	/// - Parameters:
+	///   - file: A `file://` URL pointing to the file to include.
+	///   - name: The form-field name.
+	///   - filename: Optional override for the filename; defaults to the URL's last path component.
+	///   - contentType: Optional MIME type; when `nil`, inferred from the path extension.
 	public mutating func append(_ file: URL, named name: String, filename: String? = nil, contentType: String? = nil) {
 		guard file.isFileURL else { fatalError("Must be a file URL") }
 		let filename = filename ?? file.lastPathComponent
@@ -65,6 +118,10 @@ public struct MultipartForm: Sendable, Hashable {
 		append(part)
 	}
 
+	/// Renders the entire multipart form as a single `Data` blob.
+	///
+	/// Returns the concatenation of all parts (each rendered with their headers, content,
+	/// and footers) followed by the closing footer delimiter.
 	public func render() throws -> Data {
 		var accum = Data()
 		for part in parts {
@@ -75,6 +132,11 @@ public struct MultipartForm: Sendable, Hashable {
 		return accum
 	}
 
+	/// Returns a slice of the rendered form data.
+	///
+	/// This method returns `count` bytes starting at the given `offset` within the fully rendered
+	/// byte stream (parts + closing footer). Each part contributes its headers, content, and
+	/// footer in sequence.
 	public func data(at offset: Int, count: Int) throws -> Data {
 		guard count > 0 else { return Data() }
 

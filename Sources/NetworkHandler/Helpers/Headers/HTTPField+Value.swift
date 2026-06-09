@@ -11,6 +11,8 @@ extension HTTPField {
 		self.init(name: name, value: value.rawValue)
 	}
 
+	/// A semantic type for HTTPField values. This is not canonical with the HTTPField type, but
+	/// is extended on top of the established upstream type. It includes many common values and is extendable.
 	public struct Value:
 		RawRepresentable,
 		Codable,

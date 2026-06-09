@@ -19,10 +19,13 @@ public final class MockingServer: Sendable {
 	private static let instanceTracker = MockingServerInstanceTracker()
 
 	nonisolated(unsafe)
+	/// The underlying `HTTPServer` instance used to serve mock HTTP traffic.
 	public private(set) var server: HTTPServer!
 
+	/// The port the server is listening on.
 	public let port: UInt16
 
+	/// HTTP method type aliased to `HTTPTypes.HTTPRequest.Method`.
 	public typealias Method = HTTPTypes.HTTPRequest.Method
 
 	nonisolated(unsafe)
@@ -32,8 +35,15 @@ public final class MockingServer: Sendable {
 	private let logger: Logging.Logger
 	private let name: String
 
+	/// A database mock used for resolving mock responses.
 	public let dbMock = DatabaseMock()
 
+	/// Creates a new `MockingServer` instance on the specified `port`, or a random port if `port` is `nil`.
+	///
+	/// - Parameters:
+	///    - serverName: A name for the server, used for logging.
+	///    - port: The port to listen on, or `nil` to use a random available port.
+	///    - logger: A custom `Logger` instance, or `nil` to create a default logger.
 	public init(serverName: String, port: UInt16? = nil, logger: Logging.Logger? = nil) async throws {
 		self.name = serverName
 		let port = port ?? UInt16.random(in: 10_000..<(.max))
@@ -287,6 +297,14 @@ public final class MockingServer: Sendable {
 		}
 	}
 
+	/// Adds a mock endpoint that returns static `responseData` with the given `responseCode` and an optional `delay`.
+	///
+	/// - Parameters:
+	///    - path: The path to mock.
+	///    - method: The HTTP method to match (defaults to `.get`).
+	///    - responseData: The data to return in the response body, or `nil` for an empty body.
+	///    - responseCode: The HTTP status code to return (defaults to 200).
+	///    - delay: How long to wait before responding, in seconds (defaults to 0).
 	public func addMock(
 		for path: Path,
 		method: Method = .get,
@@ -320,6 +338,15 @@ public final class MockingServer: Sendable {
 		}
 	}
 
+	/// Adds a mock endpoint using a closure that sends responses dynamically.
+	///
+	/// Use this overload when you need to compose a response but don't need access to the database mock.
+	///
+	/// - Parameters:
+	///     - path: The path to mock.
+	///     - method: The HTTP method to match.
+	///     - smartBlock: A closure that receives an ``IncomingRequest`` and a ``ResponseStream``,
+	///       and can throw ``HTTPError`` to return error responses.
 	public func addMock(
 		for path: Path,
 		method: Method,
@@ -330,6 +357,15 @@ public final class MockingServer: Sendable {
 		}
 	}
 
+	/// Registers a mock endpoint using a database-aware closure.
+	///
+	/// Use this overload when the mock handler needs access to the ``DatabaseMock``.
+	///
+	/// - Parameters:
+	///     - path: The path to mock.
+	///     - method: The HTTP method to match.
+	///     - smartBlock: A closure that receives an ``IncomingRequest``, a ``DatabaseMock``,
+	///       and a ``ResponseStream``, and can throw ``HTTPError`` to return error responses.
 	public func addMock(
 		for path: Path,
 		method: Method,
@@ -343,7 +379,7 @@ public final class MockingServer: Sendable {
 
 	/// Creates a server on a random port. You can get the port from the returned server object.
 	///
-	/// This is disctinct from the default initializer in that it retries any time it creates a server on a port
+	/// This is distinct from the default initializer in that it retries any time it creates a server on a port
 	/// that's already in use. Viable ports are `10000..<(UInt16.max)`. Ultimately, this means that if you have
 	/// thousands of simultaneous servers, you could end up in a situation where the available space for remaining
 	/// servers diminishes, eventually potentially causing an infinite loop when the entire space is occupied. The

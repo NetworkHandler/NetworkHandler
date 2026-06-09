@@ -11,6 +11,7 @@ import SwiftPizzaSnips
 /// required for each individual method.
 public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withable {
 	// MARK: - Properties
+	/// The logger instance used for this `NetworkHandler` instance.
 	public let logger: Logger
 
 	/// An instance of Network Cache to speed up subsequent requests. Usage is
@@ -64,16 +65,45 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 	}
 
 	// MARK: - Network Handling
+	/// Represents the continuation decision a poll loop must make after evaluating the
+	/// result of a request via the `until` closure.
+	///
+	/// Return `.finish` to end the polling loop, or `.continue` to repeat the request
+	/// after the specified `TimeInterval`.
 	public enum PollContinuation<T: Sendable>: Sendable {
+		/// End the polling loop using the provided poll result.
 		case finish(PollResult<T>)
+		/// Continue polling. The associated `CompleteNetworkRequest` is the next request to
+		/// execute, and the `TimeInterval` is the delay before sending it.
 		case `continue`(CompleteNetworkRequest, TimeInterval)
 	}
 
+	/// The result type passed to the `until` closure during polling. It yields either the
+	/// response header and decoded result, or an error encountered during the request.
 	public typealias PollResult<T: Sendable> = Result<(EngineResponseHeader, T), Error>
-	/// Immediately sends request, then can have a delay before repeating (or modifying) the request via the return value
-	/// of the `until` block.
+	/// Immediately sends a request, then repeatedly polls by evaluating the result via the
+	/// `until` closure, which decides whether to `.finish` the loop or `.continue` polling.
 	///
-	/// WIP - consider to be beta - interface is liable and LIKELY to change.
+	/// Use cases:
+	/// - Long-running queries (e.g. WebSocket fallback, long-polling APIs)
+	/// - Async operations that return a status and need repeated checks
+	/// - Backoff strategies with configurable delays
+	///
+	/// - Parameters:
+	///     - `request`: The initial `CompleteNetworkRequest` to send.
+	///     - `delegate`: Optional delegate for transfer lifecycle callbacks.
+	///     - cacheOption: Indicates whether to use cache and with what override key.
+	///       **Default**: `.dontUseCache`
+	///     - `decoder`: The `NHDecoder` used for decoding response data.
+	///       **Default**: `NetworkRequest.defaultDecoder`
+	///     - `requestLogger`: Optional logger for request-level diagnostics.
+	///     - `cancellationToken`: Optional token for cancelling the request.
+	///     - `until`: A closure evaluated after each poll result. Must return a
+	///       `PollContinuation` deciding `.finish` or `.continue` with a new request
+	///       and delay.
+	/// - Returns: The response header and decoded result from the final successful poll.
+	///
+	/// - Note: This API is still in beta and the interface is liable to change.
 	@NHActor
 	@discardableResult
 	public func poll<T: Decodable>(
@@ -126,18 +156,19 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 		return finalResult
 	}
 
-	/// Automatically decodes the data retrieved from the request to the generic, DecodableType.
+	/// Automatically decodes the data retrieved from the request to the generic `DecodableType`.
+	///
 	/// - Parameters:
-	///   - request: NetworkRequest
-	///   - delegate: Provides transfer lifecycle information
-	///   - cacheOption:  NetworkHandler.CacheKeyOption indicating whether to use cache with or without a key
-	///   overrride or not at all. **Default**: `.dontUseCache`
-	///   - decoder: The decoder used to perform the decoding
-	///   - requestLogger: Logger to use for this request
-	///   - cancellationToken: Optional: Gives you the opportunity to create and hold a reference to a token
-	///   allowing you to cancel the request before it completes.
-	///   - onError: Error and retry handling
-	/// - Returns: The response header from the server and the decoded body of the response.
+	///		- `request`: The `NetworkRequest` to send.
+	///		- `delegate`: Provides transfer lifecycle information.
+	///		- cacheOption: Indicates whether to use cache and with what override key.
+	///		  **Default**: `.dontUseCache`
+	///		- `decoder`: The `NHDecoder` used for decoding the response.
+	///		  **Default**: `NetworkRequest.defaultDecoder`
+	///		- `requestLogger`: Logger to use for this request.
+	///		- `cancellationToken`: Optional token for cancelling the request before it completes.
+	///		- `onError`: Error and retry handling. **Default**: `.throw`
+	/// - Returns: The response header from the server and the decoded response body.
 	@NHActor
 	@discardableResult
 	public func downloadMahCodableDatas<DecodableType: Decodable>(
@@ -161,18 +192,17 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 		return try (header, decodeData(data: rawData, using: decoder))
 	}
 
-	/// Send a large blob to a server. If `request.payload` is non nil, it will be ignored in favor of
+	/// Send a large blob to a server. If `request.payload` is non-nil, it will be ignored in favor of
 	/// the `payload` parameter passed in.
 	///
 	/// - Parameters:
-	///   - request: UploadRequest
-	///   - payload: The file/data/stream you're uploading.
-	///   - delegate: Provides transfer lifecycle information
-	///   - requestLogger: Logger to use for this request
-	///   - cancellationToken: Optional: Gives you the opportunity to create and hold a reference to a token
-	///   allowing you to cancel the request before it completes.
-	///   - onError: Error and retry handling
-	/// - Returns: The response header from the server and the body of the response.
+	///		- `request`: A `NetworkRequest` describing the upload.
+	///		- `payload`: The file/data/stream you're uploading.
+	///		- `delegate`: Provides transfer lifecycle information.
+	///		- `requestLogger`: Logger to use for this request.
+	///		- `cancellationToken`: Optional token for cancelling the request before it completes.
+	///		- `onError`: Error and retry handling. **Default**: `.throw`
+	/// - Returns: The response header and the optional body data.
 	@NHActor
 	@discardableResult
 	public func uploadMahDatas(
@@ -192,19 +222,20 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 			onError: onError)
 	}
 
-	/// Downloads remote data to a local file URL.
+	/// Downloads remote data and saves it to a local file URL.
+	///
 	/// - Parameters:
-	///   - request: StandardRequest
-	///   - outFileURL: The file URL to save the final data into (also used as the temporary file if none
-	///   is explicitly specified)
-	///   - tempoaryFileURL: The file URL to save file into as it's accumulated before the transfer is completed.
-	///   - delegate: Provides transfer lifecycle information
-	///   - cacheOption:  NetworkHandler.CacheKeyOption indicating whether to use cache with or without a key
-	///   overrride or not at all. **Default**: `.dontUseCache`
-	///   - requestLogger: Logger to use for this request
-	///   - cancellationToken: Optional: Gives you the opportunity to create and hold a reference to a token
-	///   allowing you to cancel the request before it completes.
-	///   - onError: Error and retry handling
+	///		- `request`: The `NetworkRequest` describing the download.
+	///		- `outFileURL`: The file URL to save the final data into (also used as the
+	///		  temporary file if no explicit temporary URL is provided).
+	///		- `tempoaryFileURL`: The file URL to save data into as it's accumulated before
+	///		  the transfer completes.
+	///		- `delegate`: Provides transfer lifecycle information.
+	///		- cacheOption: Indicates whether to use cache and with what override key.
+	///		  **Default**: `.dontUseCache`
+	///		- `requestLogger`: Logger to use for this request.
+	///		- `cancellationToken`: Optional token for cancelling the request before it completes.
+	///		- `onError`: Error and retry handling. **Default**: `.throw`
 	/// - Returns: The response header from the server.
 	@NHActor
 	@discardableResult
@@ -284,17 +315,18 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 		return header
 	}
 
-	/// Downloads data from a server. Also used to send smaller chunks of data, like REST requests, etc.
+	/// Downloads data from a server, returning the raw response body. Also used to send smaller
+	/// chunks of data, like REST requests.
+	///
 	/// - Parameters:
-	///   - request: StandardRequest
-	///   - delegate: Provides transfer lifecycle information
-	///   - cacheOption:  NetworkHandler.CacheKeyOption indicating whether to use cache with or without a key
-	///   overrride or not at all. **Default**: `.dontUseCache`
-	///   - requestLogger: Logger to use for this request
-	///   - cancellationToken: Optional: Gives you the opportunity to create and hold a reference to a token
-	///   allowing you to cancel the request before it completes.
-	///   - onError: Error and retry handling
-	/// - Returns: The response header from the server and the body of the response.
+	///		- `request`: The `NetworkRequest` to send.
+	///		- `delegate`: Provides transfer lifecycle information.
+	///		- cacheOption: Indicates whether to use cache and with what override key.
+	///		  **Default**: `.dontUseCache`
+	///		- `requestLogger`: Logger to use for this request.
+	///		- `cancellationToken`: Optional token for cancelling the request before it completes.
+	///		- `onError`: Error and retry handling. **Default**: `.throw`
+	/// - Returns: The response header from the server and the optional body data.
 	@NHActor
 	@discardableResult
 	public func downloadMahDatas(
@@ -314,17 +346,17 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 			onError: onError)
 	}
 
-	/// Downloads data from a server. Also used to send smaller chunks of data, like REST requests, etc.
+	/// Downloads data from a server. Also used to send smaller chunks of data, like REST requests.
+	///
 	/// - Parameters:
-	///   - request: NetworkRequest
-	///   - delegate: Provides transfer lifecycle information
-	///   - cacheOption:  NetworkHandler.CacheKeyOption indicating whether to use cache with or without a key
-	///   overrride or not at all. **Default**: `.dontUseCache`
-	///   - requestLogger: Logger to use for this request
-	///   - cancellationToken: Optional: Gives you the opportunity to create and hold a reference to a token
-	///   allowing you to cancel the request before it completes.
-	///   - onError: Error and retry handling
-	/// - Returns: The response header from the server and the body of the response.
+	///		- `request`: The `NetworkRequest` to send.
+	///		- `delegate`: Provides transfer lifecycle information.
+	///		- cacheOption: Indicates whether to use cache and with what override key.
+	///		  **Default**: `.dontUseCache`
+	///		- `requestLogger`: Logger to use for this request.
+	///		- `cancellationToken`: Optional token for cancelling the request before it completes.
+	///		- `onError`: Error and retry handling. **Default**: `.throw`
+	/// - Returns: The response header from the server and the optional body data.
 	@NHActor
 	@discardableResult
 	public func transferMahDatas(
@@ -393,7 +425,7 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 					case .localFile(let fileURL):
 						$0.expectedContentLength = try? fileURL.resourceValues(forKeys: [.fileSizeKey]).fileSize
 					case .inputStream(let stream):
-						$0.expectedContentLength = (stream as? KnownLengthStream)?.totalStreamBytes
+						$0.expectedContentLength = stream.streamCount
 					}
 				}
 				if inputReq != uploadRequest {
@@ -592,6 +624,10 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 		}
 	}
 
+	/// Defines how cache lookup and storage should behave for a network request.
+	///
+	/// Supports boolean literal (`.true` / `.false`), string literal (for custom cache keys),
+	/// and string-interpolation (`"\(string)"`).
 	public enum CacheKeyOption:
 		Equatable,
 		ExpressibleByBooleanLiteral,
@@ -599,18 +635,26 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 		ExpressibleByStringInterpolation,
 		Sendable {
 
+		/// Skip all cache operations.
 		case dontUseCache
+		/// Use the request's URL as the cache key.
 		case useURL
+		/// Use a custom string key for the cache.
 		case key(String)
 
+		/// Creates a `.useURL` cache key when `true`, otherwise `.dontUseCache`.
 		public init(booleanLiteral value: BooleanLiteralType) {
 			self = value ? .useURL : .dontUseCache
 		}
 
+		/// Creates a `.key` case from the string literal value.
 		public init(stringLiteral value: StringLiteralType) {
 			self = .key(value)
 		}
 
+		/// Determine the `NetworkCacheKey` for this option given a URL and HTTP method.
+		///
+		/// - Returns: A cache key if caching is applicable, or `nil` for `.dontUseCache`.
 		func cacheKey(url: URL, method: HTTPRequest.Method) -> NetworkCacheKey? {
 			switch self {
 			case .dontUseCache:

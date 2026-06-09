@@ -15,9 +15,9 @@ public enum NetworkError: Error, Equatable {
 	case dataCodingError(specifically: Error, sourceData: Data?)
 	/// Occurs when using a method that automatically decodes server returned data, but no data is provided.
 	case noData
-	/// Thrown when a `URLResponse` includes a response code other than 200, or a range
-	/// of 200-299 (depending on whether `strict200CodeResponse` is on or off). Wraps
-	/// the response code and included `Data?`, if there is any.
+	/// Thrown when a response includes a code other than what's included in the request's
+	/// Thrown when a `URLResponse` includes a response code no in the request's `expectedResponseCodes`.
+	/// Wraps the response code and included `Data?`, if there is any.
 	case httpUnexpectedStatusCode(code: Int, originalRequest: CompleteNetworkRequest, data: Data?)
 	case requestCancelled
 	/// If you need to provide an error state but none of the other specified cases

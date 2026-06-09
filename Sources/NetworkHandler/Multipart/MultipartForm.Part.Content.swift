@@ -1,10 +1,17 @@
 import Foundation
 
 extension MultipartForm.Part {
+	/// Represents the content of a multipart form part.
+	///
+	/// Content can be provided as raw ``Data`` or read from a file at a given ``URL``.
 	public enum Content: Sendable, Hashable {
+		/// Raw data bytes.
 		case data(Data)
+
+		/// A file referenced by its URL.
 		case file(URL)
 
+		/// Converts a `String` to `Data` and creates content using UTF-8 encoding.
 		public static func string(_ string: String) -> Content {
 			.data(Data(string.utf8))
 		}

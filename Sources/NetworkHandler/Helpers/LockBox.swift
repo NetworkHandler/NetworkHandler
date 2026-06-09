@@ -30,21 +30,28 @@ import SwiftPizzaSnips
 final package class LockBox<Wrapped> {
 	private let isolationLock = MutexLock()
 
+	/// The stored value.
 	private var _value: Wrapped
 
+	/// Returns the value at the given key path when `Wrapped` conforms to `Sendable`.
+	///
+	/// Thread safe.
 	package subscript<T: Sendable>(dynamicMember member: KeyPath<Wrapped, T>) -> T {
 		withLock {
 			$0[keyPath: member]
 		}
 	}
 
+	/// Creates a new lock box containing `value`.
+	///
+	/// Thread safe.
 	package init(_ value: Wrapped) {
 		isolationLock.lock()
 		defer { isolationLock.unlock() }
 		self._value = value
 	}
 
-	/// Executes `block` with exclusive access to the wrapped value.
+	/// Executes `block` with exclusive, thread safe access to the wrapped value.
 	///
 	/// Use for compound operations (read + modify) or when an operation on a referenced
 	/// object must be atomic with the pointer read.
@@ -62,40 +69,62 @@ final package class LockBox<Wrapped> {
 }
 
 extension LockBox: ExpressibleByNilLiteral where Wrapped: ExpressibleByNilLiteral {
+	/// Creates a lock box initialized with a `nil` value.
+	///
+	/// The wrapped type must conform to `ExpressibleByNilLiteral`.
 	convenience package init(nilLiteral: ()) {
 		self.init(nil)
 	}
 }
 
 extension LockBox: ExpressibleByBooleanLiteral where Wrapped: ExpressibleByBooleanLiteral {
+	/// Creates a lock box initialized with a boolean literal value.
+	///
+	/// The wrapped type must conform to `ExpressibleByBooleanLiteral`.
 	convenience package init(booleanLiteral value: Wrapped.BooleanLiteralType) {
 		self.init(Wrapped(booleanLiteral: value))
 	}
 }
 
 extension LockBox: @unchecked Sendable where Wrapped: Sendable {
+	/// Returns or replaces the wrapped value.
+	///
+	/// Thread safe. This property is only available when `Wrapped` conforms to `Sendable`.
 	package var value: Wrapped {
 		get { isolationLock.withLock { _value } }
 		set { isolationLock.withLock { _value = newValue } }
 	}
 
+	/// Returns or replaces the value at the given writable key path.
+	///
+	/// Thread safe. This property is only available when `Wrapped` conforms to `Sendable`.
 	package subscript<T>(dynamicMember member: WritableKeyPath<Wrapped, T>) -> T {
 		get { value[keyPath: member] }
 		set { value[keyPath: member] = newValue }
 	}
 
+	/// Returns the value at the given key path.
+	///
+	/// Thread safe. This property is only available when `Wrapped` conforms to `Sendable`.
 	package subscript<T>(dynamicMember member: KeyPath<Wrapped, T>) -> T {
 		value[keyPath: member]
 	}
 }
 
 extension LockBox: Equatable {
+	/// Returns whether `lhs` and `rhs` refer to the same `LockBox` instance.
+	///
+	/// Equality is determined by reference identity (pointer comparison).
 	package static func == (lhs: LockBox<Wrapped>, rhs: LockBox<Wrapped>) -> Bool {
 		lhs === rhs
 	}
 }
 
 extension LockBox: Hashable {
+	/// Hashes the lock box's memory address into `hasher`.
+	///
+	/// Hashing is based on pointer identity, consistent with the `Equatable` conformance
+	/// that uses `===` (reference equality).
 	package func hash(into hasher: inout Hasher) {
 		let address = Unmanaged.passUnretained(self).toOpaque()
 		hasher.combine(address)

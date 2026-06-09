@@ -44,7 +44,9 @@ public final class DefaultNetworkCache: NetworkCachable {
 		set { cache.totalCostLimit = newValue }
 	}
 
-	/// The name of the cache. The default is "NetworkHandler: DefaultNetworkCache"
+	/// The name of the cache, primarily used for identification in logging.
+	///
+	/// The default value is `"NetworkHandler: DefaultNetworkCache"`.
 	public var name: String {
 		get { cache.name }
 		set { cache.name = newValue }
@@ -95,6 +97,7 @@ public final class DefaultNetworkCache: NetworkCachable {
 		}
 	}
 
+	/// The logger used to report cache activity.
 	public let logger: Logger
 
 	// MARK: - Init
@@ -139,6 +142,10 @@ public final class DefaultNetworkCache: NetworkCachable {
 		}
 	}
 
+	/// Clears both the in-memory and disk caches.
+	///
+	/// This is a convenience overload that clears all caches. Use the memory- and disk-specific
+	/// parameters variant to selectively clear only one store.
 	public func reset() {
 		reset(memory: true, disk: true)
 	}

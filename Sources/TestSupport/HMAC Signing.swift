@@ -2,9 +2,13 @@ import Foundation
 #if canImport(CommonCrypto)
 import CommonCrypto
 
+/// An enumeration of HMAC algorithms supported by this implementation.
+///
+/// Maps to Common Crypto HMAC algorithms and provides digest length information.
 public enum HMACAlgorithm {
 	case md5, sha1, sha224, sha256, sha384, sha512
 
+	/// The corresponding Common Crypto HMAC algorithm value.
 	public var hmacAlgValue: CCHmacAlgorithm {
 		let value: Int
 		switch self {
@@ -24,6 +28,7 @@ public enum HMACAlgorithm {
 		return CCHmacAlgorithm(value)
 	}
 
+	/// The digest length in bytes for this algorithm.
 	public var digestLength: Int {
 		let result: Int32
 		switch self {
@@ -45,6 +50,12 @@ public enum HMACAlgorithm {
 }
 
 public extension String {
+	/// Computes an HMAC for this string using the specified algorithm and key.
+	///
+	/// - Parameters:
+	///   - algorithm: The HMAC algorithm to use.
+	///   - key: The key to use for HMAC computation.
+	/// - Returns: A base64-encoded HMAC digest string.
 	func hmac(algorithm: HMACAlgorithm, key: String) -> String {
 		var result = [UInt8].init(repeating: 0, count: algorithm.digestLength)
 		CCHmac(algorithm.hmacAlgValue, key, key.count, self, self.count, &result)

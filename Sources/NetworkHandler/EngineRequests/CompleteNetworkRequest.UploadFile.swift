@@ -7,7 +7,7 @@ extension CompleteNetworkRequest {
 	/// - `.data(Data)`: In-memory data to upload.
 	/// - `.inputStream(InputStream)`: A stream for uploading data incrementally.
 	///
-	/// Used in conjunction with `UploadRequest` to define upload sources dynamically.
+	/// Used in conjunction with `NetworkRequest` in a `CompleteNetworkRequest` to define upload sources dynamically.
 	public enum UploadFile: Hashable, Sendable, Withable {
 		case localFile(URL)
 		case data(Data)
@@ -16,6 +16,11 @@ extension CompleteNetworkRequest {
 }
 
 extension CompleteNetworkRequest.UploadFile {
+	/// Returns whether two `UploadFile` values are equal.
+	///
+	/// Two `.localFile` values are equal if their URLs are equal. Two `.data` values are equal
+	/// if their `Data` instances are equal. Two `.inputStream` values are equal only if they are
+	/// of the same type and have the same `hashValue`.
 	static public func == (lhs: CompleteNetworkRequest.UploadFile, rhs: CompleteNetworkRequest.UploadFile) -> Bool {
 		switch (lhs, rhs) {
 		case (.localFile(let lFile), .localFile(let rFile)):

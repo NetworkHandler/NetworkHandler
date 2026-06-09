@@ -7,19 +7,26 @@ import SwiftPizzaSnips
 ///
 /// This is a lowst common denominator representation of an HTTP request. If you're conforming your own
 /// engine to `NetworkEngine`, you'll most likely want to add a computed property or function to convert
-/// a `StandardRequest` to the request type native to your engine.
+/// a `NetworkRequest` to the request type native to your engine.
 @dynamicMemberLookup
 public struct NetworkRequest: Hashable, Sendable, Withable {
 	/// Internal metadata used to store common HTTP request properties, such as HTTP headers, response codes,
-	/// and URLs. This allows `StandardRequest` to provide a lightweight wrapper around core functionality
-	/// without duplicating state or logic.
+	/// and URLs. This provides a lightweight container around shared data without duplicating state or logic.
 	package var commonData: CommonRequestData
 
+	/// Returns the value of a dynamic member from `commonData` that allows modification.
+	///
+	/// - Parameter member: A writable key path into the `CommonRequestData` instance.
+	/// - Returns: The value at the specified key path.
 	public subscript<T>(dynamicMember member: WritableKeyPath<CommonRequestData, T>) -> T {
 		get { commonData[keyPath: member] }
 		set { commonData[keyPath: member] = newValue }
 	}
 
+	/// Returns the value of a dynamic member from `commonData`.
+	///
+	/// - Parameter member: A key path into the `CommonRequestData` instance.
+	/// - Returns: The value at the specified key path.
 	public subscript<T>(dynamicMember member: KeyPath<CommonRequestData, T>) -> T {
 		commonData[keyPath: member]
 	}
@@ -48,11 +55,21 @@ public struct NetworkRequest: Hashable, Sendable, Withable {
 		set { coderLock.withLock { _defaultDecoder = newValue } }
 	}
 
-	/// Optional raw data intended to be sent as part of the HTTP request body.
-	/// This is commonly used for POST or PUT requests where structured data is required.
-	/// To streamline JSON, PropertyList, or custom encoding, use the `encodeData` method.
+	/// Optional raw data sent as the HTTP request body.
+	///
+	/// This is commonly used for POST or PUT requests. For structured serialization,
+	/// use the `encodeData(_:)` method instead.
 	public var payload: Data?
 
+	/// Creates a new `NetworkRequest` instance.
+	///
+	/// - Parameters:
+	///   - expectedResponseCodes: HTTP response codes considered successful. Defaults to `[200]`.
+	///   - headers: HTTP header fields for the request. Defaults to an empty dictionary.
+	///   - method: The HTTP method. Defaults to `.get`.
+	///   - url: The target URL for the request.
+	///   - payload: Optional raw data for the request body.
+	///   - autogenerateRequestID: Whether to auto-generate a request identifier. Defaults to `true`.
 	public init(
 		expectedResponseCodes: ResponseCodes = [200],
 		headers: HTTPFields = [:],
@@ -69,6 +86,9 @@ public struct NetworkRequest: Hashable, Sendable, Withable {
 			url: url,
 			autogenerateRequestID: autogenerateRequestID)
 	}
+	/// A type alias for the response codes expected from this request.
+	///
+	/// Defined as `CommonRequestData.ResponseCodes`.
 	public typealias ResponseCodes = CommonRequestData.ResponseCodes
 
 	/// Encodes an object conforming to `Encodable` into a `Data` payload using the specified or default encoder.

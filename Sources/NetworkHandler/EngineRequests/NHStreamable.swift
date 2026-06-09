@@ -10,6 +10,9 @@ public protocol NHStreamable: Sendable, Hashable {
 	/// Whether the stream can be safely recreated for retry attempts.
 	var isRetryable: Bool { get }
 
+	/// the number of total bytes in the stream, if known ahead of time
+	var streamCount: Int? { get }
+
 	/// Creates and returns a new `InputStream` for the data source.
 	func createStream() throws -> InputStream
 }
@@ -17,6 +20,8 @@ public protocol NHStreamable: Sendable, Hashable {
 /// Provides `NHStreamable` conformance for `URL`.
 extension URL: NHStreamable {
 	public var isRetryable: Bool { true }
+
+	public var streamCount: Int? { nil }
 
 	public func createStream() throws -> InputStream {
 		try InputStream(url: self).unwrap("Invalid URL for InputStream")
@@ -30,6 +35,8 @@ extension URL: NHStreamable {
 extension Data: NHStreamable {
 	public var isRetryable: Bool { true }
 
+	public var streamCount: Int? { nil }
+
 	public func createStream() throws -> InputStream {
 		InputStream(data: self)
 	}
@@ -41,6 +48,8 @@ extension Data: NHStreamable {
 extension String: NHStreamable {
 	public var isRetryable: Bool { true }
 
+	public var streamCount: Int? { count }
+
 	public func createStream() throws -> InputStream {
 		InputStream(data: Data(self.utf8))
 	}
@@ -51,6 +60,8 @@ extension String: NHStreamable {
 /// Creates a `MultipartForm.Stream` which reads parts lazily. Always retryable.
 extension MultipartForm: NHStreamable {
 	public var isRetryable: Bool { true }
+
+	public var streamCount: Int? { count }
 
 	public func createStream() throws -> InputStream {
 		MultipartForm.Stream(form: self)
@@ -72,8 +83,16 @@ public final class NHStreamCreator: Sendable, Hashable, NHStreamable {
 
 	public let isRetryable: Bool
 
-	public init(isRetryable: Bool, block: @Sendable @escaping () throws -> InputStream) {
+	public let streamCount: Int?
+
+	/// Creates a new NHStreamCreator
+	/// - Parameters:
+	///   - isRetryable: whether the stream can be restarted and retried
+	///   - streamCount: the number of total bytes in the stream, if known ahead of time
+	///   - block: a block that creates and returns a new InputStream that outputs the stream data
+	public init(isRetryable: Bool, streamCount: Int? = nil, block: @Sendable @escaping () throws -> InputStream) {
 		self.isRetryable = isRetryable
+		self.streamCount = streamCount
 		self.block = block
 	}
 

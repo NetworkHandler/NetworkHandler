@@ -3,6 +3,10 @@ import Foundation
 import Logging
 import SwiftPizzaSnips
 
+/// A disk-based network cache implementation storing cached items with configurable capacity and automatic eviction.
+///
+/// Uses SHA-1 hashing to map cache keys to file paths, manages file locks for thread safety,
+/// and evicts the least recently modified files when capacity is exceeded.
 public final class DefaultNetworkDiskCache: CustomDebugStringConvertible, Sendable, NetworkCachable {
 	nonisolated(unsafe)
 	private let fileManager = FileManager.default
@@ -10,6 +14,10 @@ public final class DefaultNetworkDiskCache: CustomDebugStringConvertible, Sendab
 	// should only operate within Self.globalLock
 	nonisolated(unsafe)
 	private var _size: UInt64 = 0
+
+	/// The total size in bytes of all cached items in this cache.
+	///
+	/// Thread-safe; returns the current size under lock protection.
 	public var size: UInt64 {
 		Self.globalLock.withLock { _size }
 	}
@@ -19,20 +27,30 @@ public final class DefaultNetworkDiskCache: CustomDebugStringConvertible, Sendab
 	private var _capacity: UInt64 {
 		didSet { _enforceCapacity() }
 	}
+
+	/// The maximum size in bytes for the cache.
+	///
+	/// Exceeding this capacity triggers automatic eviction of the least recently modified files.
 	public var capacity: UInt64 {
 		get { Self.globalLock.withLock { _capacity } }
 		set { Self.globalLock.withLock { _capacity = newValue } }
 	}
 
+	/// The name identifying this cache instance.
 	public let name: String
 
 	// should only operate within Self.globalLock
 	nonisolated(unsafe)
 	private var _count: Int = 0
+
+	/// The number of items currently stored in this cache.
+	///
+	/// Thread-safe; returns the current count under lock protection.
 	public var count: Int {
 		Self.globalLock.withLock { _count }
 	}
 
+	/// Whether the cache contains zero items.
 	public var isEmpty: Bool { count == 0 } // swiftlint:disable:this empty_count
 
 	private let cacheLocation: URL
@@ -46,6 +64,15 @@ public final class DefaultNetworkDiskCache: CustomDebugStringConvertible, Sendab
 	private static let diskEncoder = PropertyListEncoder()
 	private static let diskDecoder = PropertyListDecoder()
 
+	/// Creates a new disk cache instance with the given configuration.
+	///
+	/// - Parameters:
+	///   - capacity: Maximum total size in bytes for cached items. Defaults to `.max`.
+	///   - cacheName: Human-readable namespace for this cache. Defaults to `"DefaultNetworkDiskCache"`.
+	///   - logger: Logger instance for recording cache operations and errors.
+	///
+	/// The cache directory is created under the user domain's caches folder. Upon initialization,
+	/// the actual disk usage is calculated and capacity is enforced.
 	public init(capacity: UInt64 = .max, cacheName: String? = nil, logger: Logger) {
 		Self.globalLock.lock()
 		defer { Self.globalLock.unlock() }
@@ -58,12 +85,27 @@ public final class DefaultNetworkDiskCache: CustomDebugStringConvertible, Sendab
 		_enforceCapacity()
 	}
 
+	/// Retrieves the cached store item associated with the given key.
+	///
+	/// Decodes the raw bytes from disk into a `NetworkCacheStore` instance.
+	/// Returns `nil` if no item is cached for the key or decoding fails.
+	///
+	/// - Parameter key: The cache key to look up.
+	/// - Returns: The decoded cache item, or `nil` if absent or invalid.
 	public func cachedItem(for key: NetworkCacheKey) -> NetworkCacheStore? {
 		guard let data = getData(for: key) else { return nil }
 
 		return try? Self.diskDecoder.decode(NetworkCacheStore.self, from: data)
 	}
 
+	/// Stores or removes a cache item associated with the given key.
+	///
+	/// - Parameters:
+	///   - newValue: The cache item to store, or `nil` to remove an existing entry.
+	///   - key: The key to associate the item with.
+	///
+	/// When `newValue` is non-nil, it is encoded to disk. When `nil`, any existing entry for
+	/// the key is removed. If encoding fails, the item is silently skipped.
 	public func setCachedItem(_ newValue: NetworkCacheStore?, for key: NetworkCacheKey) {
 		if let newValue {
 			guard let data = try? Self.diskEncoder.encode(newValue) else { return }
@@ -141,6 +183,10 @@ public final class DefaultNetworkDiskCache: CustomDebugStringConvertible, Sendab
 		}
 	}
 
+	/// Clears all cached items.
+	///
+	/// Removes the entire cache directory (falling back to individual file deletion if necessary)
+	/// and resets the internal lock dictionary.
 	public func reset() {
 		Self.globalLock.withLock {
 			_resetCache()
@@ -324,6 +370,9 @@ public final class DefaultNetworkDiskCache: CustomDebugStringConvertible, Sendab
 		}
 	}
 
+	/// A human-readable debug description of the cache.
+	///
+	/// Returns the cache directory URL for inspection and logging.
 	public var debugDescription: String {
 		"Network Disk Cache: \(cacheLocation)"
 	}

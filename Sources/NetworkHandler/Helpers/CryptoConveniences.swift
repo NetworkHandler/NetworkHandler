@@ -1,9 +1,14 @@
 import Crypto
 import Foundation
 
+/// A sequence type that provides convenient access to digest values
+/// as bytes, a hexadecimal string, and a Base64-encoded string.
 public protocol DigestToValues: Sequence {
+	/// Returns the digest as a `Data` object.
 	func bytes() -> Data
+	/// Returns the digest as a hexadecimal string.
 	func hex() -> String
+	/// Returns the digest as a Base64-encoded string using the specified encoding options.
 	func base64(options: Data.Base64EncodingOptions) -> String
 }
 

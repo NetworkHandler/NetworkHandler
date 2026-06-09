@@ -29,40 +29,4 @@ public enum TestEnvironment {
 			fatalError(message)
 		}
 	}
-
-	private static let _s3AccessKey: Result<String, Error> = {
-		loadIfNeeded()
-		guard let key = SwiftlyDotEnv[.s3AccessKeyKey] else {
-			return .failure(
-				SimpleTestError(
-					message: "Env needs setting up - looks like the .env file might be missing or incomplete"))
-		}
-
-		return .success(key)
-	}()
-	public static var s3AccessKey: String {
-		get throws {
-			try _s3AccessKey.get()
-		}
-	}
-	private static let _s3AccessSecret: Result<String, Error> = {
-		loadIfNeeded()
-		guard let secret = SwiftlyDotEnv[.s3AccessSecretKey] else {
-			return .failure(
-				SimpleTestError(
-					message: "Env needs setting up - looks like the .env file might be missing or incomplete"))
-		}
-
-		return .success(secret)
-	}()
-	public static var s3AccessSecret: String {
-		get throws {
-			try _s3AccessSecret.get()
-		}
-	}
-}
-
-fileprivate extension String {
-	static let s3AccessKeyKey = "S3KEY"
-	static let s3AccessSecretKey = "S3SECRET"
 }
