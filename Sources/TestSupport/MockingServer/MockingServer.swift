@@ -139,7 +139,7 @@ public final class MockingServer: Sendable {
 			responseStream(.complete)
 			return
 		}
-		let loggingPath = String(path.rawValue.joined(by: "/"))
+		let loggingPath = String(path.rawValue.joined(separator: "/"))
 		logger.info("Received request", metadata: ["Path": "\(loggingPath)", "Method": "\(requestMethod.rawValue)"])
 		guard
 			let endpoint = self.endpointsLock.withLock({ self.endpoints[.init(path: path, method: requestMethod)] })

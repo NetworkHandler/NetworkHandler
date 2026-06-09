@@ -8,8 +8,8 @@ var products: [Product] = [
 		name: "NetworkHandler",
 		targets: ["NetworkHandler"]),
 	.library(
-		name: "NetworkHandlerAHCEngine",
-		targets: ["NetworkHandlerAHCEngine"]),
+		name: "TestSupport",
+		targets: ["TestSupport"]),
 ]
 
 var targets: [Target] = [
@@ -18,21 +18,9 @@ var targets: [Target] = [
 		dependencies: [
 			.product(name: "Crypto", package: "swift-crypto"),
 			"SwiftPizzaSnips",
-			.product(name: "AsyncHTTPClient", package: "async-http-client"),
 			.product(name: "Logging", package: "swift-log"),
 			.product(name: "HTTPTypes", package: "swift-http-types"),
 			"NHMacros",
-		],
-		plugins: [
-			.plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")
-		]),
-	.target(
-		name: "NetworkHandlerAHCEngine",
-		dependencies: [
-			"NetworkHandler",
-			"SwiftPizzaSnips",
-			.product(name: "AsyncHTTPClient", package: "async-http-client"),
-			.product(name: "Logging", package: "swift-log"),
 		],
 		plugins: [
 			.plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")
@@ -43,7 +31,6 @@ var targets: [Target] = [
 			"PizzaMacros",
 			"NetworkHandler",
 			"SwiftlyDotEnv",
-			"NetworkHandlerAHCEngine",
 			"NHMacros",
 			"Embassy",
 			"DataScanner",
@@ -65,18 +52,7 @@ var targets: [Target] = [
 		plugins: [
 			.plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")
 		]),
-	.testTarget(
-		name: "NetworkHandlerAHCTests",
-		dependencies: [
-			"NetworkHandler",
-			"TestSupport",
-			"PizzaMacros",
-			.product(name: "Logging", package: "swift-log"),
-			"NetworkHandlerAHCEngine",
-		],
-		plugins: [
-			.plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")
-		]),
+
 ]
 
 #if !canImport(FoundationNetworking)
@@ -128,7 +104,6 @@ let package = Package(
 		//		.package(url: "https://github.com/mredig/SwiftPizzaSnips.git", branch: "0.4.34h"),
 		.package(url: "https://github.com/mredig/SwiftlyDotEnv.git", .upToNextMinor(from: "0.2.3")),
 		.package(url: "https://github.com/mredig/DataScanner.git", .upToNextMinor(from: "0.4.3")),
-		.package(url: "https://github.com/swift-server/async-http-client", .upToNextMajor(from: "1.25.2")),
 		.package(url: "https://github.com/apple/swift-log.git", .upToNextMajor(from: "1.6.2")),
 		.package(url: "https://github.com/SimplyDanny/SwiftLintPlugins", from: "0.58.2"),
 		.package(url: "https://github.com/apple/swift-http-types.git", from: "1.5.1"),
