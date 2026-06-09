@@ -1,5 +1,5 @@
 import HTTPTypes
-import NetworkHalpers
+import NetworkHandler
 import NHMacros
 import Testing
 

@@ -1,6 +1,5 @@
 import Foundation
 import HTTPTypes
-import NetworkHalpers
 import SwiftPizzaSnips
 
 /// Encapsulates shared metadata for a network engine request, such as headers, response codes,

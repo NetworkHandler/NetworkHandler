@@ -1,5 +1,4 @@
 import Foundation
-import NetworkHalpers
 import SwiftPizzaSnips
 
 extension CompleteNetworkRequest {

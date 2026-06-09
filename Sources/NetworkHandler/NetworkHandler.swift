@@ -1,7 +1,6 @@
 import Foundation
 import HTTPTypes
 import Logging
-@_exported import NetworkHalpers
 import SwiftPizzaSnips
 
 /// The bread and butter of this package!

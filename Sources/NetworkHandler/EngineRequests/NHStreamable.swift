@@ -1,5 +1,4 @@
 import Foundation
-import NetworkHalpers
 import SwiftPizzaSnips
 
 /// A protocol for types that can provide an `InputStream`.

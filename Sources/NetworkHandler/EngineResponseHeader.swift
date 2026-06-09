@@ -1,6 +1,5 @@
 import Foundation
 import HTTPTypes
-import NetworkHalpers
 
 /// Represents the metadata of an HTTP response, including the status code, headers,
 /// and additional derived properties for easier access to common response attributes.

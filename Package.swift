@@ -5,9 +5,6 @@ import PackageDescription
 
 var products: [Product] = [
 	.library(
-		name: "NetworkHalpers",
-		targets: ["NetworkHalpers"]),
-	.library(
 		name: "NetworkHandler",
 		targets: ["NetworkHandler"]),
 	.library(
@@ -20,7 +17,6 @@ var targets: [Target] = [
 		name: "NetworkHandler",
 		dependencies: [
 			.product(name: "Crypto", package: "swift-crypto"),
-			"NetworkHalpers",
 			"SwiftPizzaSnips",
 			.product(name: "AsyncHTTPClient", package: "async-http-client"),
 			.product(name: "Logging", package: "swift-log"),
@@ -34,22 +30,9 @@ var targets: [Target] = [
 		name: "NetworkHandlerAHCEngine",
 		dependencies: [
 			"NetworkHandler",
-			"NetworkHalpers",
 			"SwiftPizzaSnips",
 			.product(name: "AsyncHTTPClient", package: "async-http-client"),
 			.product(name: "Logging", package: "swift-log"),
-		],
-		plugins: [
-			.plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")
-		]),
-	.target(
-		name: "NetworkHalpers",
-		dependencies: [
-			.product(name: "Crypto", package: "swift-crypto"),
-			"SwiftPizzaSnips",
-			.product(name: "Logging", package: "swift-log"),
-			.product(name: "HTTPTypes", package: "swift-http-types"),
-			"NHMacros",
 		],
 		plugins: [
 			.plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")
@@ -94,16 +77,6 @@ var targets: [Target] = [
 		plugins: [
 			.plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")
 		]),
-	.testTarget(
-		name: "NetworkHalpersTests",
-		dependencies: [
-			"NetworkHalpers",
-			"TestSupport",
-			"PizzaMacros",
-		],
-		plugins: [
-			.plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")
-		]),
 ]
 
 #if !canImport(FoundationNetworking)
@@ -117,7 +90,6 @@ targets.append(
 		name: "NetworkHandlerURLSessionEngine",
 		dependencies: [
 			"NetworkHandler",
-			"NetworkHalpers",
 			"SwiftPizzaSnips",
 			.product(name: "Logging", package: "swift-log"),
 		],

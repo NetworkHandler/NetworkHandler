@@ -1,5 +1,5 @@
 import Foundation
-import NetworkHalpers
+import NetworkHandler
 import SwiftPizzaSnips
 import Testing
 import TestSupport

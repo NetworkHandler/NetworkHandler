@@ -1,6 +1,5 @@
 import Foundation
 import HTTPTypes
-import NetworkHalpers
 import SwiftPizzaSnips
 
 /// Represents an HTTP request for most HTTP interactions, such as sending or retrieving JSON or binary responses.
