@@ -351,7 +351,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 		let dataHash = SHA256.hash(data: randomData)
 		print(dataHash)
 
-		let atomicRequest = AtomicValue(value: CompleteNetworkRequest.upload(request, payload: .data(randomData)))
+		let atomicRequest = LockBox(CompleteNetworkRequest.upload(request, payload: .data(randomData)))
 		let delegate = await Delegate(onRequestModified: { _, _, new in
 			atomicRequest.value = new
 		})
@@ -407,7 +407,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 
 		let hash = try fileHash(actualTestFile)
 
-		let atomicRequest = AtomicValue(value: CompleteNetworkRequest.upload(upRequest, payload: .localFile(actualTestFile)))
+		let atomicRequest = LockBox(CompleteNetworkRequest.upload(upRequest, payload: .localFile(actualTestFile)))
 		let delegate = await Delegate(onRequestModified: { _, _, new in
 			atomicRequest.value = new
 		})
@@ -471,7 +471,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 
 		let multipartHash = try fileHash(multipartFile)
 
-		let atomicRequest = AtomicValue(value: CompleteNetworkRequest.upload(upRequest, payload: .localFile(multipartFile)))
+		let atomicRequest = LockBox(CompleteNetworkRequest.upload(upRequest, payload: .localFile(multipartFile)))
 		let delegate = await Delegate(onRequestModified: { _, _, new in
 			atomicRequest.value = new
 		})
@@ -534,7 +534,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 		print(multipartHash)
 		try multipart.render().write(to: .homeDirectory.appending(path: "Swap/foo.mpf"))
 
-		let atomicRequest = AtomicValue(value: CompleteNetworkRequest.upload(upRequest, payload: .inputStream(multipart)))
+		let atomicRequest = LockBox(CompleteNetworkRequest.upload(upRequest, payload: .inputStream(multipart)))
 		let delegate = await Delegate(onRequestModified: { _, _, new in
 			atomicRequest.value = new
 		})
@@ -589,7 +589,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 
 		let cancelToken = NetworkCancellationToken()
 		let forCancel = Task {
-			let accumulated = AtomicValue(value: 0)
+			let accumulated = LockBox(0)
 			let delegate = await Delegate(onResponseBodyProgress: { [accumulated] _, _, bodyData in
 				accumulated.value += bodyData.count
 
@@ -737,7 +737,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 		let (actualTestFile, done) = try createDummyFile(at: testFileURL, megabytes: 5)
 		defer { try? done() }
 
-		let atomicFailCount = AtomicValue(value: 0)
+		let atomicFailCount = LockBox(0)
 		let expectedFailCount = 3
 
 		await #expect(
@@ -793,8 +793,8 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 			for: url.mockingPath,
 			responseData: Data.random(count: 1024 * 1024 * 5, using: &seedableRNG))
 
-		let accumulator = AtomicValue(value: [Int]())
-		let expectedTotalAtomic = AtomicValue(value: 0)
+		let accumulator = LockBox([Int]())
+		let expectedTotalAtomic = LockBox(0)
 		let delegate = await Delegate(onResponseBodyProgressCount: { _, _, count, expectedTotal in
 			accumulator.value.append(count)
 			if let expectedTotal {
@@ -855,10 +855,10 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 		let (actualTestFile, done) = try createDummyFile(at: testFileURL, megabytes: 5)
 		defer { try? done() }
 
-		let accumulator = AtomicValue(value: [Int]())
-		let expectedTotalAtomic = AtomicValue(value: -1)
-		let updatedRequestAtomic = AtomicValue(
-			value: CompleteNetworkRequest.upload(
+		let accumulator = LockBox([Int]())
+		let expectedTotalAtomic = LockBox(-1)
+		let updatedRequestAtomic = LockBox(
+			CompleteNetworkRequest.upload(
 				request,
 				payload: .localFile(actualTestFile)))
 		let delegate = await Delegate(
