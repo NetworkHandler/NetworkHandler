@@ -7,6 +7,11 @@ import NHMacros
 extension EngineResponseHeader {
 	private static let log = Logger(label: "Engine Response Handler from URLResponse")
 
+	/// Creates an `EngineResponseHeader` from a `URLResponse` or `HTTPURLResponse`.
+	///
+	/// If the response is an `HTTPURLResponse`, the status code and headers are extracted
+	/// and populated accordingly. For non-HTTP responses, a status code of `-1` is used
+	/// with a single error header indicating the invalid response type.
 	public init(from response: URLResponse) {
 		let headers: HTTPFields
 		let statusCode: Int

@@ -2,6 +2,12 @@ import Foundation
 import NetworkHandler
 
 extension NetworkRequest {
+	/// Creates a configured `URLRequest` from this `NetworkRequest`.
+	///
+	/// - Parameter uploadFlag: When `false`, the request body is set from the
+	///   payload. When `true`, the body is left unset (suitable for uploads).
+	/// - Returns: A fully configured `URLRequest` with headers, method, timeout,
+	///   and derived request properties applied.
 	package func urlRequest(forUpload uploadFlag: Bool) -> URLRequest {
 		var new = URLRequest(url: self.url)
 		for header in self.headers {

@@ -97,7 +97,7 @@ public struct CommonRequestData: Hashable, @unchecked Sendable, Withable {
 
 	/// Stores platform or library-specific metadata in a key-value dictionary.
 	///
-	/// This mechanism allows extending `EngineRequestMetadata` with custom properties, especially
+	/// This mechanism allows extending `CommonRequestData` with custom properties, especially
 	/// in extensions (since extensions cannot introduce stored properties).
 	///
 	/// - Parameters:

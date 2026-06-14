@@ -14,6 +14,7 @@ struct NetworkRequestTests {
 		let testDummy = DummyType(id: 23, value: "Woop woop woop!", other: 25.3)
 
 		let dummyURL = #URL("https://redeggproductions.com")
+
 		// When the payload is encoded into a request.
 		let request = try dummyURL.generalRequest.with {
 			try $0.encodeData(testDummy)
@@ -39,14 +40,17 @@ struct NetworkRequestTests {
 
 		// When a value is first added then replaced.
 		request.headers.addValue(.json, for: .contentType)
+
 		// Then the header value is readable.
 		#expect("application/json" == request.headers[.contentType])
 		request.headers.setValue(.xml, for: .contentType)
+
 		// And the new value replaces the old.
 		#expect("application/xml" == request.headers[.contentType])
 
 		// When another header value is set.
 		request.headers.setValue("Bearer 12345", for: .authorization)
+
 		// Then both headers are present with correct values.
 		#expect(
 			[
@@ -56,12 +60,14 @@ struct NetworkRequestTests {
 
 		// When the authorization value is set to nil.
 		request.headers.setValue(nil, for: .authorization)
+
 		// Then it disappears from the headers collection.
 		#expect([#HTTPFieldName("Content-Type"): "application/xml"] == request.headers)
 		#expect(request.headers[.authorization] == nil)
 
 		// When an arbitrary header is set.
 		request.headers.setValue("Arbitrary Value", for: #HTTPFieldName("Arbitrary-Key"))
+
 		// Then it appears in the headers.
 		#expect(
 			[
@@ -76,6 +82,7 @@ struct NetworkRequestTests {
 			#HTTPFieldName("Arbitrary-Key"): "Arbitrary Value",
 		]
 		request.headers = allFields
+
 		// Then headers equal the assigned collection.
 		#expect(allFields == request.headers)
 
@@ -85,12 +92,18 @@ struct NetworkRequestTests {
 			$0.requestID = nil
 		}
 		request2.headers.setValue(.audioMp4, for: .contentType)
+
+		// Then the audio/mp4 type is set.
 		#expect("audio/mp4" == request2.headers[.contentType])
 
 		request2.headers.setContentType(.bmp)
+
+		// And the image/bmp type is set.
 		#expect("image/bmp" == request2.headers[.contentType])
 
 		request2.headers.setAuthorization("Bearer asdlkqf")
+
+		// And the authorization is set.
 		#expect("Bearer asdlkqf" == request2.headers[.authorization])
 	}
 
@@ -109,6 +122,7 @@ struct NetworkRequestTests {
 		var requestWithDup = requestWithNoDup
 		requestWithDup.headers.addValue("foo=bar", for: .cookie)
 
+		// When both requests are compared and their header counts checked.
 		// Then they are unequal and the duplicate has two cookies.
 		#expect(requestWithDup != requestWithNoDup)
 		#expect(requestWithDup.headers.count == 2)
@@ -128,6 +142,7 @@ struct NetworkRequestTests {
 		// When cookies are added in order 1 then 2.
 		request1.headers.addValue("sessionId=abc123", for: .cookie)
 		request1.headers.addValue("foo=bar", for: .cookie)
+
 		// And in order 2 then 1.
 		request2.headers.addValue("foo=bar", for: .cookie)
 		request2.headers.addValue("sessionId=abc123", for: .cookie)
@@ -146,7 +161,8 @@ struct NetworkRequestTests {
 
 		let nilString: String? = nil
 
-		// Then string comparisons and inequality checks work.
+		// When string comparisons and inequality checks are performed.
+		// Then duplicate names compare equal and different ones do not.
 		#expect("Content-Type" == contentKey)
 		#expect(contentKey == "Content-Type")
 		#expect("Content-Typo" != contentKey)
@@ -155,6 +171,8 @@ struct NetworkRequestTests {
 
 		let gif = HTTPField.Value.gif
 
+		// When the value is compared against string literals.
+		// Then the comparisons match or not match as expected.
 		#expect("image/gif" == gif)
 		#expect(gif == "image/gif")
 		#expect("image/jif" != gif)

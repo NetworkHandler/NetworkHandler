@@ -10,6 +10,7 @@ struct NetworkCachableTests {
 	@Test func cacheKeyRoundtrip() async throws {
 		let base = NetworkCacheKey.urlMethod(#URL("https://foo.bar"), .get)
 
+		// Given a cache key.
 		// When the key is serialized.
 		let raw = base.rawValue
 

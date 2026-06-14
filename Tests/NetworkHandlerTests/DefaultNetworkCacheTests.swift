@@ -128,6 +128,10 @@ struct DefaultNetworkCacheTests {
 		#expect(diskCacheMock[keys.first] == nil)
 	}
 
+	/// Verifies that the cache falls back to disk when a key exists only on disk.
+	///
+	/// Given a memory cache with a disk cache backup, when a key exists on disk
+	/// but not in memory, then the cache falls back to the disk cache upon retrieval.
 	@Test func diskCacheFallback() async throws {
 		// Given a memory cache with a disk cache backup
 		let (cache, diskCacheMock) = makeTestableCache()
@@ -141,6 +145,10 @@ struct DefaultNetworkCacheTests {
 		#expect(cache[keys.first] == stores.first)
 	}
 
+	/// Verifies that the cache stores in memory as the primary store before disk.
+	///
+	/// Given a memory cache with a disk cache backup, when a key exists in memory
+	/// but not on disk, then the cache still returns the correct memory-stored value.
 	@Test func diskCacheNotPrimary() async throws {
 		// Given a memory cache with a disk cache backup
 		let (cache, diskCacheMock) = makeTestableCache()
@@ -191,6 +199,10 @@ struct DefaultNetworkCacheTests {
 
 	// MARK: - Helpers
 
+	/// Creates a `DefaultNetworkCache` backed by an in-memory cache and a mock disk cache.
+	///
+	/// Returns a tuple of the testable cache and the disk cache mock, which can be
+	/// used to verify disk fallback behavior and inspect stored data independently.
 	private func makeTestableCache() -> (defaultCache: DefaultNetworkCache, diskCacheMock: NetworkCacheMock) {
 		let diskCache = NetworkCacheMock(
 			name: "Fake Disk Cache",
@@ -202,6 +214,12 @@ struct DefaultNetworkCacheTests {
 		return (defaultCache, diskCache)
 	}
 
+	/// Creates two `NetworkCacheStore` values with distinct data and response headers.
+	///
+	/// Returns a tuple of cache stores: `first` has 5 bytes of sequential data
+	/// with HTTP status 200 and a 1024-byte content-length header, and `second`
+	/// has the reversed 5-byte payload with HTTP status 200 and a 2048-byte
+	/// content-length header.
 	private func makeCacheStores() -> (first: NetworkCacheStore?, second: NetworkCacheStore?) {
 		let data1 = Data([1, 2, 3, 4, 5])
 		let data2 = Data(data1.reversed())
@@ -225,6 +243,10 @@ struct DefaultNetworkCacheTests {
 		)
 	}
 
+	/// Creates three URL-based cache keys for GET requests targeting different paths.
+	///
+	/// Returns a tuple of three `NetworkCacheKey` values built with `.urlMethod`:
+	/// `first` targets `/`, `second` targets `/etc`, and `third` targets `/usr`.
 	// swiftlint:disable:next large_tuple
 	private func makeCacheKeys() -> (first: NetworkCacheKey, second: NetworkCacheKey, third: NetworkCacheKey) {
 		return (

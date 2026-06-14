@@ -35,6 +35,7 @@ struct NetworkErrorTests {
 	/// debugDescription string based on its payload.
 	@available(iOS 11.0, macOS 13.0, *)
 	@Test func errorOutput() throws {
+		// Given a test object and a JSON encoder with sorted keys.
 		let testDummy = DummyType(id: 23, value: "Woop woop woop!", other: 25.3)
 		let encoder = JSONEncoder()
 		encoder.outputFormatting = [.sortedKeys]

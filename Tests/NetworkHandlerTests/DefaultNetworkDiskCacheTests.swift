@@ -4,10 +4,17 @@ import Logging
 import Testing
 
 class DefaultNetworkDiskCacheTests {
+	/// A 1 KB dummy data payload for caching tests.
 	static let dummy1KFile = Data(repeating: 0, count: 1024)
+	/// A 2 KB dummy data payload for caching tests.
 	static let dummy2KFile = Data(repeating: 0, count: 1024 * 2)
+	/// A 5 KB dummy data payload for caching tests.
 	static let dummy5KFile = Data(repeating: 0, count: 1024 * 5)
 
+	/// Creates five sample key/data pairs for cache test scenarios.
+	///
+	/// Returns keys `"file1"` through `"file5"` paired with 1 KB, 2 KB, 5 KB, 1 KB, and 1 KB payloads,
+	/// producing an ascending/descending mix to exercise cache ordering and eviction.
 	// swiftlint:disable:next large_tuple
 	static func fileAssortment() -> (
 		file1: (key: NetworkCacheKey, data: Data),
@@ -24,7 +31,12 @@ class DefaultNetworkDiskCacheTests {
 		return (file1, file2, file3, file4, file5)
 	}
 
-	/// Verifies basic add, remove, and retrieval operations with sequential async ops.
+	/// Tests that data can be added and retrieved, and removed from a disk cache.
+	///
+	/// - Given: four data writes dispatched concurrently via `setData`.
+	/// - When: all writes complete, verify each key is retrievable and a fifth non-written key returns `nil`.
+	/// - When: `file1.key` is removed, verify it is gone while `file2.key`–`file4.key` remain.
+	/// - When: `file3.key` is also removed, verify only `file2.key` and `file4.key` remain.
 	@Test func cacheAddRemove() async {
 		let (cache, done) = generateDiskCache()
 		defer { done() }
@@ -70,7 +82,11 @@ class DefaultNetworkDiskCacheTests {
 		#expect(cache.getData(for: file5.key) == nil)
 	}
 
-	/// Verifies that reset clears all stored data (size and count).
+	/// Tests that `reset()` clears all stored data and resets `size` and `count` to zero.
+	///
+	/// - Given: a single 1 KB data entry written to the cache.
+	/// - When: `reset()` is called on the cache.
+	/// - Then: `size` and `count` both drop to zero, and no data remains retrievable.
 	@Test func reset() async {
 		let (cache, done) = generateDiskCache()
 		defer { done() }
@@ -94,10 +110,17 @@ class DefaultNetworkDiskCacheTests {
 		#expect(0 == cache.count) // swiftlint:disable:this empty_count
 	}
 
-	/// Verifies that exceeding capacity evicts the oldest entries in LRU-ish order.
+	/// Tests cache eviction when data exceeds the configured capacity.
 	///
-	/// Capacity is set to 2 KB (2048 bytes). Each test file is 1 KB.
-	/// Expecting: writes 4–5 cause eviction of older keys.
+	/// Capacity is 2 KB (2048 bytes). Sequential writes exercise eviction:
+	///
+	/// - Given: `file1` (1 KB) is written and remains retrievable.
+	/// - When: `file2` (2 KB) is written, evicting `file1` since it exceeds capacity.
+	/// - When: `file3` (5 KB) is written, evicting `file2` (all entries exceed capacity).
+	/// - When: `file4` (1 KB) is written, evicting `file3` since `file3` still exceeds capacity.
+	/// - When: `file5` (1 KB) is written, both `file4` and `file5` persist (2 KB total fits capacity).
+	///
+	/// Verifies eviction preserves data within capacity while removing the oldest entries.
 	@Test func cacheCapacity() {
 		let (cache, done) = generateDiskCache()
 		defer { done() }
@@ -141,6 +164,11 @@ class DefaultNetworkDiskCacheTests {
 	}
 
 	// MARK: - Race Condition Regression
+	/// Tests that concurrent `setData` calls do not corrupt `size` and `count` tracking.
+	///
+	/// - Given: an empty cache.
+	/// - When: 128 keys are written concurrently (each 100 KB to widen the I/O race window).
+	/// - Then: `size` and `count` are verified to be correct after each of 50 iterations.
 	///
 	/// NOTE: This test was created to reproduce a data race on `size` and `count`
 	/// where concurrent `setData` calls across different keys triggered lost updates.
@@ -189,6 +217,11 @@ class DefaultNetworkDiskCacheTests {
 		}
 	}
 
+	/// Creates a `DefaultNetworkDiskCache` configured for isolated test execution.
+	///
+	/// The cache is reset before returning and provides a cleanup closure. Uses the
+	/// calling test function name for logger and cache naming so each test produces
+	/// isolated artifacts.
 	private func generateDiskCache(
 		forTest testName: String = #function
 	) -> (cache: DefaultNetworkDiskCache, done: () -> Void) {

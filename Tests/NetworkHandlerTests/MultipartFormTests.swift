@@ -6,12 +6,12 @@ import Testing
 
 struct MultipartFormTests {
 	@Test func multipartFormModularOffsetCount() async throws {
-		// given a form with known composition
+		// Given a form with known composition
 		let boundary = "alsdkfajklsghdkjashdf"
 
 		var form = MultipartForm(boundary: boundary)
 
-		// a file part
+		// Given: a file part with binary data
 		var rng: any RandomNumberGenerator = SeedableRNG(seed: 498_567)
 		let loremIpsum = Data(String.randomLoremIpsum(wordCount: 6, using: &rng).utf8)
 

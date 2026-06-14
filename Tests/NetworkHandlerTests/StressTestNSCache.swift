@@ -65,6 +65,8 @@ struct StressTestNSCache {
 			for i in 0...9999 {
 				group.addTask {
 					cache.setObject(Box(i), forKey: Box("key-\(i)"))
+					
+					// Then the written value is immediately retrievable.
 					#expect(cache.object(forKey: Box("key-\(i)"))?.value == i)
 				}
 			}

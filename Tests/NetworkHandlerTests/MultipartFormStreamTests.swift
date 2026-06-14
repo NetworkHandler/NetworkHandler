@@ -4,22 +4,28 @@ import SwiftPizzaSnips
 import Testing
 import TestSupport
 
+/// Tests for `MultipartForm` streaming behavior, including stream generation,
+/// multipart rendering, and stream copy consistency.
+@Suite
 class MultipartFormStreamTests {
 	private var teardownBlocks: [() -> Void] = []
 
+	/// Teardown: execute all registered cleanup blocks on deallocation.
 	deinit {
 		for block in teardownBlocks {
 			block()
 		}
 	}
 
-	@Test func streamData() async throws {
-		// given a form with known composition
+	/// Validates that `MultipartForm.createStream()` produces bytes identical
+	/// to `render()`, verifying stream integrity for a multi-part form.
+	@Test
+	func streamData() async throws {
+		// Given a form with a known composition
 		let boundary = "alsdkfajklsghdkjashdf"
-
 		var form = MultipartForm(boundary: boundary)
 
-		// a file part
+		// A file part constructed via `randomLoremIpsum` and written to disk
 		var rng: any RandomNumberGenerator = SeedableRNG(seed: 498_567)
 		let loremIpsum = Data(String.randomLoremIpsum(wordCount: 6, using: &rng).utf8)
 
@@ -28,14 +34,14 @@ class MultipartFormStreamTests {
 		try loremIpsum.write(to: file)
 		form.append(file, named: "lorem", filename: "lorem.txt")
 
-		// a data part
+		// A data part (JSON-encoded sample object)
 		let jsonSample = MultipartFormTests.Sample(value: 5, label: "asdf", sub: nil)
 		let jsonData = try JSONEncoder()
 			.with { $0.outputFormatting = [.sortedKeys, .withoutEscapingSlashes] }
 			.encode(jsonSample)
 		form.append(jsonData, named: "metadata")
 
-		// a string part
+		// A plain-string part
 		let randomString = "bloo bar baz\n\ntrue fuzz"
 		form.append(randomString, named: "randomized")
 
@@ -43,10 +49,10 @@ class MultipartFormStreamTests {
 		let initialRenderHash = totalFormOutput.persistentHashValue().toHexString()
 		#expect(initialRenderHash == "5c37579f467b73a33a99ba13b596a10f")
 
-		// when providing in a Stream format
+		// When the form is rendered as a stream
 		let stream = try form.createStream()
 
-		// then the data retains its integrity
+		// Then the stream bytes match the rendered data
 		var finalData = Data()
 
 		let bufferSize = 128
@@ -68,7 +74,11 @@ class MultipartFormStreamTests {
 		#expect(finalData == totalFormOutput)
 	}
 
-	@Test func testMultipartGeneration() throws {
+	/// Validates that known input renders to a deterministic, expected
+	/// multipart HTTP body.
+	@Test
+	func testMultipartGeneration() throws {
+		// Given a boundary and a known set of parts
 		let boundary = "alskdglkasdjfglkajsdf"
 		var multipart = MultipartForm(boundary: boundary)
 
@@ -78,14 +88,14 @@ class MultipartFormStreamTests {
 		let testedText = "tested"
 		let (fileURL, _) = try createTestFile()
 
-		// when constructing a multipart form
+		// When text, data, and file parts are appended
 		multipart.append(testedText, named: "Text")
 		multipart.append(arbitraryData, named: "File1", filename: "text.txt")
 		multipart.append(fileURL, named: "File2", contentType: "text/html")
 
 		let finalData = try multipart.render()
 
-		// then it consistently renders the same, well-formed output
+		// Then the rendered output matches the expected multipart body
 		let expected = """
 		--Boundary-alskdglkasdjfglkajsdf\r\nContent-Disposition: form-data; name=\"Text\"\r\n\r\ntested\r\n--Boundary-\
 		alskdglkasdjfglkajsdf\r\nContent-Disposition: form-data; name=\"File1\"; filename=\"text.txt\"\r\nContent-Type: \
@@ -98,7 +108,12 @@ class MultipartFormStreamTests {
 		#expect(expected == finalString)
 	}
 
-	@Test func testStreamCopy() throws {
+	/// Validates that creating multiple independent streams from the same
+	/// `MultipartForm` yields identical results, and that re-rendering also
+	/// matches.
+	@Test
+	func testStreamCopy() throws {
+		// Given the expected multipart body (shared with testMultipartGeneration)
 		let expected = """
 		--Boundary-alskdglkasdjfglkajsdf\r\nContent-Disposition: form-data; name=\"Text\"\r\n\r\ntested\r\n--Boundary-\
 		alskdglkasdjfglkajsdf\r\nContent-Disposition: form-data; name=\"File1\"; filename=\"text.txt\"\r\nContent-Type: \
@@ -107,7 +122,7 @@ class MultipartFormStreamTests {
 		body</body></html>\r\n--Boundary-alskdglkasdjfglkajsdf--\r\n
 		"""
 
-		// given a form with a known construction
+		// Given a form with a known construction
 		let boundary = "alskdglkasdjfglkajsdf"
 		var multipart = MultipartForm(boundary: boundary)
 
@@ -120,11 +135,11 @@ class MultipartFormStreamTests {
 		let (fileURL, _) = try createTestFile()
 		multipart.append(fileURL, named: "File2", contentType: "text/html")
 
-		// when creating multiple copies as Stream
+		// When multiple streams are created from the same form
 		let stream1 = try multipart.createStream()
 		let stream2 = try multipart.createStream()
 
-		// then each output is consistent and identical
+		// Then each stream produces the same expected output
 		let stream1Data = streamToData(stream1)
 		let copyString = String(data: stream1Data, encoding: .utf8)
 		#expect(expected == copyString)
@@ -133,11 +148,17 @@ class MultipartFormStreamTests {
 		let copyString2 = String(data: stream2Data, encoding: .utf8)
 		#expect(expected == copyString2)
 
+		// And re-rendering the original form also produces identical output
 		let renderFromMultipart = try multipart.render()
 		let copyString3 = String(data: renderFromMultipart, encoding: .utf8)
 		#expect(expected == copyString3)
 	}
 
+	/// Reads all available bytes from an `InputStream` into a `Data` object.
+	///
+	/// Handles opening and closing the stream automatically. Ensures the
+	/// returned data contains only the bytes actually read (truncating any
+	/// oversized buffer).
 	private func streamToData(_ stream: InputStream) -> Data {
 		if stream.streamStatus == .notOpen {
 			stream.open()
@@ -165,6 +186,13 @@ class MultipartFormStreamTests {
 	}
 
 	// MARK: - common utilities
+
+	/// Creates a temporary file with test HTML content and registers a
+	/// teardown block to delete it after the test completes.
+	///
+	/// - Returns: A tuple containing the file URL and its contents as `Data`.
+	///
+	/// - Throws: Any file-system errors during creation.
 	private func createTestFile() throws -> (URL, Data) {
 		let testDirectory = URL.temporaryDirectory.appending(component: UUID().uuidString)
 		try FileManager.default.createDirectory(at: testDirectory, withIntermediateDirectories: true)

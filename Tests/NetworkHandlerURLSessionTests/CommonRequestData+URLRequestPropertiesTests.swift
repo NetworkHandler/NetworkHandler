@@ -5,7 +5,7 @@ import PizzaMacros
 import Testing
 import TestSupport
 
-struct EngineRequestMetadata_URLRequestProperties {
+struct CommonRequestData_URLRequestProperties {
 	let testURL = #URL("https://s3.wasabisys.com/network-handler-tests/images/lighthouse.jpg")
 
 	@Test func cachePolicy() async throws {

@@ -22,6 +22,19 @@ extension URLSession: NetworkEngine {
 		return URLSession(configuration: configuration, delegate: delegate, delegateQueue: queue)
 	}
 
+	/// Sends the network request to the server and returns the response header and a
+	/// streaming response body.
+	///
+	/// This method handles both upload and standard requests, managing the underlying
+	/// `URLSession` task and ensuring the response body stream is properly forwarded
+	/// through the ``NetworkHandler`` framework.
+	///
+	/// - Parameters:
+	///    - request: The complete network request to perform.
+	///    - uploadProgressContinuation: Stream continuation for upload progress updates.
+	///    - requestLogger: Optional logger for relevant messages.
+	/// - Returns: A tuple containing the response header and response body stream.
+	/// - Throws: A ``NetworkError`` describing the failure.
 	public func performNetworkTransfer(
 		request: CompleteNetworkRequest,
 		uploadProgressContinuation: UploadProgressStream.Continuation?,
@@ -111,6 +124,10 @@ extension URLSession: NetworkEngine {
 		}
 	}
 
+	/// Shuts down the session by finishing any pending tasks and invalidating the session.
+	///
+	/// This ensures no memory leaks occur when the engine is deallocated and
+	/// prevents dangling task callbacks from firing after the session is no longer in use.
 	public func shutdown() {
 		finishTasksAndInvalidate()
 	}
