@@ -8,27 +8,140 @@ import SwiftPizzaSnips
 /// This is a lowst common denominator representation of an HTTP request. If you're conforming your own
 /// engine to `NetworkEngine`, you'll most likely want to add a computed property or function to convert
 /// a `NetworkRequest` to the request type native to your engine.
-@dynamicMemberLookup
 public struct NetworkRequest: Hashable, Sendable, Withable {
-	/// Internal metadata used to store common HTTP request properties, such as HTTP headers, response codes,
-	/// and URLs. This provides a lightweight container around shared data without duplicating state or logic.
-	package var commonData: CommonRequestData
-
-	/// Returns the value of a dynamic member from `commonData` that allows modification.
+	/// Defines the range of acceptable HTTP response status codes for a request.
+	/// This type encapsulates response codes as a set of integers and provides
+	/// conveniences for constructing it from individual integers, ranges, or arrays.
 	///
-	/// - Parameter member: A writable key path into the `CommonRequestData` instance.
-	/// - Returns: The value at the specified key path.
-	public subscript<T>(dynamicMember member: WritableKeyPath<CommonRequestData, T>) -> T {
-		get { commonData[keyPath: member] }
-		set { commonData[keyPath: member] = newValue }
+	/// Example:
+	/// ```swift
+	/// let successCodes: ResponseCodes = [200, 201, 202]
+	/// let any2xxCode = ResponseCodes(range: 200..<300)
+	/// ```
+	public struct ResponseCodes:
+		Hashable,
+		Sendable,
+		Withable,
+		RawRepresentable,
+		ExpressibleByIntegerLiteral,
+		ExpressibleByArrayLiteral {
+
+		public var rawValue: Set<Int>
+
+		public init(rawValue: Set<Int>) {
+			self.rawValue = rawValue
+		}
+
+		public init(arrayLiteral elements: Int...) {
+			self.init(rawValue: Set(elements))
+		}
+
+		public init(integerLiteral value: IntegerLiteralType) {
+			self.init(rawValue: [value])
+		}
+
+		public init(range: Range<Int>) {
+			self.init(rawValue: range.reduce(into: .init(), { $0.insert($1) } ))
+		}
 	}
 
-	/// Returns the value of a dynamic member from `commonData`.
+	/// Specifies the range or list of HTTP response codes that are considered valid for this request.
+	/// Responses falling outside this range may be treated as errors, depending on the network engine's logic.
 	///
-	/// - Parameter member: A key path into the `CommonRequestData` instance.
-	/// - Returns: The value at the specified key path.
-	public subscript<T>(dynamicMember member: KeyPath<CommonRequestData, T>) -> T {
-		commonData[keyPath: member]
+	/// Example:
+	/// ```swift
+	/// commonData.expectedResponseCodes = [200, 201, 202]
+	/// commonData.expectedResponseCodes = ResponseCodes(range: 200..<300)
+	/// ```
+	public var expectedResponseCodes: ResponseCodes
+
+	/// Gets or sets the expected size of the response payload in bytes via the `Content-Length` header.
+	///
+	/// When set, the `Content-Length` header is automatically updated.
+	/// Setting this to `nil` removes the header from the metadata.
+	public var expectedContentLength: Int? {
+		get { headers[.contentLength].flatMap(Int.init) }
+		set {
+			guard let newValue else {
+				headers[.contentLength] = nil
+				return
+			}
+			headers[.contentLength] = "\(newValue)"
+		}
+	}
+
+	public var headers: HTTPFields = [:]
+
+	public var method: HTTPRequest.Method = .get
+
+	public var url: URL
+
+	public var timeoutInterval: TimeInterval = 60
+
+	private let extensionStorage = UncheckedLockBox([String: AnyHashable]())
+
+	/// The unique ID used to identify this request. Follows the `X-Request-ID` HTTP header convention.
+	///
+	/// Automatically populated with a UUID string upon initialization if autogeneration is enabled.
+	/// To disable this behavior, pass `autogenerateRequestID: false` during construction.
+	///
+	/// See [X-Request-ID](https://http.dev/x-request-id) for more info. Note that while it's an optional header,
+	/// convention dictates that it should be the same when retrying a request.
+	public var requestID: String? {
+		get { headers[.xRequestID] }
+		set {
+			guard let newValue else {
+				headers[.xRequestID] = nil
+				return
+			}
+			headers[.xRequestID] = "\(newValue)"
+		}
+	}
+
+	/// Stores platform or library-specific metadata in a key-value dictionary.
+	///
+	/// This mechanism allows extending `NetworkRequest` with custom properties, especially
+	/// in extensions (since extensions cannot introduce stored properties).
+	///
+	/// Stored values MUST be `Hashable & Sendable` so `NetworkRequest` itself can maintain conformance.
+	///
+	/// - Parameters:
+	///   - value: The value to store. Setting `nil` removes the key from the storage.
+	///   - key: A unique identifier for the metadata entry.
+	///
+	/// For example, if you want to use Foundation's networking as your engine and use URLRequest, you could add
+	///
+	/// ```swift
+	/// extension NetworkEngine {
+	/// 	var allowsCellularAccess: Bool {
+	/// 		get { (extensionStorageRetrieve(valueForKey: "allowsCellularAccess") ?? true }
+	/// 		set { extensionStorage(store: newValue, with: "allowsCellularAccess") }
+	/// 	}
+	/// }
+	/// ```
+	public mutating func extensionStorage<T: Hashable & Sendable>(store value: T?, with key: String) {
+		extensionStorage.withLock {
+			$0[key] = value
+		}
+	}
+
+	/// To support specialized properties for your platform, you can create an extension that stores its values here
+	/// (since extensions only support computed properties)
+	///
+	/// For example, if you want to use Foundation's networking as your engine and use URLRequest, you could add
+	///
+	/// ```swift
+	/// extension NetworkEngine {
+	/// 	var allowsCellularAccess: Bool {
+	/// 		get { (extensionStorageRetrieve(valueForKey: "allowsCellularAccess") ?? true }
+	/// 		set { extensionStorage(store: newValue, with: "allowsCellularAccess") }
+	/// 	}
+	/// }
+	/// ```
+	public func extensionStorageRetrieve<T: Hashable & Sendable>(valueForKey key: String) -> T? {
+		extensionStorage.withLock {
+			$0[key] as? T
+		}
 	}
 
 	nonisolated(unsafe)
@@ -79,17 +192,13 @@ public struct NetworkRequest: Hashable, Sendable, Withable {
 		autogenerateRequestID: Bool = true
 	) {
 		self.payload = payload
-		self.commonData = CommonRequestData(
-			expectedResponseCodes: expectedResponseCodes,
-			headers: headers,
-			method: method,
-			url: url,
-			autogenerateRequestID: autogenerateRequestID)
+		self.expectedResponseCodes = expectedResponseCodes
+		self.headers = headers
+		self.method = method
+		self.url = url
+		guard autogenerateRequestID else { return }
+		self.requestID = UUID().uuidString
 	}
-	/// A type alias for the response codes expected from this request.
-	///
-	/// Defined as `CommonRequestData.ResponseCodes`.
-	public typealias ResponseCodes = CommonRequestData.ResponseCodes
 
 	/// Encodes an object conforming to `Encodable` into a `Data` payload using the specified or default encoder.
 	///

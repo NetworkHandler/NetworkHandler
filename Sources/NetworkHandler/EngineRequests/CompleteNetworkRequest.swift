@@ -28,34 +28,34 @@ public enum CompleteNetworkRequest: Sendable {
 	///   - payload: The file or data to upload via the engine.
 	case upload(NetworkRequest, payload: UploadFile)
 
-	private var commonData: CommonRequestData {
+	private var commonData: NetworkRequest {
 		get {
 			switch self {
 			case .upload(let uploadEngineRequest, _):
-				uploadEngineRequest.commonData
+				uploadEngineRequest
 			case .standard(let standardRequest):
-				standardRequest.commonData
+				standardRequest
 			}
 		}
 
 		set {
 			switch self {
 			case .upload(var uploadEngineRequest, let payload):
-				uploadEngineRequest.commonData = newValue
+				uploadEngineRequest = newValue
 				self = .upload(uploadEngineRequest, payload: payload)
 			case .standard(var standardRequest):
-				standardRequest.commonData = newValue
+				standardRequest = newValue
 				self = .standard(standardRequest)
 			}
 		}
 	}
 
-	public subscript<T>(dynamicMember member: WritableKeyPath<CommonRequestData, T>) -> T {
+	public subscript<T>(dynamicMember member: WritableKeyPath<NetworkRequest, T>) -> T {
 		get { commonData[keyPath: member] }
 		set { commonData[keyPath: member] = newValue }
 	}
 
-	public subscript<T>(dynamicMember member: KeyPath<CommonRequestData, T>) -> T {
+	public subscript<T>(dynamicMember member: KeyPath<NetworkRequest, T>) -> T {
 		commonData[keyPath: member]
 	}
 }
