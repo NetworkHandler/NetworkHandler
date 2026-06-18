@@ -528,19 +528,18 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 		let boundary = "akjlsdghkajshdg"
 		var multipart = MultipartForm(boundary: boundary)
 		multipart.append("Foo", named: "file", contentType: "text/plain")
-		multipart.append(actualTestFile, named: "file", contentType: "application/octet-stream")
+		multipart.append(actualTestFile, named: "file", filename: "dummy data test.mpf", contentType: "application/octet-stream")
 
 		let multipartHash = try SHA256.hash(data: multipart.render())
-		print(multipartHash)
-		try multipart.render().write(to: .homeDirectory.appending(path: "Swap/foo.mpf"))
+		logger.info("Multipart hash", metadata: ["hash": "\(multipartHash)"])
 
-		let atomicRequest = LockBox(CompleteNetworkRequest.upload(upRequest, payload: .inputStream(multipart)))
+		let atomicRequest: LockBox<CompleteNetworkRequest?> = nil
 		let delegate = await Delegate(onRequestModified: { _, _, new in
 			atomicRequest.value = new
 		})
 		_ = try await nh.uploadMahDatas(for: upRequest, payload: .inputStream(multipart), delegate: delegate)
 		#expect(
-			atomicRequest.value.expectedContentLength == nil,
+			atomicRequest.value?.expectedContentLength == 10_486_045,
 			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 
 		let dlRequest = uploadURL.generalRequest
@@ -548,6 +547,9 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 		let dlResult = try await #require(nh.transferMahDatas(for: .standard(dlRequest)).data)
 		#expect(
 			SHA256.hash(data: dlResult) == multipartHash,
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
+		#expect(
+			multipartHash.toHexString() == "290d2f338dbcceb32f85c1eee206f85681ebfe1785ccc9e38fed3a052d5d7267",
 			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 	}
 
