@@ -41,3 +41,23 @@ final package class UncheckedLockBox<Wrapped>: @unchecked Sendable {
 		}
 	}
 }
+
+extension UncheckedLockBox: Equatable where Wrapped: Equatable {
+	package static func == (lhs: UncheckedLockBox<Wrapped>, rhs: UncheckedLockBox<Wrapped>) -> Bool {
+		// if lhs and rhs are the same instance, there's only one lock, which would deadlock this code
+		guard lhs !== rhs else { return true }
+		return lhs.withLock { lhsValue in
+			rhs.withLock { rhsValue in
+				lhsValue == rhsValue
+			}
+		}
+	}
+}
+
+extension UncheckedLockBox: Hashable where Wrapped: Hashable {
+	package func hash(into hasher: inout Hasher) {
+		withLock { value in
+			hasher.combine(value)
+		}
+	}
+}

@@ -111,22 +111,28 @@ extension LockBox: @unchecked Sendable where Wrapped: Sendable {
 	}
 }
 
-extension LockBox: Equatable {
-	/// Returns whether `lhs` and `rhs` refer to the same `LockBox` instance.
+extension LockBox: Equatable where Wrapped: Equatable {
+	/// Returns whether `lhs` and `rhs` carry equal values.
 	///
-	/// Equality is determined by reference identity (pointer comparison).
+	/// Thread safe.
 	package static func == (lhs: LockBox<Wrapped>, rhs: LockBox<Wrapped>) -> Bool {
-		lhs === rhs
+		// if lhs and rhs are the same instance, there's only one lock, which would deadlock this code
+		guard lhs !== rhs else { return true }
+		return lhs.withLock { lhsValue in
+			rhs.withLock { rhsValue in
+				lhsValue == rhsValue
+			}
+		}
 	}
 }
 
-extension LockBox: Hashable {
-	/// Hashes the lock box's memory address into `hasher`.
+extension LockBox: Hashable where Wrapped: Hashable {
+	/// Hashes the lock box's value into `hasher`.
 	///
-	/// Hashing is based on pointer identity, consistent with the `Equatable` conformance
-	/// that uses `===` (reference equality).
+	/// Thread safe.
 	package func hash(into hasher: inout Hasher) {
-		let address = Unmanaged.passUnretained(self).toOpaque()
-		hasher.combine(address)
+		withLock { value in
+			hasher.combine(value)
+		}
 	}
 }
