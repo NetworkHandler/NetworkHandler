@@ -10,7 +10,7 @@ struct NetworkRequest_URLRequestProperties {
 
 	@Test func cachePolicy() async throws {
 		let url = testURL
-		var request = url.generalRequest
+		var request = url.networkRequest
 
 		let plainURLRequest = URLRequest(url: url)
 		#expect(request.cachePolicy == plainURLRequest.cachePolicy)
@@ -24,7 +24,7 @@ struct NetworkRequest_URLRequestProperties {
 
 	@Test func mainDocumentURL() {
 		let url = testURL
-		var request = url.generalRequest
+		var request = url.networkRequest
 
 		let plainURLRequest = URLRequest(url: url)
 		#expect(request.mainDocumentURL == plainURLRequest.mainDocumentURL)
@@ -39,7 +39,7 @@ struct NetworkRequest_URLRequestProperties {
 
 	@Test func httpShouldHandleCookies() {
 		let url = testURL
-		var request = url.generalRequest
+		var request = url.networkRequest
 
 		let plainURLRequest = URLRequest(url: url)
 		#expect(request.httpShouldHandleCookies == plainURLRequest.httpShouldHandleCookies)
@@ -53,7 +53,7 @@ struct NetworkRequest_URLRequestProperties {
 
 	@Test func httpShouldUsePipelining() {
 		let url = testURL
-		var request = url.generalRequest
+		var request = url.networkRequest
 
 		let plainURLRequest = URLRequest(url: url)
 		#expect(request.httpShouldUsePipelining == plainURLRequest.httpShouldUsePipelining)
@@ -67,7 +67,7 @@ struct NetworkRequest_URLRequestProperties {
 
 	@Test func allowsCellularAccess() {
 		let url = testURL
-		var request = url.generalRequest
+		var request = url.networkRequest
 
 		let plainURLRequest = URLRequest(url: url)
 		#expect(request.allowsCellularAccess == plainURLRequest.allowsCellularAccess)
@@ -81,7 +81,7 @@ struct NetworkRequest_URLRequestProperties {
 
 	@Test func allowsConstrainedNetworkAccess() {
 		let url = testURL
-		var request = url.generalRequest
+		var request = url.networkRequest
 
 		let plainURLRequest = URLRequest(url: url)
 		#expect(request.allowsConstrainedNetworkAccess == plainURLRequest.allowsConstrainedNetworkAccess)
@@ -95,7 +95,7 @@ struct NetworkRequest_URLRequestProperties {
 
 	@Test func allowsExpensiveNetworkAccess() {
 		let url = testURL
-		var request = url.generalRequest
+		var request = url.networkRequest
 
 		let plainURLRequest = URLRequest(url: url)
 		#expect(request.allowsExpensiveNetworkAccess == plainURLRequest.allowsExpensiveNetworkAccess)
@@ -109,7 +109,7 @@ struct NetworkRequest_URLRequestProperties {
 
 	@Test func networkServiceType() {
 		let url = testURL
-		var request = url.generalRequest
+		var request = url.networkRequest
 
 		let plainURLRequest = URLRequest(url: url)
 		#expect(request.networkServiceType == plainURLRequest.networkServiceType)
@@ -123,7 +123,7 @@ struct NetworkRequest_URLRequestProperties {
 
 	@Test func attribution() {
 		let url = testURL
-		var request = url.generalRequest
+		var request = url.networkRequest
 
 		let plainURLRequest = URLRequest(url: url)
 		#expect(request.attribution == plainURLRequest.attribution)
@@ -138,7 +138,7 @@ struct NetworkRequest_URLRequestProperties {
 	@available(iOS 18.0, macOS 15.0, *)
 	@Test func allowsPersistentDNS() {
 		let url = testURL
-		var request = url.generalRequest
+		var request = url.networkRequest
 
 		let plainURLRequest = URLRequest(url: url)
 		#expect(request.allowsPersistentDNS == plainURLRequest.allowsPersistentDNS)
@@ -152,7 +152,7 @@ struct NetworkRequest_URLRequestProperties {
 
 	@Test func assumesHTTP3Capable() {
 		let url = testURL
-		var request = url.generalRequest
+		var request = url.networkRequest
 
 		let plainURLRequest = URLRequest(url: url)
 		#expect(request.assumesHTTP3Capable == plainURLRequest.assumesHTTP3Capable)
@@ -167,7 +167,7 @@ struct NetworkRequest_URLRequestProperties {
 	@available(iOS 16.1, *)
 	@Test func requiresDNSSECValidation() {
 		let url = testURL
-		var request = url.generalRequest
+		var request = url.networkRequest
 
 		let plainURLRequest = URLRequest(url: url)
 		#expect(request.requiresDNSSECValidation == plainURLRequest.requiresDNSSECValidation)

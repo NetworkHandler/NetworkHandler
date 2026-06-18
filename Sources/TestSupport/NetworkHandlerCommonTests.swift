@@ -98,14 +98,14 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 
 		let rawStart = Date()
 		let image1Result = try await nh.downloadMahDatas(
-			for: imageURL(port: server.port).generalRequest,
+			for: imageURL(port: server.port).networkRequest,
 			usingCache: .key("kitten"),
 			requestLogger: logger)
 		let rawFinish = Date()
 
 		let cacheStart = Date()
 		let image2Result = try await nh.downloadMahDatas(
-			for: imageURL(port: server.port).generalRequest,
+			for: imageURL(port: server.port).networkRequest,
 			usingCache: .key("kitten"),
 			requestLogger: logger)
 		let cacheFinish = Date()
@@ -178,7 +178,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 		defer { nh.resetCache() }
 
 		let resultModel: DemoModel = try await nh.downloadMahCodableDatas(
-			for: modelURL.generalRequest,
+			for: modelURL.networkRequest,
 			delegate: nil,
 			requestLogger: logger).decoded
 
@@ -209,7 +209,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column)
 		) {
 			let _: String = try await nh.downloadMahCodableDatas(
-				for: url.generalRequest,
+				for: url.networkRequest,
 				delegate: nil,
 				requestLogger: logger).decoded
 		}
@@ -245,7 +245,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 		let nh = getNetworkHandler(with: engine)
 		defer { nh.resetCache() }
 
-		let request = demoModelURL.generalRequest.with {
+		let request = demoModelURL.networkRequest.with {
 			$0.expectedResponseCodes = 200
 		}
 
@@ -283,7 +283,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 			"https://s3.wasabisys.com/network-handler-tests/images/lighthouse.jpg"\
 			,"subtitle":"BarSub","title":"FooTitle"}
 			""".utf8)
-		let request = demoModelURL.generalRequest.with {
+		let request = demoModelURL.networkRequest.with {
 			$0.expectedResponseCodes = 201
 			$0.method = .put
 			$0.payload = payloadData
@@ -336,7 +336,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 		let nh = getNetworkHandler(with: engine)
 		defer { nh.resetCache() }
 
-		let request = url.generalRequest.with {
+		let request = url.networkRequest.with {
 			$0.method = .put
 			$0.headers.setAuthorization(.bearerToken("foobar"))
 			$0.expectedResponseCodes = 201
@@ -361,7 +361,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 			atomicRequest.value.expectedContentLength != nil,
 			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 
-		let dlRequest = url.generalRequest
+		let dlRequest = url.networkRequest
 
 		let dlResult = try await #require(nh.downloadMahDatas(for: dlRequest).data)
 		#expect(
@@ -395,7 +395,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 		let nh = getNetworkHandler(with: engine)
 		defer { nh.resetCache() }
 
-		let upRequest = url.generalRequest.with {
+		let upRequest = url.networkRequest.with {
 			$0.method = .put
 			$0.expectedResponseCodes = 201
 			$0.headers.setAuthorization(.bearerToken("foobar"))
@@ -416,7 +416,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 			atomicRequest.value.expectedContentLength != nil,
 			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 
-		let dlRequest = url.generalRequest
+		let dlRequest = url.networkRequest
 
 		let dlResult = try await #require(nh.transferMahDatas(for: .standard(dlRequest)).data)
 		#expect(
@@ -450,7 +450,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 		let nh = getNetworkHandler(with: engine)
 		defer { nh.resetCache() }
 
-		let upRequest = uploadURL.generalRequest.with {
+		let upRequest = uploadURL.networkRequest.with {
 			$0.method = .put
 			$0.expectedResponseCodes = 201
 			$0.headers.setAuthorization(.bearerToken("foobar"))
@@ -480,7 +480,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 			atomicRequest.value.expectedContentLength != nil,
 			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 
-		let dlRequest = uploadURL.generalRequest
+		let dlRequest = uploadURL.networkRequest
 
 		let dlResult = try await #require(nh.transferMahDatas(for: .standard(dlRequest)).data)
 		#expect(
@@ -514,7 +514,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 		let nh = getNetworkHandler(with: engine)
 		defer { nh.resetCache() }
 
-		let upRequest = uploadURL.generalRequest.with {
+		let upRequest = uploadURL.networkRequest.with {
 			$0.method = .put
 			$0.expectedResponseCodes = 201
 			$0.headers.setAuthorization(.bearerToken("foobar"))
@@ -546,7 +546,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 			atomicRequest.value?.expectedContentLength == 10_486_045,
 			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 
-		let dlRequest = uploadURL.generalRequest
+		let dlRequest = uploadURL.networkRequest
 
 		let dlResult = try await #require(nh.transferMahDatas(for: .standard(dlRequest)).data)
 		#expect(
@@ -583,7 +583,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 		let nh = getNetworkHandler(with: engine)
 		defer { nh.resetCache() }
 
-		let upRequest = uploadURL.generalRequest.with {
+		let upRequest = uploadURL.networkRequest.with {
 			$0.method = .put
 			$0.expectedResponseCodes = 201
 			$0.headers.setAuthorization(.bearerToken("foobar"))
@@ -608,7 +608,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 			atomicRequest.value.expectedContentLength == nil,
 			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 
-		let dlRequest = uploadURL.generalRequest
+		let dlRequest = uploadURL.networkRequest
 
 		let dlResult = try await #require(nh.transferMahDatas(for: .standard(dlRequest)).data)
 		#expect(
@@ -650,7 +650,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 		let nh = getNetworkHandler(with: engine)
 		defer { nh.resetCache() }
 
-		let request = url.generalRequest
+		let request = url.networkRequest
 
 		let cancelToken = NetworkCancellationToken()
 		let forCancel = Task {
@@ -704,7 +704,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 		let nh = getNetworkHandler(with: engine)
 		defer { nh.resetCache() }
 
-		let request = url.generalRequest
+		let request = url.networkRequest
 
 		let stream = try await nh.streamMahDatas(for: .standard(request)).stream
 
@@ -740,7 +740,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 		let nh = getNetworkHandler(with: engine)
 		defer { nh.resetCache() }
 
-		let request = url.generalRequest.with {
+		let request = url.networkRequest.with {
 			$0.method = .put
 		}
 
@@ -786,7 +786,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 		defer { nh.resetCache() }
 
 		let url = randomDataURL(port: server.port)
-		let request = url.generalRequest.with {
+		let request = url.networkRequest.with {
 			$0.method = .put
 			$0.timeoutInterval = 0.001
 		}
@@ -851,7 +851,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 		defer { nh.resetCache() }
 
 		let url = randomDataURL(port: server.port)
-		let request = url.generalRequest
+		let request = url.networkRequest
 
 		var seedableRNG: RandomNumberGenerator = SeedableRNG(seed: 23_785)
 		server.addMock(
@@ -902,7 +902,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 		defer { nh.resetCache() }
 
 		let url = randomDataURL(port: server.port)
-		let request = url.generalRequest.with {
+		let request = url.networkRequest.with {
 			$0.method = .put
 			$0.headers.setAuthorization(.bearerToken("foobar"))
 			$0.expectedResponseCodes = 201
@@ -970,7 +970,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 		defer { nh.resetCache() }
 
 		let url = simulatedEchoURL(port: server.port)
-		let request = url.generalRequest
+		let request = url.networkRequest
 
 		server.addMock(for: url.mockingPath, method: .get) { _, dbMock, stream throws(HTTPError) in
 			let value: Int? = await dbMock.get(for: "pollCount")
@@ -1021,7 +1021,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 		defer { nh.resetCache() }
 
 		let url = chonkURL(port: server.port)
-		let request = url.generalRequest
+		let request = url.networkRequest
 
 		let sizeOfUploadMB: UInt8 = 5
 		let fileSize = Int(sizeOfUploadMB) * 1024 * 1024

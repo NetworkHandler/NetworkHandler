@@ -1,7 +1,7 @@
 import Foundation
 
 public extension URL {
-	var generalRequest: NetworkRequest {
+	var networkRequest: NetworkRequest {
 		NetworkRequest(url: self)
 	}
 }

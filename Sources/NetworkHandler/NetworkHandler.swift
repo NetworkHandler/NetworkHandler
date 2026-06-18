@@ -471,10 +471,10 @@ public class NetworkHandler<Engine: NetworkEngine>: @unchecked Sendable, Withabl
 				httpResponse = response
 				delegate?.responseHeaderRetrieved(for: request, header: httpResponse)
 				bodyResponseStream = bodyStream
-			case .standard(let generalRequest):
+			case .standard(let networkRequest):
 				try cancellationToken?.checkIsCancelled()
 				let (header, bodyStream) = try await engine.performNetworkTransfer(
-					request: .standard(generalRequest),
+					request: .standard(networkRequest),
 					uploadProgressContinuation: nil,
 					requestLogger: requestLogger)
 				cancellationToken?.onCancel = { bodyStream.cancel() }

@@ -52,7 +52,7 @@ struct NetworkErrorTests {
 		// When it becomes an HTTP unexpected status code.
 		error = .httpUnexpectedStatusCode(
 			code: 401,
-			originalRequest: .standard(Self.simpleURL.generalRequest).with { $0.requestID = nil },
+			originalRequest: .standard(Self.simpleURL.networkRequest).with { $0.requestID = nil },
 			data: testData)
 		let error2Str = "NetworkError: Bad Response Code (401) for request: (GET): http://he@ho.hum with data: \(testString)"
 
@@ -72,7 +72,7 @@ extension NetworkError {
 	/// Creates a collection of Network errors covering most of the spectrum.
 	static func allErrorCases() -> [NetworkError] {
 		let dummyError = NSError(domain: "com.redeggproductions.NetworkHandler", code: -1, userInfo: nil)
-		let originalRequest = CompleteNetworkRequest.standard(NetworkErrorTests.simpleURL.generalRequest).with {
+		let originalRequest = CompleteNetworkRequest.standard(NetworkErrorTests.simpleURL.networkRequest).with {
 			$0.requestID = nil
 		}
 		let allErrorCases: [NetworkError] = [

@@ -16,7 +16,7 @@ struct NetworkRequestTests {
 		let dummyURL = #URL("https://redeggproductions.com")
 
 		// When the payload is encoded into a request.
-		let request = try dummyURL.generalRequest.with {
+		let request = try dummyURL.networkRequest.with {
 			try $0.encodeData(testDummy)
 		}
 
@@ -33,7 +33,7 @@ struct NetworkRequestTests {
 	@Test func requestHeaders() {
 		// Given a fresh request.
 		let dummyURL = #URL("https://redeggproductions.com")
-		let origRequest = dummyURL.generalRequest.with {
+		let origRequest = dummyURL.networkRequest.with {
 			$0.requestID = nil
 		}
 		var request = CompleteNetworkRequest.standard(origRequest)
@@ -88,7 +88,7 @@ struct NetworkRequestTests {
 
 		// When a completely new request has its contentType configured
 		// and then authorization set.
-		var request2 = dummyURL.generalRequest.with {
+		var request2 = dummyURL.networkRequest.with {
 			$0.requestID = nil
 		}
 		request2.headers.setValue(.audioMp4, for: .contentType)
@@ -113,7 +113,7 @@ struct NetworkRequestTests {
 	@Test func requestHeadersWithDuplicates() async throws {
 		// Given a request with one cookie.
 		let dummyURL = #URL("https://redeggproductions.com")
-		var requestWithNoDup = dummyURL.generalRequest.with {
+		var requestWithNoDup = dummyURL.networkRequest.with {
 			$0.requestID = nil
 		}
 		requestWithNoDup.headers.addValue("sessionId=abc123", for: .cookie)
@@ -134,7 +134,7 @@ struct NetworkRequestTests {
 	@Test func requestHeadersWithDuplicatesAddedInDifferentOrder() async throws {
 		// Given two identical start requests.
 		let dummyURL = #URL("https://redeggproductions.com")
-		var request1 = dummyURL.generalRequest.with {
+		var request1 = dummyURL.networkRequest.with {
 			$0.requestID = nil
 		}
 		var request2 = request1
@@ -186,7 +186,7 @@ struct NetworkRequestTests {
 		let dummyURL = #URL("https://redeggproductions.com")
 
 		// Given a URL-derived request.
-		let downRequest = dummyURL.generalRequest
+		let downRequest = dummyURL.networkRequest
 
 		// Then it has a request ID.
 		#expect(downRequest.requestID != nil)
