@@ -528,7 +528,11 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 		let boundary = "akjlsdghkajshdg"
 		var multipart = MultipartForm(boundary: boundary)
 		multipart.append("Foo", named: "file", contentType: "text/plain")
-		multipart.append(actualTestFile, named: "file", filename: "dummy data test.mpf", contentType: "application/octet-stream")
+		multipart.append(
+			actualTestFile,
+			named: "file",
+			filename: "dummy data test.mpf",
+			contentType: "application/octet-stream")
 
 		let multipartHash = try SHA256.hash(data: multipart.render())
 		logger.info("Multipart hash", metadata: ["hash": "\(multipartHash)"])
@@ -550,6 +554,65 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 		#expect(
 			multipartHash.toHexString() == "290d2f338dbcceb32f85c1eee206f85681ebfe1785ccc9e38fed3a052d5d7267",
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
+	}
+
+	/// performs a `PUT` request to `uploadURL`
+	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
+	public func uploadUnknownLengthStream(
+		engine: Engine,
+		file: String = #fileID,
+		filePath: String = #filePath,
+		line: Int = #line,
+		column: Int = #column,
+		function: String = #function
+	) async throws {
+		let server = try await MockingServer.createServer(name: #function)
+		let uploadURL = uploadURL(port: server.port)
+
+		server.addMock(for: uploadURL.mockingPath, method: .put) {
+			[unowned server] inReq, respStream throws(MockingServer.HTTPError) in
+
+			try commonPutToGet(
+				mockingPath: uploadURL.mockingPath,
+				server: server,
+				inRequest: inReq,
+				responseStream: respStream)
+		}
+
+		let nh = getNetworkHandler(with: engine)
+		defer { nh.resetCache() }
+
+		let upRequest = uploadURL.generalRequest.with {
+			$0.method = .put
+			$0.expectedResponseCodes = 201
+			$0.headers.setAuthorization(.bearerToken("foobar"))
+		}
+
+		let rng: any RandomNumberGenerator = SeedableRNG(seed: 12_345)
+		let testFileURL = URL.temporaryDirectory.appending(component: "multipartStreamUpload").appendingPathExtension("bin")
+		let (actualTestFile, done) = try createDummyFile(at: testFileURL, megabytes: 10, using: rng)
+		defer { try? done() }
+		let fileHash = try SHA256.hash(data: Data(contentsOf: actualTestFile))
+
+		let streamCreator = NHStreamCreator(isRetryable: false) {
+			try #require(InputStream(url: actualTestFile))
+		}
+
+		let atomicRequest = LockBox(CompleteNetworkRequest.upload(upRequest, payload: .inputStream(streamCreator)))
+		let delegate = await Delegate(onRequestModified: { _, _, new in
+			atomicRequest.value = new
+		})
+		_ = try await nh.uploadMahDatas(for: upRequest, payload: .inputStream(streamCreator), delegate: delegate)
+		#expect(
+			atomicRequest.value.expectedContentLength == nil,
+			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
+
+		let dlRequest = uploadURL.generalRequest
+
+		let dlResult = try await #require(nh.transferMahDatas(for: .standard(dlRequest)).data)
+		#expect(
+			SHA256.hash(data: dlResult) == fileHash,
 			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 	}
 

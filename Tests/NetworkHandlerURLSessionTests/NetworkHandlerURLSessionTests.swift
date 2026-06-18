@@ -87,6 +87,13 @@ struct NetworkHandlerURLSessionTests: Sendable {
 	}
 
 	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
+	@Test func uploadUnknownLengthStream() async throws {
+		let mockingEngine = generateEngine()
+
+		try await commonTests.uploadUnknownLengthStream(engine: mockingEngine)
+	}
+
+	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
 	@Test func cancellationViaToken() async throws {
 		let mockingEngine = generateEngine()
 
