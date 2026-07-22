@@ -81,6 +81,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 		column: Int = #column,
 		function: String = #function
 	) async throws {
+		// Given: a mock server is created to return a lighthouse image
 		let server = try await MockingServer.createServer(name: #function)
 
 		let lighthouseURL = try #require(Bundle.testBundle.url(forResource: "lighthouse", withExtension: "jpg"))
@@ -96,6 +97,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 		let nh = getNetworkHandler(with: engine)
 		defer { nh.resetCache() }
 
+		// When: download the same image twice—once raw and once cached
 		let rawStart = Date()
 		let image1Result = try await nh.downloadMahDatas(
 			for: imageURL(port: server.port).networkRequest,
@@ -110,6 +112,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 			requestLogger: logger)
 		let cacheFinish = Date()
 
+		// Then: the cache must be at least 2x faster and both downloads match
 		// calculate cache speed improvement, just for funsies
 		let rawDuration = rawFinish.timeIntervalSince(rawStart)
 		let cacheDuration = cacheFinish.timeIntervalSince(cacheStart)
@@ -144,6 +147,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 		#endif
 	}
 
+	/// Performs a GET to `demoModelURL`, downloads JSON, and decodes it into a `DemoModel`.
 	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
 	public func downloadAndDecodeData(
 		engine: Engine,
@@ -153,6 +157,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 		column: Int = #column,
 		function: String = #function
 	) async throws {
+		// Given: a mock server returns JSON at demoModelURL with HTTP 200, and a NetworkHandler instance is created
 		let server = try await MockingServer.createServer(name: #function)
 		let modelURL = demoModelURL(port: server.port)
 
@@ -177,17 +182,19 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 		let nh = getNetworkHandler(with: engine)
 		defer { nh.resetCache() }
 
+		// When: download and decode the JSON payload into a DemoModel
 		let resultModel: DemoModel = try await nh.downloadMahCodableDatas(
 			for: modelURL.networkRequest,
 			delegate: nil,
 			requestLogger: logger).decoded
 
+		// Then: the decoded model equals the expected DemoModel value
 		#expect(
 			expectedModel == resultModel,
 			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 	}
 
-	/// performs a `GET` request to `demo404URL`
+	/// Verifies that a 404 response from `demo404URL` results in a `NetworkError` with HTTP status 404.
 	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
 	public func handle404Error(
 		engine: Engine,
@@ -197,6 +204,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 		column: Int = #column,
 		function: String = #function
 	) async throws {
+		// Given: a mock server returns 404 for demo404URL and a fresh NetworkHandler instance is created
 		let server = try await MockingServer.createServer(name: #function)
 
 		let nh = getNetworkHandler(with: engine)
@@ -204,6 +212,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 
 		let url = demo404URL(port: server.port)
 
+		// When: attempting to download from demo404URL triggers a NetworkError with status 404
 		let error = await #expect(
 			throws: NetworkError.self,
 			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column)
@@ -214,6 +223,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 				requestLogger: logger).decoded
 		}
 
+		// Then: the error is httpUnexpectedStatusCode with code 404
 		guard
 			case .httpUnexpectedStatusCode(code: let code, originalRequest: _, data: _) = error
 		else {
@@ -227,7 +237,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 		#expect(code == 404, sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column))
 	}
 
-	/// performs a `GET` request to `demoModelURL`
+	/// Validates that when `demoModelURL` returns HTTP 200, the transfer completes successfully.
 	@available(macOS 15.0.0, iOS 18.0.0, tvOS 18.0.0, *)
 	public func expect200OnlyGet200(
 		engine: Engine,
@@ -237,6 +247,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 		column: Int = #column,
 		function: String = #function
 	) async throws {
+		// Given: a mock server at demoModelURL returns HTTP 200 with no body, and a NetworkHandler instance is created
 		let server = try await MockingServer.createServer(name: #function)
 		let demoModelURL = demoModelURL(port: server.port)
 
@@ -249,6 +260,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 			$0.expectedResponseCodes = 200
 		}
 
+		// When / Then: transferring with the 200-expected request completes without error
 		await #expect(
 			throws: Never.self,
 			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column)
@@ -270,6 +282,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 		column: Int = #column,
 		function: String = #function
 	) async throws {
+		// Given: a mock server at demoModelURL accepts a PUT with a JSON payload and returns HTTP 200
 		let server = try await MockingServer.createServer(name: #function)
 		let demoModelURL = demoModelURL(port: server.port)
 
@@ -289,6 +302,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 			$0.payload = payloadData
 		}
 
+		// When: transferring a PUT request expecting 201 triggers a NetworkError because server returns 200
 		let error = await #expect(
 			throws: NetworkError.self,
 			sourceLocation: SourceLocation(fileID: file, filePath: filePath, line: line, column: column)
@@ -299,6 +313,7 @@ public struct NetworkHandlerCommonTests<Engine: NetworkEngine>: Sendable { // sw
 				onError: { _, _, _  in .throw })
 		}
 
+		// Then: the error code is 200
 		guard
 			case .httpUnexpectedStatusCode(code: let code, originalRequest: _, data: _) = error
 		else {
