@@ -22,6 +22,9 @@ var targets: [Target] = [
 			.product(name: "HTTPTypes", package: "swift-http-types"),
 			"NHMacros",
 		],
+		swiftSettings: [
+			.enableExperimentalFeature("StrictConcurrency")
+		],
 		plugins: [
 			.plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")
 		]),
